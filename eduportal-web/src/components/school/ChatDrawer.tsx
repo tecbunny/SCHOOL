@@ -32,7 +32,7 @@ export default function ChatDrawer({ title, roomId }: ChatDrawerProps) {
 
   // Load Messages & Subscribe to Realtime
   useEffect(() => {
-    if (!isOpen || !roomId) return;
+    if (!isOpen || !roomId || !supabase) return;
 
     const fetchMessages = async () => {
       setIsLoading(true);
