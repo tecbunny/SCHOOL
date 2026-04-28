@@ -56,7 +56,7 @@ export default function ChatDrawer({ title, roomId }: ChatDrawerProps) {
         schema: 'public', 
         table: 'chat_messages',
         filter: `room_id=eq.${roomId}`
-      }, (payload) => {
+      }, (payload: any) => {
         const newMessage = payload.new as Message;
         setMessages((prev) => [...prev, newMessage]);
       })
