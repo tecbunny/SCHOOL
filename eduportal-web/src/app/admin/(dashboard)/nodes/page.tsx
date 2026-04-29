@@ -36,7 +36,7 @@ export default function EdgeNodesPage() {
     // Real-time updates for telemetry
     const channel = supabase
       .channel('nodes-realtime')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hardware_nodes' }, payload => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hardware_nodes' }, (payload: any) => {
         setNodes(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
       })
       .subscribe();
