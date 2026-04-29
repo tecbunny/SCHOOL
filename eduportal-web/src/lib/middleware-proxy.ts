@@ -28,15 +28,15 @@ export async function proxy(request: NextRequest) {
   const url = new URL(request.url);
   
   // FIX: Determine if we need to redirect first
-  const isProtectedPath = url.pathname.includes('/dashboard') || url.pathname.startsWith('/admin') || url.pathname.startsWith('/auditor');
+  // Protect dashboards but NOT the login pages themselves
+  const isProtectedPath = url.pathname.includes('/dashboard');
   
   if (!user && isProtectedPath) {
     let redirectUrl = '/school';
-    if (url.pathname.startsWith('/admin')) redirectUrl = '/admin';
-    if (url.pathname.startsWith('/auditor')) redirectUrl = '/auditor';
+    if (url.pathname.includes('/admin')) redirectUrl = '/admin';
+    if (url.pathname.includes('/auditor')) redirectUrl = '/auditor';
     
-    // Create the redirect response instead of NEXT
-    response = NextResponse.redirect(new URL(redirectUrl, request.url));
+    return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
   // 1. Standalone Security: Block admin/auditor routes on student hardware

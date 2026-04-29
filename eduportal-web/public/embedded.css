@@ -1,0 +1,44 @@
+/* public/embedded.css */
+/* Optimized styles for SSPH-01 / EduOS Embedded Environment */
+
+@media (max-width: 600px), (hover: none) {
+  :root {
+    --sidebar-width: 0px;
+    --sp-6: 1rem;
+    --sp-12: 2rem;
+  }
+
+  body {
+    background-color: #050811;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .header-glass h1 {
+    font-size: 1rem;
+  }
+
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: var(--sp-4);
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .btn {
+    min-height: 44px;
+  }
+}
+
+.is-eduos .sidebar {
+  display: none !important;
+}
+
+.is-eduos .app-layout {
+  grid-template-columns: 1fr !important;
+}

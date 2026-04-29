@@ -12,13 +12,15 @@ $WebAppDir = Join-Path $ScriptDir ".."
 # 1. Build WebApp (Production Build)
 Write-Host "Building Next.js WebApp..." -ForegroundColor Yellow
 Push-Location $WebAppDir
-try {
-    & npm.cmd run build
-    Write-Host "WebApp Built successfully." -ForegroundColor Green
-} catch {
-    Write-Host "WebApp Build failed." -ForegroundColor Red
+& npm.cmd run build
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "WebApp Build failed! Aborting." -ForegroundColor Red
+    Pop-Location
+    exit $LASTEXITCODE
 }
+Write-Host "WebApp Built successfully." -ForegroundColor Green
 Pop-Location
+
 
 # 2. Compile Device Tree (Requires Device Tree Compiler)
 $compiler = Get-Command "dtc.exe" -ErrorAction SilentlyContinue

@@ -27,74 +27,74 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
       case 'student':
         return (
           <>
-            <Link href="/school/dashboard/student" className="nav-item active"><LayoutDashboard className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Dashboard'}</Link>
-            <Link href="#" className="nav-item" onClick={() => clearNotification('assignments')}><FileText className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Assignments'} {!isCollapsed && notifications.assignments > 0 && <span className="badge badge-danger ml-auto animate-pulse">{notifications.assignments}</span>}</Link>
-            <Link href="#" className="nav-item"><Calendar className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Timetable'}</Link>
-            <Link href="#" className="nav-item"><Book className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Study Materials'}</Link>
+            <Link href="/school/dashboard/student" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Dashboard</span>}</Link>
+            <Link href="#" className="nav-item" onClick={() => clearNotification('assignments')}><FileText className="w-5 h-5" /> {!isCollapsed && <span>Assignments</span>} {!isCollapsed && notifications.assignments > 0 && <span className="badge badge-danger ml-auto">{notifications.assignments}</span>}</Link>
+            <Link href="#" className="nav-item"><Calendar className="w-5 h-5" /> {!isCollapsed && <span>Timetable</span>}</Link>
+            <Link href="#" className="nav-item"><Book className="w-5 h-5" /> {!isCollapsed && <span>Study Materials</span>}</Link>
             
-            {!isCollapsed && <div className="mt-6 mb-2 px-4 text-xs font-semibold text-muted tracking-wider">NEP 2020</div>}
-            <Link href="#" className="nav-item"><BarChart className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Holistic Progress Card'}</Link>
-            <Link href="#" className="nav-item"><Users className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Peer Assessment'}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">NEP 2020</div>}
+            <Link href="#" className="nav-item"><BarChart className="w-5 h-5" /> {!isCollapsed && <span>Progress Card</span>}</Link>
+            <Link href="#" className="nav-item"><Users className="w-5 h-5" /> {!isCollapsed && <span>Peer Review</span>}</Link>
           </>
         );
       case 'teacher':
         return (
           <>
-            <Link href="/school/dashboard/teacher" className="nav-item active"><LayoutDashboard className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Dashboard'}</Link>
-            <Link href="#" className="nav-item"><Users className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'My Classes'}</Link>
-            <Link href="#" className="nav-item"><Calendar className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Mark Attendance'}</Link>
+            <Link href="/school/dashboard/teacher" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Dashboard</span>}</Link>
+            <Link href="#" className="nav-item"><Users className="w-5 h-5" /> {!isCollapsed && <span>My Classes</span>}</Link>
+            <Link href="#" className="nav-item"><Calendar className="w-5 h-5" /> {!isCollapsed && <span>Attendance</span>}</Link>
             
-            {!isCollapsed && <div className="mt-6 mb-2 px-4 text-xs font-semibold text-muted tracking-wider">NEP ACADEMICS</div>}
-            <Link href="#" className="nav-item"><PenTool className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Grade Entry (HPC)'}</Link>
-            <Link href="#" className="nav-item"><FilePlus className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Paper/Quiz Creator'}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">NEP Academics</div>}
+            <Link href="#" className="nav-item"><PenTool className="w-5 h-5" /> {!isCollapsed && <span>HPC Grading</span>}</Link>
+            <Link href="#" className="nav-item"><FilePlus className="w-5 h-5" /> {!isCollapsed && <span>Quiz Creator</span>}</Link>
             
-            {!isCollapsed && <div className="mt-6 mb-2 px-4 text-xs font-semibold text-muted tracking-wider">PROFESSIONAL</div>}
-            <Link href="#" className="nav-item"><Award className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'CPD Tracker'}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Professional</div>}
+            <Link href="#" className="nav-item"><Award className="w-5 h-5" /> {!isCollapsed && <span>CPD Tracker</span>}</Link>
           </>
         );
       case 'hod':
         return (
           <>
-            <Link href="/school/dashboard/hod" className="nav-item active"><LayoutDashboard className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Overview'}</Link>
-            <Link href="#" className="nav-item"><Users className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Teacher Management'}</Link>
+            <Link href="/school/dashboard/hod" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Overview</span>}</Link>
+            <Link href="#" className="nav-item"><Users className="w-5 h-5" /> {!isCollapsed && <span>Staffing</span>}</Link>
             
-            {!isCollapsed && <div className="mt-6 mb-2 px-4 text-xs font-semibold text-muted tracking-wider">NEP 2020</div>}
-            <Link href="#" className="nav-item"><BarChart className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Census Assessments'}</Link>
-            <Link href="#" className="nav-item"><BookOpen className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'SMC Tools'}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Compliance</div>}
+            <Link href="#" className="nav-item"><BarChart className="w-5 h-5" /> {!isCollapsed && <span>Census Logs</span>}</Link>
+            <Link href="#" className="nav-item"><BookOpen className="w-5 h-5" /> {!isCollapsed && <span>SMC Minutes</span>}</Link>
           </>
         );
       case 'moderator':
         return (
           <>
-            <Link href="/school/dashboard/moderator" className="nav-item active"><LayoutDashboard className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Dashboard'}</Link>
-            <Link href="#" className="nav-item"><BookOpen className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Syllabus Manager'}</Link>
-            <Link href="#" className="nav-item" onClick={() => clearNotification('materials')}><FolderUp className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Study Materials'} {!isCollapsed && notifications.materials > 0 && <span className="badge badge-warning ml-auto animate-pulse">{notifications.materials}</span>}</Link>
+            <Link href="/school/dashboard/moderator" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Dashboard</span>}</Link>
+            <Link href="#" className="nav-item"><BookOpen className="w-5 h-5" /> {!isCollapsed && <span>Syllabus Hub</span>}</Link>
+            <Link href="#" className="nav-item" onClick={() => clearNotification('materials')}><FolderUp className="w-5 h-5" /> {!isCollapsed && <span>Uploads</span>} {!isCollapsed && notifications.materials > 0 && <span className="badge badge-warning ml-auto">{notifications.materials}</span>}</Link>
             
-            {!isCollapsed && <div className="mt-6 mb-2 px-4 text-xs font-semibold text-muted tracking-wider">COMMUNICATION</div>}
-            <Link href="#" className="nav-item"><Megaphone className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'School Announcements'}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Channels</div>}
+            <Link href="#" className="nav-item"><Megaphone className="w-5 h-5" /> {!isCollapsed && <span>Broadcasts</span>}</Link>
           </>
         );
       case 'admin':
         return (
           <>
-            <Link href="/admin/dashboard" className="nav-item active"><LayoutDashboard className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Platform Overview'}</Link>
-            <Link href="#" className="nav-item"><Building className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'School Management'}</Link>
-            <Link href="#" className="nav-item"><Users className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'System Users'}</Link>
+            <Link href="/admin/dashboard" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Platform</span>}</Link>
+            <Link href="#" className="nav-item"><Building className="w-5 h-5" /> {!isCollapsed && <span>Schools</span>}</Link>
+            <Link href="#" className="nav-item"><Users className="w-5 h-5" /> {!isCollapsed && <span>Users</span>}</Link>
             
-            {!isCollapsed && <div className="mt-6 mb-2 px-4 text-xs font-semibold text-muted tracking-wider">SYSTEM</div>}
-            <Link href="#" className="nav-item"><ShieldCheck className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Security Logs'}</Link>
-            <Link href="#" className="nav-item"><FolderUp className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Backups'}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Security</div>}
+            <Link href="#" className="nav-item"><ShieldCheck className="w-5 h-5" /> {!isCollapsed && <span>Vault Logs</span>}</Link>
+            <Link href="#" className="nav-item"><FolderUp className="w-5 h-5" /> {!isCollapsed && <span>Snapshots</span>}</Link>
           </>
         );
       case 'auditor':
         return (
           <>
-            <Link href="/auditor/dashboard" className="nav-item active"><LayoutDashboard className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Auditor Home'}</Link>
-            <Link href="#" className="nav-item"><BarChart className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Compliance Maps'}</Link>
+            <Link href="/auditor/dashboard" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Audit Portal</span>}</Link>
+            <Link href="#" className="nav-item"><BarChart className="w-5 h-5" /> {!isCollapsed && <span>Compliance</span>}</Link>
             
-            {!isCollapsed && <div className="mt-6 mb-2 px-4 text-xs font-semibold text-muted tracking-wider">REPORTS</div>}
-            <Link href="#" className="nav-item"><FileText className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'Annual Audits'}</Link>
-            <Link href="#" className="nav-item"><Award className="w-5 h-5 min-w-[20px]" /> {!isCollapsed && 'NEP Certification'}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Reporting</div>}
+            <Link href="#" className="nav-item"><FileText className="w-5 h-5" /> {!isCollapsed && <span>Annuals</span>}</Link>
+            <Link href="#" className="nav-item"><Award className="w-5 h-5" /> {!isCollapsed && <span>Certifications</span>}</Link>
           </>
         );
     }
@@ -114,46 +114,52 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
   const profile = getProfile();
 
   return (
-    <aside className="sidebar glass-panel relative">
+    <aside className="sidebar glass-panel relative p-3">
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-6 bg-primary text-white p-1 rounded-full border-4 border-card shadow-lg z-10"
+        className="absolute -right-3 top-10 bg-primary text-white p-1 rounded-full border-4 border-[var(--bg-dark)] shadow-lg z-10 hover:scale-110 transition-transform"
       >
-        {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+        {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
       </button>
 
-      <div className={`flex items-center gap-3 mb-8 px-4 ${isCollapsed ? 'justify-center' : ''}`}>
-        {role === 'moderator' || role === 'admin' ? <ShieldCheck className="text-primary w-8 h-8 flex-shrink-0" /> : <GraduationCap className="text-primary w-8 h-8 flex-shrink-0" />}
+      <div className={`flex items-center gap-3 mb-10 mt-2 px-3 ${isCollapsed ? 'justify-center' : ''}`}>
+        <div className="bg-primary/20 p-2 rounded-lg border border-primary/30">
+          {role === 'moderator' || role === 'admin' ? <ShieldCheck className="text-primary w-6 h-6" /> : <GraduationCap className="text-primary w-6 h-6" />}
+        </div>
         {!isCollapsed && (
-          <div className="overflow-hidden whitespace-nowrap">
-            <h2 className="font-bold text-lg leading-tight">
-              {role === 'student' ? 'Student Portal' : role === 'admin' ? 'EduAdmin' : role === 'auditor' ? 'EduAudit' : "St. Mary's"}
+          <div className="overflow-hidden">
+            <h2 className="font-bold text-md tracking-tight leading-none">
+              {role === 'student' ? 'EduPortal' : role === 'admin' ? 'EduAdmin' : role === 'auditor' ? 'EduAudit' : "St. Mary's"}
             </h2>
-            <span className="text-xs text-muted font-semibold tracking-wider uppercase">{role}</span>
+            <span className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 block opacity-70">{role} Hub</span>
           </div>
         )}
       </div>
 
-      <nav className="flex flex-col gap-1 flex-1">
+      <nav className="flex flex-col gap-1.5 flex-1 overflow-x-hidden">
         {getNavItems()}
       </nav>
 
-      <div className={`mt-auto border-t border-[var(--border)] pt-4 flex items-center gap-3 px-2 ${isCollapsed ? 'justify-center flex-col' : ''}`}>
-        <img src={profile.avatar} alt={profile.name} className="w-10 h-10 rounded-full border-2 border-primary object-cover" />
+      <div className={`mt-auto bg-black/20 rounded-xl p-3 flex items-center gap-3 border border-white/5 ${isCollapsed ? 'justify-center flex-col p-2' : ''}`}>
+        <div className="relative">
+          <img src={profile.avatar} alt={profile.name} className="w-9 h-9 rounded-full border-2 border-primary/50 object-cover" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success border-2 border-[#000] rounded-full"></div>
+        </div>
         {!isCollapsed && (
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-semibold truncate">{profile.name}</p>
-            <p className="text-xs text-muted truncate">{profile.code}</p>
+            <p className="text-[13px] font-bold truncate leading-none mb-1">{profile.name}</p>
+            <p className="text-[10px] text-muted truncate font-mono uppercase opacity-60">{profile.code}</p>
           </div>
         )}
         <button 
           onClick={() => signOut()} 
-          className="text-muted hover:text-danger mt-1 bg-transparent border-none p-0" 
+          className="text-muted hover:text-danger transition-colors bg-transparent border-none p-1.5 rounded-lg hover:bg-danger/10" 
           title="Logout"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
     </aside>
   );
 }
+
