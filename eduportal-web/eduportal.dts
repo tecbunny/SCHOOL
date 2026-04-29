@@ -1,0 +1,38 @@
+/* eduportal.dts - Device Tree for Luckfox Pico Ultra + 3.5" SPI Display */
+/dts-v1/;
+/plugin/;
+
+&spi0 {
+    status = "okay";
+    pinctrl-names = "default";
+    pinctrl-0 = <&spi0m0_pins>;
+
+    /* ST7789 SPI Display */
+    display@0 {
+        compatible = "sitronix,st7789v";
+        reg = <0>;
+        status = "okay";
+        spi-max-frequency = <48000000>;
+        rotate = <90>;
+        fps = <30>;
+        buswidth = <8>;
+        dc-gpios = <&gpio1 1 0>;    /* GPIO1_A1 */
+        reset-gpios = <&gpio1 2 0>;  /* GPIO1_A2 */
+    };
+
+    /* XPT2046 Touch Controller */
+    touchscreen@1 {
+        compatible = "ti,xpt2046";
+        reg = <1>;
+        status = "okay";
+        spi-max-frequency = <1000000>;
+        interrupt-parent = <&gpio1>;
+        interrupts = <3 2>;    /* GPIO1_A3, IRQ_TYPE_EDGE_FALLING */
+        pendown-gpio = <&gpio1 3 0>;
+        
+        touchscreen-size-x = <480>;
+        touchscreen-size-y = <320>;
+        touchscreen-inverted-x;
+        touchscreen-swapped-x-y;
+    };
+};

@@ -8,12 +8,22 @@
 -- DROP TABLE IF EXISTS public.schools;
 -- DROP TYPE IF EXISTS user_role;
 
--- 2. CREATE CUSTOM ROLES
 DO $$ BEGIN
     CREATE TYPE user_role AS ENUM ('admin', 'auditor', 'principal', 'teacher', 'moderator', 'student');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
+
+-- 2.1 Helper function to avoid recursion in RLS
+CREATE OR REPLACE FUNCTION get_my_school_id()
+RETURNS UUID AS $$
+  SELECT school_id FROM public.profiles WHERE id = auth.uid();
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_my_role()
+RETURNS user_role AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid();
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- 3. CREATE SCHOOLS TABLE
 CREATE TABLE IF NOT EXISTS public.schools (
@@ -73,7 +83,9 @@ ALTER TABLE public.chat_participants ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Viewable by same school or higher" ON public.profiles;
 CREATE POLICY "Viewable by same school or higher" ON public.profiles
     FOR SELECT USING (
-        role = 'admin' OR role = 'auditor' OR school_id = (SELECT school_id FROM public.profiles WHERE id = auth.uid())
+        id = auth.uid() OR
+        get_my_role() IN ('admin', 'auditor') OR 
+        school_id = get_my_school_id()
     );
 
 -- Messages: Only participants can read messages
@@ -88,6 +100,22 @@ DROP POLICY IF EXISTS "Send messages if participant" ON public.chat_messages;
 CREATE POLICY "Send messages if participant" ON public.chat_messages
     FOR INSERT WITH CHECK (
         EXISTS (SELECT 1 FROM public.chat_participants WHERE room_id = public.chat_messages.room_id AND profile_id = auth.uid())
+    );
+
+-- Participants: Users can only see participants in rooms they belong to
+DROP POLICY IF EXISTS "View participants in own rooms" ON public.chat_participants;
+CREATE POLICY "View participants in own rooms" ON public.chat_participants
+    FOR SELECT USING (
+        profile_id = auth.uid() OR 
+        EXISTS (SELECT 1 FROM public.chat_participants p2 WHERE p2.room_id = public.chat_participants.room_id AND p2.profile_id = auth.uid())
+    );
+
+-- Participants: Users can only add themselves to rooms if they belong to the school
+DROP POLICY IF EXISTS "Self-join rooms in same school" ON public.chat_participants;
+CREATE POLICY "Self-join rooms in same school" ON public.chat_participants
+    FOR INSERT WITH CHECK (
+        profile_id = auth.uid() AND
+        EXISTS (SELECT 1 FROM public.chat_rooms r WHERE r.id = room_id AND r.school_id = get_my_school_id())
     );
 
 -- 10. ENABLE REALTIME
@@ -173,18 +201,26 @@ ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_papers ENABLE ROW LEVEL SECURITY;
 
 -- Students can view their own attendance and grades
+DROP POLICY IF EXISTS "Students view own attendance" ON public.attendance;
 CREATE POLICY "Students view own attendance" ON public.attendance FOR SELECT USING (student_id = auth.uid());
+
+DROP POLICY IF EXISTS "Students view own grades" ON public.hpc_grades;
 CREATE POLICY "Students view own grades" ON public.hpc_grades FOR SELECT USING (student_id = auth.uid());
 
 -- Teachers can view/insert for their school
+DROP POLICY IF EXISTS "Teachers manage school attendance" ON public.attendance;
 CREATE POLICY "Teachers manage school attendance" ON public.attendance 
     FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND school_id = public.attendance.school_id AND role = 'teacher'));
 
+DROP POLICY IF EXISTS "Teachers manage school grades" ON public.hpc_grades;
 CREATE POLICY "Teachers manage school grades" ON public.hpc_grades 
     FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher'));
 
 -- Auditors have read-only access to everything
+DROP POLICY IF EXISTS "Auditors read-only attendance" ON public.attendance;
 CREATE POLICY "Auditors read-only attendance" ON public.attendance FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
+
+DROP POLICY IF EXISTS "Auditors read-only grades" ON public.hpc_grades;
 CREATE POLICY "Auditors read-only grades" ON public.hpc_grades FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
 
 -- 14. ADVANCED NEP 2020 MODULES
@@ -248,15 +284,24 @@ ALTER TABLE public.smc_minutes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_wellbeing ENABLE ROW LEVEL SECURITY;
 
 -- General rule: Students/Parents view their own; Teachers/Principals view their school; Auditors view all.
+DROP POLICY IF EXISTS "Student/Parent view own feedback" ON public.parent_feedback;
 CREATE POLICY "Student/Parent view own feedback" ON public.parent_feedback FOR SELECT USING (student_id = auth.uid());
+
+DROP POLICY IF EXISTS "Student view own vocational" ON public.vocational_skills;
 CREATE POLICY "Student view own vocational" ON public.vocational_skills FOR SELECT USING (student_id = auth.uid());
+
+DROP POLICY IF EXISTS "Student view own FLN" ON public.fln_milestones;
 CREATE POLICY "Student view own FLN" ON public.fln_milestones FOR SELECT USING (student_id = auth.uid());
 
 -- HOD/Principals manage SMC
+DROP POLICY IF EXISTS "Principals manage SMC" ON public.smc_minutes;
 CREATE POLICY "Principals manage SMC" ON public.smc_minutes FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'principal'));
 
 -- Auditors see all for compliance auditing
+DROP POLICY IF EXISTS "Auditors see all advanced" ON public.smc_minutes;
 CREATE POLICY "Auditors see all advanced" ON public.smc_minutes FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
+
+DROP POLICY IF EXISTS "Auditors see vocational" ON public.vocational_skills;
 CREATE POLICY "Auditors see vocational" ON public.vocational_skills FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
 
 

@@ -17,6 +17,10 @@ export const navigateByRole = (role: UserRole) => {
 export const signInWithCode = async (code: string, password: string) => {
   const supabase = createClient();
   
+  if (!supabase) {
+    throw new Error('Supabase client failed to initialize. Please check your environment variables.');
+  }
+  
   // 1. In a production app, we would derive the email or use a custom auth provider.
   // For this prototype, we'll look up the profile first.
   const { data: profile, error: profileError } = await supabase
@@ -38,6 +42,28 @@ export const signInWithCode = async (code: string, password: string) => {
   });
 
   if (authError) throw authError;
-
+ 
   return { profile, authData };
+};
+
+export const signOut = async () => {
+  const supabase = createClient();
+  if (supabase) await supabase.auth.signOut();
+  
+  // Clear all local data for a clean slate (EduOS requirement)
+  if (typeof window !== 'undefined') {
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear cookies by setting expiry to past
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i];
+      const eqPos = cookie.indexOf("=");
+      const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    }
+    
+    window.location.href = '/school';
+  }
 };

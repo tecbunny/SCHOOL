@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck } from 'lucide-react';
+import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck, CheckSquare, PenTool } from 'lucide-react';
 import ChatDrawer from '@/components/school/ChatDrawer';
 import { useState } from 'react';
 
@@ -69,6 +69,16 @@ export default function TeacherDashboard() {
             </div>
             <button className="text-xs text-primary hover:underline mt-1">Log New CPD Session</button>
           </div>
+        </div>
+        
+        {/* Quick Actions Menu */}
+        <div className="flex gap-4">
+          <button className="glass-panel hover:bg-white/5 transition-colors border border-[var(--border)] rounded-lg p-4 flex items-center justify-center gap-3 flex-1 text-primary font-semibold">
+            <CheckSquare className="w-5 h-5" /> Mark Today's Attendance
+          </button>
+          <button className="glass-panel hover:bg-white/5 transition-colors border border-[var(--border)] rounded-lg p-4 flex items-center justify-center gap-3 flex-1 text-secondary font-semibold">
+            <PenTool className="w-5 h-5" /> Quick Grade Entry
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-8">

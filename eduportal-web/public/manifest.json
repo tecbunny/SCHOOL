@@ -1,0 +1,16 @@
+{
+  "name": "EduPortal",
+  "short_name": "EduPortal",
+  "start_url": "/school",
+  "display": "standalone",
+  "background_color": "#070B19",
+  "theme_color": "#8B5CF6",
+  "description": "The Next-Gen Multi-Tenant School Ecosystem",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/lucide-react/lucide/main/icons/graduation-cap.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -76,7 +76,7 @@ export default function ChatDrawer({ title, roomId }: ChatDrawerProps) {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !roomId) return;
+    if (!message.trim() || !roomId || !supabase) return;
 
     const { error } = await supabase
       .from('chat_messages')
@@ -86,6 +86,7 @@ export default function ChatDrawer({ title, roomId }: ChatDrawerProps) {
 
     if (!error) setMessage('');
   };
+
 
   return (
     <>
