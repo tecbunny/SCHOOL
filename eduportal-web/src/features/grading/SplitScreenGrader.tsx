@@ -26,46 +26,48 @@ export default function SplitScreenGrader() {
     presentation: 0
   });
 
-  const handleScanComplete = async (image: string) => {
-    setScannedImage(image);
+  const handleAiGrading = async (capturedImage: string) => {
+    setScannedImage(capturedImage);
     setSuggesting(true);
     try {
-      const res = await fetch('/api/ai/ocr', {
+      const response = await fetch('/api/ai/vision-grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image })
+        body: JSON.stringify({
+          image: capturedImage,
+          rubric: {
+            conceptual: "Understanding of core physics laws",
+            grammar: "Clarity of expression",
+            presentation: "Cleanliness of work"
+          },
+          context: "Grade 8 Physics - Newton's Laws Worksheet"
+        })
       });
-      const data = await res.json();
-      if (data.answers) {
-        const text = data.answers.map((a: any) => `Q${a.questionNumber}: ${a.text}`).join('\n');
-        setFeedback(prev => `${prev}\n\n[Extracted Text]:\n${text}`);
-        
-        if (data.suggestedScores) {
-          setScores(data.suggestedScores);
-        }
-        if (data.feedback) {
-          setFeedback(prev => `${prev}\n\n[AI Feedback]: ${data.feedback}`);
-        }
-      }
+
+      const aiResult = await response.json();
+      
+      // Update UI with AI suggestions
+      setFeedback(`[EXTRACTED TEXT]:\n${aiResult.extractedText}\n\n[GEMINI FEEDBACK]: ${aiResult.evaluations.map((e: any) => e.feedback).join(' ')}`);
+      
+      const newScores: Record<string, number> = {};
+      aiResult.evaluations.forEach((evalItem: any) => {
+        if (evalItem.criteria.toLowerCase().includes('conceptual')) newScores.conceptual = evalItem.suggestedScore;
+        if (evalItem.criteria.toLowerCase().includes('grammar') || evalItem.criteria.toLowerCase().includes('linguistic')) newScores.grammar = evalItem.suggestedScore;
+        if (evalItem.criteria.toLowerCase().includes('presentation')) newScores.presentation = evalItem.suggestedScore;
+      });
+
+      setScores(prev => ({ ...prev, ...newScores }));
+      
     } catch (err) {
-      console.error("OCR Error:", err);
+      console.error("AI Grading Error:", err);
     } finally {
       setSuggesting(false);
     }
   };
 
   const handleAISuggestion = async () => {
-    setSuggesting(true);
-    // Simulate AI call
-    setTimeout(() => {
-      setScores({
-        conceptual: 8,
-        grammar: 7,
-        presentation: 9
-      });
-      setFeedback(prev => `${prev}\n\n[Gemini Suggestion]: The student shows strong conceptual understanding but needs to focus on punctuation in the second paragraph.`);
-      setSuggesting(false);
-    }, 1500);
+    if (!scannedImage) return;
+    await handleAiGrading(scannedImage);
   };
 
   return (
@@ -90,7 +92,7 @@ export default function SplitScreenGrader() {
             <img src={scannedImage} className="w-full max-w-2xl bg-white aspect-[1/1.414] shadow-2xl object-contain" alt="Scanned" />
           ) : (
             <div className="w-full max-w-2xl">
-              <WorksheetScanner onScanComplete={handleScanComplete} />
+              <WorksheetScanner onScanComplete={handleAiGrading} />
             </div>
           )}
 
