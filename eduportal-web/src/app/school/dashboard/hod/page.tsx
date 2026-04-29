@@ -6,6 +6,7 @@ import AnnouncementComposer from '@/features/announcements/AnnouncementComposer'
 import ComplianceReportGenerator from '@/features/compliance/ComplianceReportGenerator';
 import SupportTicketSystem from '@/features/support/SupportTicketSystem';
 import PromotionConsole from '@/features/school-operations/PromotionConsole';
+import TimetableManager from '@/features/school-operations/TimetableManager';
 import EngagementHeatmap from '@/features/compliance/EngagementHeatmap';
 import HpcAnalytics from '@/features/compliance/HpcAnalytics';
 import { Shield, Settings, Users, BarChart } from 'lucide-react';
@@ -47,6 +48,7 @@ export default function HODDashboard() {
             </div>
             
             <PromotionConsole />
+            <TimetableManager />
           </div>
 
           {/* Right Column: Settings, Compliance & Support */}
