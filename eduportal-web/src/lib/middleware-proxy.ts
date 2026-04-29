@@ -27,9 +27,15 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const url = new URL(request.url);
   
-  // FIX: Determine if we need to redirect first
-  // Protect dashboards but NOT the login pages themselves
-  const isProtectedPath = url.pathname.includes('/dashboard');
+  // 1. Determine if the path is protected
+  const isProtectedPath = 
+    url.pathname.startsWith('/school/dashboard') || 
+    url.pathname.startsWith('/admin/dashboard') || 
+    url.pathname.startsWith('/auditor/dashboard') ||
+    url.pathname.startsWith('/admin/provision') ||
+    url.pathname.startsWith('/admin/schools') ||
+    url.pathname.startsWith('/admin/users') ||
+    url.pathname.startsWith('/admin/analytics');
   
   if (!user && isProtectedPath) {
     let redirectUrl = '/school';
