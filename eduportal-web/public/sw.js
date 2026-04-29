@@ -8,7 +8,7 @@ const OFFLINE_URLS = [
   '/favicon.ico'
 ];
 
-const ASSET_EXTENSIONS = ['.js', '.css', '.svg', '.png', '.jpg', '.woff2'];
+const ASSET_EXTENSIONS = ['.js', '.css', '.svg', '.png', '.jpg', '.woff2', '.pdf'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -26,16 +26,25 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Cache-First for static assets
-  if (ASSET_EXTENSIONS.some(ext => url.pathname.endsWith(ext))) {
+  // Specific handling for Study Materials (PDFs from Supabase Storage)
+  const isStorageAsset = url.pathname.includes('/storage/v1/object/public/');
+  const isPdf = url.pathname.endsWith('.pdf');
+
+  if (isPdf || ASSET_EXTENSIONS.some(ext => url.pathname.endsWith(ext))) {
     event.respondWith(
       caches.match(event.request).then((response) => {
-        return response || fetch(event.request).then(fetchResponse => {
+        const fetchPromise = fetch(event.request).then(fetchResponse => {
+          if (!fetchResponse || fetchResponse.status !== 200) return fetchResponse;
           return caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, fetchResponse.clone());
             return fetchResponse;
           });
+        }).catch(err => {
+           if (response) return response;
+           throw err;
         });
+        
+        return response || fetchPromise;
       })
     );
     return;
