@@ -5,10 +5,13 @@ import ChatDrawer from '@/components/school/ChatDrawer';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useDeviceMonitoring } from '@/hooks/useDeviceMonitoring';
+import DigitalIDCard from '@/components/school/DigitalIDCard';
 
 export default function StudentDashboard() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [studentId, setStudentId] = useState<string>('');
+  const [showID, setShowID] = useState(false);
+  const [zenMode, setZenMode] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -30,6 +33,20 @@ export default function StudentDashboard() {
       <header className="header-glass py-4 px-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Welcome back, Arjun! 👋</h1>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setZenMode(!zenMode)}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${
+              zenMode ? 'bg-secondary text-white' : 'bg-white/5 text-muted hover:bg-white/10'
+            }`}
+          >
+            {zenMode ? 'Exit Zen Mode' : 'Enter Zen Mode'}
+          </button>
+          <button 
+            onClick={() => setShowID(true)}
+            className="bg-primary/10 border border-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-bold hover:bg-primary/20 transition-all flex items-center gap-2"
+          >
+            View Secure ID
+          </button>
           <div className="bg-[var(--bg-dark)] px-3 py-1 rounded-full border text-sm text-muted flex items-center gap-2">
             <Building className="w-4 h-4" /> St. Mary's Convent
           </div>
@@ -38,75 +55,79 @@ export default function StudentDashboard() {
 
       <div className="p-8 flex flex-col gap-8 flex-1">
         
-        <div className="glass-panel border border-primary rounded-lg p-5 flex items-center gap-4 animate-gradient" style={{ backgroundImage: 'linear-gradient(270deg, rgba(139,92,246,0.15), rgba(244,114,182,0.15))' }}>
-          <div className="bg-primary/20 p-3 rounded-full">
-            <BellRing className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-bold text-lg text-primary tracking-tight">New AI Quiz Available!</h3>
-            <p className="text-sm text-muted mt-1">Your Math teacher has generated an AI Rapid Test for "Quadratic Equations".</p>
-          </div>
-          <button className="btn btn-primary ml-auto animate-pulse-glow shadow-lg">Take Quiz Now</button>
-        </div>
+        {!zenMode && (
+          <>
+            <div className="glass-panel border border-primary rounded-lg p-5 flex items-center gap-4 animate-gradient" style={{ backgroundImage: 'linear-gradient(270deg, rgba(139,92,246,0.15), rgba(244,114,182,0.15))' }}>
+              <div className="bg-primary/20 p-3 rounded-full">
+                <BellRing className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-primary tracking-tight">New AI Quiz Available!</h3>
+                <p className="text-sm text-muted mt-1">Your Math teacher has generated an AI Rapid Test for "Quadratic Equations".</p>
+              </div>
+              <button className="btn btn-primary ml-auto animate-pulse-glow shadow-lg">Take Quiz Now</button>
+            </div>
 
-        <div className="grid grid-cols-3 gap-6">
-          <div className="stat-card">
-            <div className="flex justify-between items-center text-muted text-sm font-semibold">
-              CURRENT CGPA <Award className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(139, 92, 246, 0.2)" strokeWidth="3" />
-                  <path strokeDasharray="82, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" strokeWidth="3" className="animate-[pulse_2s_ease-in-out_infinite]" />
-                </svg>
-                <div className="absolute font-bold text-lg">8.2</div>
+            <div className="grid grid-cols-3 gap-6">
+              <div className="stat-card">
+                <div className="flex justify-between items-center text-muted text-sm font-semibold">
+                  CURRENT CGPA <Award className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(139, 92, 246, 0.2)" strokeWidth="3" />
+                      <path strokeDasharray="82, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" strokeWidth="3" className="animate-[pulse_2s_ease-in-out_infinite]" />
+                    </svg>
+                    <div className="absolute font-bold text-lg">8.2</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs text-primary font-semibold tracking-wider uppercase mb-1">Excellent</div>
+                    <div className="text-xs text-muted flex items-center gap-1">Top 15% of class</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="text-xs text-primary font-semibold tracking-wider uppercase mb-1">Excellent</div>
-                <div className="text-xs text-muted flex items-center gap-1">Top 15% of class</div>
+              
+              <div className="stat-card">
+                <div className="flex justify-between items-center text-muted text-sm font-semibold">
+                  ATTENDANCE <CalendarCheck className="w-4 h-4 text-success" />
+                </div>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(52, 211, 153, 0.2)" strokeWidth="3" />
+                      <path strokeDasharray="94, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--success)" strokeWidth="3" />
+                    </svg>
+                    <div className="absolute font-bold text-lg text-success">94%</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs text-success font-semibold tracking-wider uppercase mb-1">On Track</div>
+                    <div className="text-xs text-muted">Safe from 75% rule</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="stat-card">
+                <div className="flex justify-between items-center text-muted text-sm font-semibold">
+                  PENDING TASKS <ClipboardList className="w-4 h-4 text-danger" />
+                </div>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(251, 113, 133, 0.2)" strokeWidth="3" />
+                      <path strokeDasharray="10, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--danger)" strokeWidth="3" />
+                    </svg>
+                    <div className="absolute font-bold text-lg text-danger">1</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs text-danger font-semibold tracking-wider uppercase mb-1">Action Needed</div>
+                    <div className="text-xs text-muted">Science lab due tomorrow</div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="flex justify-between items-center text-muted text-sm font-semibold">
-              ATTENDANCE <CalendarCheck className="w-4 h-4 text-success" />
-            </div>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(52, 211, 153, 0.2)" strokeWidth="3" />
-                  <path strokeDasharray="94, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--success)" strokeWidth="3" />
-                </svg>
-                <div className="absolute font-bold text-lg text-success">94%</div>
-              </div>
-              <div className="flex-1">
-                <div className="text-xs text-success font-semibold tracking-wider uppercase mb-1">On Track</div>
-                <div className="text-xs text-muted">Safe from 75% rule</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="flex justify-between items-center text-muted text-sm font-semibold">
-              PENDING TASKS <ClipboardList className="w-4 h-4 text-danger" />
-            </div>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(251, 113, 133, 0.2)" strokeWidth="3" />
-                  <path strokeDasharray="10, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--danger)" strokeWidth="3" />
-                </svg>
-                <div className="absolute font-bold text-lg text-danger">1</div>
-              </div>
-              <div className="flex-1">
-                <div className="text-xs text-danger font-semibold tracking-wider uppercase mb-1">Action Needed</div>
-                <div className="text-xs text-muted">Science lab due tomorrow</div>
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
 
         <div className="bg-card border rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
@@ -195,6 +216,15 @@ export default function StudentDashboard() {
       </div>
       
       <ChatDrawer title="10-A Math Class" />
+
+      {/* Profile / ID Modal */}
+      {showID && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowID(false)}>
+          <div onClick={e => e.stopPropagation()}>
+            <DigitalIDCard user={{ full_name: 'Arjun Sharma', user_code: '78782609341', role: 'STUDENT' }} />
+          </div>
+        </div>
+      )}
     </>
   );
 }

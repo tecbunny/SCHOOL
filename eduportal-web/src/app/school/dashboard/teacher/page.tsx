@@ -4,6 +4,7 @@ import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck, CheckSquare, 
 import ChatDrawer from '@/components/school/ChatDrawer';
 import { useState } from 'react';
 import LiveMonitorGrid from '@/components/school/LiveMonitorGrid';
+import ClassAnalytics from '@/components/school/ClassAnalytics';
 
 export default function TeacherDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -85,6 +86,11 @@ export default function TeacherDashboard() {
         {/* Live Monitoring Section (SSPH-01 Hardware Management) */}
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8">
           <LiveMonitorGrid schoolId="current-school" />
+        </div>
+
+        {/* AI Performance Insights */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8">
+          <ClassAnalytics />
         </div>
 
         <div className="grid grid-cols-2 gap-8">
