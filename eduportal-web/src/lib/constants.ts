@@ -20,6 +20,14 @@ export const ROUTES = {
 // --- TYPES ---
 export type UserRole = 'admin' | 'auditor' | 'principal' | 'teacher' | 'moderator' | 'student';
 
+export interface Profile {
+  id: string;
+  full_name: string;
+  role: UserRole;
+  is_teaching_staff: boolean;
+  school_id: string;
+}
+
 export interface GateJwtPayload extends JwtPayload {
   sub: string;
 }

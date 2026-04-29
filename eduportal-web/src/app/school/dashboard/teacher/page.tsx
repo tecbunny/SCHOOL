@@ -1,8 +1,9 @@
 "use client";
 
-import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck, CheckSquare, PenTool } from 'lucide-react';
+import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck, CheckSquare, PenTool, Maximize2, Zap, CheckCircle } from 'lucide-react';
 import { ChatDrawer } from '@/components/school/ClassroomTools';
 import { useState } from 'react';
+import Link from 'next/link';
 import LiveMonitorGrid from '@/components/school/LiveMonitorGrid';
 import ClassAnalytics from '@/components/school/ClassAnalytics';
 
@@ -73,6 +74,62 @@ export default function TeacherDashboard() {
           </div>
         </div>
         
+        {/* Split-Screen Grading Workflow (Phase 4) */}
+        <div className="grid grid-cols-3 gap-6">
+          <div className="col-span-2 bg-card border border-primary/20 rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <FileCheck className="w-24 h-24 text-primary" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/20 p-2 rounded-lg text-primary">
+                    <CheckSquare className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Pending Grading</h3>
+                    <p className="text-xs text-muted">Scanned worksheets from Class Station (HPC-Edge)</p>
+                  </div>
+                </div>
+                <Link href="/school/dashboard/teacher/grading/current" className="btn btn-primary btn-sm gap-2">
+                  Launch Grader <Maximize2 className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex -space-x-3">
+                  {[1,2,3,4].map(i => <div key={i} className="w-10 h-10 rounded-full border-2 border-card bg-primary/20 flex items-center justify-center font-bold text-xs">S{i}</div>)}
+                  <div className="w-10 h-10 rounded-full border-2 border-card bg-white/5 flex items-center justify-center font-bold text-xs text-muted">+12</div>
+                </div>
+                <div className="text-sm text-muted flex items-center">
+                  16 Worksheets awaiting AI-assisted grading
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-secondary/20 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-secondary/20 p-2 rounded-lg text-secondary">
+                <Zap className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold">Edge Sync Status</h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted">Class Station (Luckfox)</span>
+                <span className="text-success flex items-center gap-1 font-bold"><CheckCircle className="w-3 h-3" /> Synchronized</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted">Student Hubs (30 Connected)</span>
+                <span className="text-success font-bold">100%</span>
+              </div>
+              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-2">
+                <div className="h-full bg-secondary w-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
         {/* Quick Actions Menu */}
         <div className="flex gap-4">
           <button className="glass-panel hover:bg-white/5 transition-colors border border-[var(--border)] rounded-lg p-4 flex items-center justify-center gap-3 flex-1 text-primary font-semibold">
@@ -95,47 +152,60 @@ export default function TeacherDashboard() {
 
         <div className="grid grid-cols-2 gap-8">
           
-          {/* Grade Entry System (HPC) */}
+          {/* Grade Entry System (HPC) - Dynamic NEP Scales */}
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-lg">HPC Grade Entry</h3>
-              <span className="badge badge-neutral">Class 10-A (Mathematics)</span>
+              <div className="flex flex-col">
+                <h3 className="font-bold text-lg">NEP HPC Grade Entry</h3>
+                <p className="text-[10px] text-primary font-bold uppercase tracking-widest">Foundational Stage Mode</p>
+              </div>
+              <span className="badge badge-neutral">Class 2-A (EVS)</span>
             </div>
             
             <div className="bg-card border rounded-lg p-6">
               <div className="flex gap-4 mb-6 border-b border-[var(--border)] pb-4">
                 <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
-                  <input type="radio" name="assessmentType" defaultChecked className="accent-primary" /> Formative (Ongoing)
+                  <input type="radio" name="assessmentType" defaultChecked className="accent-primary" /> Competency Based
                 </label>
                 <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
-                  <input type="radio" name="assessmentType" className="accent-primary" /> Summative (Term End)
+                  <input type="radio" name="assessmentType" className="accent-primary" /> Skill Observation
                 </label>
               </div>
 
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between bg-[var(--bg-dark)] border p-3 rounded-md">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-xs font-bold border">12</div>
-                    <span className="font-semibold text-sm">Arjun Sharma</span>
+                    <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-xs font-bold border">01</div>
+                    <span className="font-semibold text-sm">Aditya Verma</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <input type="number" placeholder="Marks /20" className="bg-card border rounded px-2 py-1 text-white text-sm w-24 outline-none" defaultValue="18" />
-                    <span className="badge badge-success w-10 text-center">A1</span>
+                    <select className="bg-card border rounded px-2 py-1 text-white text-[10px] outline-none">
+                      <option>Beginning</option>
+                      <option>Approaching</option>
+                      <option selected>Meeting</option>
+                      <option>Exceeding</option>
+                    </select>
+                    <span className="badge badge-success w-10 text-[10px] text-center">MT</span>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between bg-[var(--bg-dark)] border p-3 rounded-md">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-xs font-bold border">15</div>
-                    <span className="font-semibold text-sm">Neha Gupta</span>
+                    <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-xs font-bold border">02</div>
+                    <span className="font-semibold text-sm">Riya Singh</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <input type="number" placeholder="Marks /20" className="bg-card border rounded px-2 py-1 text-white text-sm w-24 outline-none" defaultValue="14" />
-                    <span className="badge badge-warning w-10 text-center">B2</span>
+                    <select className="bg-card border rounded px-2 py-1 text-white text-[10px] outline-none">
+                      <option>Beginning</option>
+                      <option selected>Approaching</option>
+                      <option>Meeting</option>
+                      <option>Exceeding</option>
+                    </select>
+                    <span className="badge badge-warning w-10 text-[10px] text-center">AP</span>
                   </div>
                 </div>
               </div>
-              <button className="btn btn-primary w-full mt-6 justify-center">Save Grades to DB</button>
+              <button className="btn btn-primary w-full mt-6 justify-center">Sync to Student HPC Cloud</button>
             </div>
           </div>
 

@@ -12,6 +12,22 @@ interface SchoolSidebarProps {
 export default function SchoolSidebar({ role }: SchoolSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [notifications, setNotifications] = useState({ assignments: 1, materials: 3 });
+  const [profileData, setProfileData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await (await import('@/lib/supabase')).createClient().auth.getUser();
+      if (user) {
+        const { data } = await (await import('@/lib/supabase')).createClient()
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        setProfileData(data);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // Update global CSS variable for layout transition
   useEffect(() => {
@@ -50,6 +66,13 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             
             {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Professional</div>}
             <Link href="#" className="nav-item"><Award className="w-5 h-5" /> {!isCollapsed && <span>CPD Tracker</span>}</Link>
+            
+            {/* Workspace Toggle for Hybrid Principal */}
+            {profileData?.role === 'principal' && (
+              <Link href="/school/dashboard/hod" className="nav-item mt-4 bg-primary/10 text-primary border border-primary/20">
+                <ShieldCheck className="w-5 h-5" /> {!isCollapsed && <span>Principal View</span>}
+              </Link>
+            )}
           </>
         );
       case 'hod':
@@ -61,6 +84,13 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Compliance</div>}
             <Link href="#" className="nav-item"><BarChart className="w-5 h-5" /> {!isCollapsed && <span>Census Logs</span>}</Link>
             <Link href="#" className="nav-item"><BookOpen className="w-5 h-5" /> {!isCollapsed && <span>SMC Minutes</span>}</Link>
+
+            {/* Workspace Toggle for Hybrid Principal */}
+            {profileData?.is_teaching_staff && (
+              <Link href="/school/dashboard/teacher" className="nav-item mt-4 bg-secondary/10 text-secondary border border-secondary/20">
+                <PenTool className="w-5 h-5" /> {!isCollapsed && <span>Teacher View</span>}
+              </Link>
+            )}
           </>
         );
       case 'moderator':

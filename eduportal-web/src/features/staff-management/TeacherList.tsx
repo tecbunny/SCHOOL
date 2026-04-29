@@ -1,35 +1,54 @@
 "use client";
 
-import { Users, GraduationCap, Search, MoreVertical, Loader2 } from 'lucide-react';
+import { Users, GraduationCap, Search, MoreVertical, Loader2, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { staffService } from '@/services/staff.service';
+import AddStaffModal from './AddStaffModal';
 
 export default function TeacherList() {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const fetchTeachers = async () => {
+    setLoading(true);
+    try {
+      const data = await staffService.getTeachers();
+      setTeachers(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTeachers = async () => {
-      try {
-        const data = await staffService.getTeachers();
-        setTeachers(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchTeachers();
   }, []);
 
   return (
-    <div className="bg-card border border-white/5 rounded-2xl flex flex-col h-full">
+    <div className="bg-card border border-white/5 rounded-2xl flex flex-col h-full relative">
       <div className="p-6 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-secondary" />
-          <h3 className="font-bold text-lg">Staff Directory & CPD Tracker</h3>
+          <h3 className="font-bold text-lg text-white">Staff Directory & CPD Tracker</h3>
         </div>
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="btn btn-primary btn-sm gap-2"
+        >
+          <UserPlus className="w-4 h-4" /> Add Staff
+        </button>
       </div>
+
+      {isAddModalOpen && (
+        <AddStaffModal 
+          onClose={() => {
+            setIsAddModalOpen(false);
+            fetchTeachers(); // Refresh list after adding
+          }} 
+        />
+      )}
 
       <div className="p-4 border-b border-white/5 flex gap-4">
         <div className="relative flex-1">
