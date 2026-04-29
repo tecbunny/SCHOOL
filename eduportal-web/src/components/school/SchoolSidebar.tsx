@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCap, Building, LayoutDashboard, FileText, Calendar, Book, BarChart, Users, BookOpen, PenTool, FilePlus, Award, ShieldCheck, FolderUp, Megaphone, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { GraduationCap, Building, LayoutDashboard, FileText, Calendar, Book, BarChart, Users, BookOpen, PenTool, FilePlus, Award, ShieldCheck, FolderUp, Megaphone, LogOut, ChevronLeft, ChevronRight, Inbox, CreditCard, BarChart2, Settings, Cpu } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth.client';
@@ -77,13 +77,21 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
       case 'admin':
         return (
           <>
-            <Link href="/admin/dashboard" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Platform</span>}</Link>
-            <Link href="#" className="nav-item"><Building className="w-5 h-5" /> {!isCollapsed && <span>Schools</span>}</Link>
-            <Link href="#" className="nav-item"><Users className="w-5 h-5" /> {!isCollapsed && <span>Users</span>}</Link>
+            <Link href="/admin/dashboard" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Platform Overview</span>}</Link>
+            <Link href="/admin/schools" className="nav-item"><Building className="w-5 h-5" /> {!isCollapsed && <span>Manage Schools</span>}</Link>
+            <Link href="/admin/requests" className="nav-item">
+              <Inbox className="w-5 h-5" /> {!isCollapsed && <span>Registration Requests</span>} {!isCollapsed && <span className="badge badge-warning ml-auto">3</span>}
+            </Link>
+            <Link href="/admin/subscriptions" className="nav-item"><CreditCard className="w-5 h-5" /> {!isCollapsed && <span>Subscriptions</span>}</Link>
+            <Link href="/admin/analytics" className="nav-item"><BarChart2 className="w-5 h-5" /> {!isCollapsed && <span>Global Analytics</span>}</Link>
             
-            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Security</div>}
-            <Link href="#" className="nav-item"><ShieldCheck className="w-5 h-5" /> {!isCollapsed && <span>Vault Logs</span>}</Link>
-            <Link href="#" className="nav-item"><FolderUp className="w-5 h-5" /> {!isCollapsed && <span>Snapshots</span>}</Link>
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Infrastructure</div>}
+            <Link href="/admin/nodes" className="nav-item"><Cpu className="w-5 h-5" /> {!isCollapsed && <span>Edge Orchestration</span>}</Link>
+            <Link href="/admin/logs" className="nav-item"><ShieldCheck className="w-5 h-5" /> {!isCollapsed && <span>Vault Logs</span>}</Link>
+            
+            {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">System</div>}
+            <Link href="/admin/users" className="nav-item"><Users className="w-5 h-5" /> {!isCollapsed && <span>Admin Users</span>}</Link>
+            <Link href="/admin/settings" className="nav-item"><Settings className="w-5 h-5" /> {!isCollapsed && <span>Platform Settings</span>}</Link>
           </>
         );
       case 'auditor':
