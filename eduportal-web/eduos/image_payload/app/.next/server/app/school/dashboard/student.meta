@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/school/layout,_N_T_/school/dashboard/layout,_N_T_/school/dashboard/student/layout,_N_T_/school/dashboard/student/page,_N_T_/school/dashboard/student"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/school/dashboard/student/__PAGE__",
+    "/school/dashboard/student",
+    "/school/dashboard",
+    "/school",
+    "/_index",
+    "/_head"
+  ]
+}
