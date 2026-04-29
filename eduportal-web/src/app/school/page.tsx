@@ -4,8 +4,8 @@ import { GraduationCap, Building, Users, Badge as BadgeIcon, Lock, Info, Hash, A
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent, useEffect } from 'react';
-import { signInWithCode, navigateByRole } from '@/lib/auth';
-import { UserRole } from '@/lib/auth';
+import { signInWithCode } from '@/lib/auth.client';
+import { navigateByRole, UserRole } from '@/lib/constants';
 import { Loader2, Fingerprint, Camera } from 'lucide-react';
 import { QRLoginModal, QRScannerModal } from '@/components/school/AuthModals';
 

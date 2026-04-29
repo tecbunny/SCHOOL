@@ -1,0 +1,37 @@
+import { JwtPayload } from "jsonwebtoken";
+
+// --- CONSTANTS ---
+export const APP_CONFIG = {
+  NAME: 'EduPortal',
+  VERSION: '1.0.0-SSPH01',
+  AUTH_DOMAIN: 'auth.ssph01.eduportal.internal',
+};
+
+export const ROUTES = {
+  ADMIN: '/admin/dashboard',
+  AUDITOR: '/auditor/dashboard',
+  PRINCIPAL: '/school/dashboard/hod',
+  TEACHER: '/school/dashboard/teacher',
+  MODERATOR: '/school/dashboard/moderator',
+  STUDENT: '/school/dashboard/student',
+  LOGIN: '/school',
+};
+
+// --- TYPES ---
+export type UserRole = 'admin' | 'auditor' | 'principal' | 'teacher' | 'moderator' | 'student';
+
+export interface GateJwtPayload extends JwtPayload {
+  sub: string;
+}
+
+export const navigateByRole = (role: UserRole) => {
+  switch (role) {
+    case 'admin': return ROUTES.ADMIN;
+    case 'auditor': return ROUTES.AUDITOR;
+    case 'principal': return ROUTES.PRINCIPAL;
+    case 'teacher': return ROUTES.TEACHER;
+    case 'moderator': return ROUTES.MODERATOR;
+    case 'student': return ROUTES.STUDENT;
+    default: return ROUTES.LOGIN;
+  }
+};

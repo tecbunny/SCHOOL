@@ -1,4 +1,4 @@
-import { proxy } from "@/lib/auth";
+import { proxy } from "@/lib/middleware-proxy";
 import { type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { GateJwtPayload } from "@/lib/auth";
+import { GateJwtPayload } from "@/lib/constants";
 
 const GATE_SECRET = process.env.GATE_AUTH_SECRET || "ssph-01-gate-secure-key";
 

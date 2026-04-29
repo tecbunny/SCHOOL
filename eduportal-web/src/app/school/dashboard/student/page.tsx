@@ -3,7 +3,7 @@
 import { BellRing, Award, CalendarCheck, ClipboardList, Building, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { ChatDrawer } from '@/components/school/ClassroomTools';
 import { useState, useEffect } from 'react';
-import { createClient, useDeviceMonitoring } from '@/lib/auth';
+import { createClient, useDeviceMonitoring } from '@/lib/auth.client';
 import DigitalIDCard from '@/components/school/DigitalIDCard';
 
 export default function StudentDashboard() {
