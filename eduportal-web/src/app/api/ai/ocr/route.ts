@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     // 1. Simulate NPU Pre-processing
     // In a real EduOS environment, the Luckfox NPU would handle the first layer of 
     // noise reduction and edge detection before sending to the cloud.
-    console.log(`[NPU 1.0 TOPS] Pre-processing notebook scan for ${user.id}`);
+
 
     const apiKey = process.env.GEMINI_API_KEY;
     const genAI = new GoogleGenerativeAI(apiKey!);

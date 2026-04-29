@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import PWARegistration from "@/components/PWARegistration";
+import PWARegistration from "@/components/school/PWARegistration";
 
 export const metadata: Metadata = {
   title: "EduPortal | The Multi-Tenant School Ecosystem",

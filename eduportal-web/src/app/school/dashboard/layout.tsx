@@ -2,7 +2,7 @@
 
 import SchoolSidebar from '@/components/school/SchoolSidebar';
 import { usePathname } from 'next/navigation';
-import { signOut } from '@/lib/auth-utils';
+import { signOut } from '@/lib/auth';
 import { ReactNode, useEffect, useState } from 'react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

@@ -4,7 +4,7 @@ import { BellRing, Award, CalendarCheck, ClipboardList, Building, Download, Chev
 import ChatDrawer from '@/components/school/ChatDrawer';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
-import { useDeviceMonitoring } from '@/hooks/useDeviceMonitoring';
+import { useDeviceMonitoring } from '@/lib/hooks';
 import DigitalIDCard from '@/components/school/DigitalIDCard';
 
 export default function StudentDashboard() {

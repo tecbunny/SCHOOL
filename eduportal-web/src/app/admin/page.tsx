@@ -4,7 +4,8 @@ import { Shield, User, Lock, ArrowRight, ArrowLeft, Info, Loader2 } from 'lucide
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent } from 'react';
-import { signInWithCode, navigateByRole, UserRole } from '@/lib/auth-utils';
+import { signInWithCode, navigateByRole } from '@/lib/auth';
+import { UserRole } from '@/lib/auth';
 
 export default function AdminLogin() {
   const router = useRouter();

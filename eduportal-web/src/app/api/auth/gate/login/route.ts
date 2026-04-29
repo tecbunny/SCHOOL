@@ -1,12 +1,9 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import { GateJwtPayload } from "@/lib/auth";
 
 const GATE_SECRET = process.env.GATE_AUTH_SECRET || "ssph-01-gate-secure-key";
-
-interface GateJwtPayload extends JwtPayload {
-  sub: string;
-}
 
 export async function POST(req: Request) {
   try {

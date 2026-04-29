@@ -3,7 +3,7 @@
 import { GraduationCap, Building, LayoutDashboard, FileText, Calendar, Book, BarChart, Users, BookOpen, PenTool, FilePlus, Award, ShieldCheck, FolderUp, Megaphone, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { signOut } from '@/lib/auth-utils';
+import { signOut } from '@/lib/auth';
 
 interface SchoolSidebarProps {
   role: 'student' | 'teacher' | 'hod' | 'moderator' | 'admin' | 'auditor';
