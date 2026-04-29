@@ -1,24 +1,33 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 const GATE_SECRET = process.env.GATE_AUTH_SECRET || "ssph-01-gate-secure-key";
 
+interface GateJwtPayload extends JwtPayload {
+  sub: string;
+}
+
 export async function POST(req: Request) {
   try {
-    const { token, deviceId } = await req.json();
+    const body = await req.json();
+    const { token, deviceId } = body;
 
-    if (!token) return NextResponse.json({ error: "No handshake token provided." }, { status: 400 });
+    if (!token) {
+      return NextResponse.json({ error: "No handshake token provided." }, { status: 400 });
+    }
 
     // 1. Verify the JWT
-    const decoded: any = jwt.verify(token, GATE_SECRET);
+    let decoded: GateJwtPayload;
+    try {
+      decoded = jwt.verify(token, GATE_SECRET) as GateJwtPayload;
+    } catch (jwtError) {
+      return NextResponse.json({ error: "Token expired or tampered with." }, { status: 401 });
+    }
 
     const supabase = await createClient();
 
-    // 2. Fetch the user's secure credentials (using the obfuscated internal email)
-    // In a real flow, we would use Supabase's `admin.generateLink` or similar, 
-    // but for the SSPH-01 handshake, we verify the token and return the student profile.
-    
+    // 2. Fetch the user's secure credentials
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*, schools(*)')
@@ -35,8 +44,6 @@ export async function POST(req: Request) {
     }
 
     // 4. Return the session/user data for client-side login
-    // Note: For full Supabase auth, the client would then call signInWithPassword 
-    // using the secure internal mapping.
     return NextResponse.json({ 
       success: true, 
       userCode: profile.user_code,
@@ -44,6 +51,8 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    return NextResponse.json({ error: "Token expired or tampered with." }, { status: 401 });
+    // Catch-all for server errors, JSON parsing errors, etc.
+    console.error("Gate Login Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -21,8 +21,22 @@ export const signInWithCode = async (code: string, password: string) => {
     throw new Error('Supabase client failed to initialize. Please check your environment variables.');
   }
   
-  // 1. In a production app, we would derive the email or use a custom auth provider.
-  // For this prototype, we'll look up the profile first.
+  // 1. Sign in with Supabase Auth FIRST. 
+  // This circumvents RLS issues because the user is authenticated before querying the profile.
+  const email = `${code.toLowerCase()}@auth.ssph01.eduportal.internal`;
+  
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (authError) {
+    // Obfuscate the error message slightly so we don't reveal the internal email structure
+    throw new Error('Invalid User Code or Password. Please check your credentials.');
+  }
+
+  // 2. Now that we have a secure session, fetch the profile data.
+  // RLS policies will now correctly allow the user to read their own row.
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('id, role')
@@ -30,38 +44,34 @@ export const signInWithCode = async (code: string, password: string) => {
     .single();
 
   if (profileError || !profile) {
-    throw new Error('Invalid User Code. Please check your credentials.');
+    // Edge case: User is authenticated but profile is missing
+    await supabase.auth.signOut();
+    throw new Error('Account setup incomplete. Profile not found.');
   }
-
-  // 2. Sign in with Supabase Auth
-  // We use an obfuscated suffix to prevent identifier guessing
-  const email = `${code.toLowerCase()}@auth.ssph01.eduportal.internal`;
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (authError) throw authError;
  
   return { profile, authData };
 };
 
 export const signOut = async () => {
   const supabase = createClient();
-  if (supabase) await supabase.auth.signOut();
+  
+  // Supabase handles HttpOnly cookie invalidation if set up correctly
+  if (supabase) {
+    await supabase.auth.signOut();
+  }
   
   // Clear all local data for a clean slate (EduOS requirement)
   if (typeof window !== 'undefined') {
     localStorage.clear();
     sessionStorage.clear();
     
-    // Clear cookies by setting expiry to past
+    // Clear standard document cookies (replaces deprecated substr with substring)
     const cookies = document.cookie.split(";");
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i];
       const eqPos = cookie.indexOf("=");
-      const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+      document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
     }
     
     window.location.href = '/school';
