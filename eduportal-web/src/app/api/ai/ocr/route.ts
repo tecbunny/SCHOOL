@@ -22,8 +22,8 @@ export async function POST(req: Request) {
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `
-      You are an expert Handwriting OCR engine for the EduPortal academic platform.
-      Extract all handwritten text from this school worksheet.
+      You are an expert Handwriting OCR and Academic Assessor for the EduPortal platform.
+      Extract all handwritten text from this school worksheet AND provide a scoring suggestion.
       
       Return a structured JSON object:
       {
@@ -32,7 +32,12 @@ export async function POST(req: Request) {
           { "questionNumber": 1, "text": "Extracted answer text" },
           ...
         ],
-        "metadata": { "clarityScore": 0.95 }
+        "suggestedScores": {
+          "conceptual": 8,
+          "grammar": 7,
+          "presentation": 9
+        },
+        "feedback": "A concise summary of the student's performance."
       }
       
       Only return the JSON. No markdown formatting.

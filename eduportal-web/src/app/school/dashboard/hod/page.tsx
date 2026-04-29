@@ -6,6 +6,7 @@ import AnnouncementComposer from '@/features/announcements/AnnouncementComposer'
 import ComplianceReportGenerator from '@/features/compliance/ComplianceReportGenerator';
 import SupportTicketSystem from '@/features/support/SupportTicketSystem';
 import PromotionConsole from '@/features/school-operations/PromotionConsole';
+import EngagementHeatmap from '@/features/compliance/EngagementHeatmap';
 import { Shield, Settings, Users, BarChart } from 'lucide-react';
 
 export default function HODDashboard() {
@@ -50,6 +51,7 @@ export default function HODDashboard() {
           {/* Right Column: Settings, Compliance & Support */}
           <div className="col-span-4 flex flex-col gap-8">
             <ComplianceReportGenerator />
+            <EngagementHeatmap />
             <SupportTicketSystem />
             <AttendanceConfig />
             <AnnouncementComposer />

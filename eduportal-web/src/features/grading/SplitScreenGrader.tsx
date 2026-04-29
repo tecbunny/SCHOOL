@@ -39,6 +39,13 @@ export default function SplitScreenGrader() {
       if (data.answers) {
         const text = data.answers.map((a: any) => `Q${a.questionNumber}: ${a.text}`).join('\n');
         setFeedback(prev => `${prev}\n\n[Extracted Text]:\n${text}`);
+        
+        if (data.suggestedScores) {
+          setScores(data.suggestedScores);
+        }
+        if (data.feedback) {
+          setFeedback(prev => `${prev}\n\n[AI Feedback]: ${data.feedback}`);
+        }
       }
     } catch (err) {
       console.error("OCR Error:", err);
