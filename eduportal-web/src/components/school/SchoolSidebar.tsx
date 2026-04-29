@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCap, Building, LayoutDashboard, FileText, Calendar, Book, BarChart, Users, BookOpen, PenTool, FilePlus, Award, ShieldCheck, FolderUp, Megaphone, LogOut, ChevronLeft, ChevronRight, Inbox, CreditCard, BarChart2, Settings, Cpu, Monitor, Camera } from 'lucide-react';
+import { GraduationCap, Building, LayoutDashboard, FileText, Calendar, Book, BarChart, Users, BookOpen, PenTool, FilePlus, Award, ShieldCheck, FolderUp, Megaphone, LogOut, ChevronLeft, ChevronRight, Inbox, CreditCard, BarChart2, Settings, Cpu, Monitor, Camera, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth.client';
@@ -119,6 +119,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">Infrastructure</div>}
             <Link href="/admin/nodes" className="nav-item"><Cpu className="w-5 h-5" /> {!isCollapsed && <span>Edge Orchestration</span>}</Link>
             <Link href="/admin/fleet" className="nav-item"><Monitor className="w-5 h-5" /> {!isCollapsed && <span>Fleet Management</span>}</Link>
+            <Link href="/admin/provision/materials" className="nav-item"><Globe className="w-5 h-5" /> {!isCollapsed && <span>Global Materials</span>}</Link>
             <Link href="/admin/logs" className="nav-item"><ShieldCheck className="w-5 h-5" /> {!isCollapsed && <span>Vault Logs</span>}</Link>
             
             {!isCollapsed && <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-muted uppercase tracking-[0.2em]">System</div>}
