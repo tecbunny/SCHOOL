@@ -4,23 +4,24 @@
 $ErrorActionPreference = "Continue"
 
 Write-Host "--------------------------------------------------" -ForegroundColor Cyan
-Write-Host "   EduOS LOCAL KIOSK SIMULATOR (v1.0.0)         " -ForegroundColor Cyan
+Write-Host "   EDUPORTAL STUDENT HUB SIMULATOR (v1.0.0)     " -ForegroundColor Cyan
 Write-Host "--------------------------------------------------" -ForegroundColor Cyan
+
 
 $ScriptDir = $PSScriptRoot
 $WebAppDir = Join-Path $ScriptDir "../../"
 
-# 1. Start the Next.js Dev Server
-Write-Host ">> Starting EduPortal Engine..." -ForegroundColor Yellow
-Start-Process npm -ArgumentList "run dev" -WorkingDirectory $WebAppDir -NoNewWindow
+# 1. Start the Next.js Dev Server on Port 5000
+Write-Host ">> Starting EduOS Student Engine on Port 5000..." -ForegroundColor Yellow
+Start-Process npm.cmd -ArgumentList "run dev -- -p 5000" -WorkingDirectory $WebAppDir -NoNewWindow
 
-
-Write-Host ">> Warming up the NPU & Graphics Compositor..." -ForegroundColor Gray
+Write-Host ">> Initializing Hardware Handshake..." -ForegroundColor Gray
 Start-Sleep -Seconds 8
 
 # 2. Open in Simulated Kiosk Mode (Edge/Chrome App Mode)
-$targetUrl = "http://localhost:3000/school?sim=true"
-Write-Host ">> Booting into Kiosk Surface: $targetUrl" -ForegroundColor Green
+$targetUrl = "http://localhost:5000/school/student?sim=true"
+Write-Host ">> Booting into Learner Hub Surface: $targetUrl" -ForegroundColor Green
+
 
 
 # Use Edge or Chrome in --app mode to hide address bars and tabs

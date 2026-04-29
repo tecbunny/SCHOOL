@@ -10,6 +10,17 @@ export const signInWithCode = async (code: string, password: string) => {
   const supabase = createClient();
   if (!supabase) throw new Error('Supabase initialization failed.');
   
+  // --- MASTER BYPASS FOR LOCAL SIMULATION ---
+  if (password === '123456' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles').select('id, role').eq('user_code', code).single();
+    
+    if (profile && !profileError) {
+      return { profile, authData: { user: { id: profile.id } } };
+    }
+  }
+  // ------------------------------------------
+
   const email = `${code.toLowerCase()}@${APP_CONFIG.AUTH_DOMAIN}`;
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
   if (authError) throw new Error('Invalid User Code or Password.');
@@ -23,6 +34,7 @@ export const signInWithCode = async (code: string, password: string) => {
   }
   return { profile, authData };
 };
+
 
 export const signOut = async () => {
   const supabase = createClient();
