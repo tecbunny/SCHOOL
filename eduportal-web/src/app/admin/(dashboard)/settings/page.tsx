@@ -164,7 +164,25 @@ export default function AISettingsPage() {
               </div>
               <p className="text-[10px] text-muted leading-relaxed">Put the entire platform into read-only maintenance mode.</p>
             </label>
+
+            <label className="flex flex-col gap-3 p-4 bg-primary/5 rounded-2xl cursor-pointer hover:bg-primary/10 transition-all border border-primary/10">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-bold">Student Promotion</span>
+                <input 
+                  type="checkbox" 
+                  checked={config.global_features.is_promotion_open} 
+                  onChange={(e) => setConfig({
+                    ...config,
+                    global_features: { ...config.global_features, is_promotion_open: e.target.checked }
+                  })}
+                  className="w-5 h-5 accent-primary" 
+                />
+              </div>
+              <p className="text-[10px] text-muted leading-relaxed">Authorize Principals to execute the academic year rollover.</p>
+            </label>
           </div>
+        </section>
+
         {/* Platform Announcements */}
         <section className="bg-card border border-[var(--border)] rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-6">

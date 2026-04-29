@@ -181,25 +181,26 @@ export default function SchoolDetailPage() {
             <div className="bg-card border border-white/5 rounded-2xl p-8 flex flex-col gap-8">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-xl font-bold">Standard Plan</h3>
-                  <p className="text-sm text-muted mt-1">Renewal due in 45 days (June 15, 2026)</p>
+                  <h3 className="text-xl font-bold">{school.plan?.toUpperCase() || 'STANDARD'} LICENSE</h3>
+                  <p className="text-sm text-muted mt-1">Status: {school.status === 'active' ? 'Active & Verified' : 'Action Required'}</p>
                 </div>
-                <button className="btn btn-outline border-primary/20 text-primary hover:bg-primary/10">Change Plan</button>
-              </div>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="p-4 bg-white/5 rounded-2xl">
-                  <div className="text-[10px] font-bold text-muted uppercase mb-1">Annual Value</div>
-                  <div className="text-2xl font-bold">₹1,24,000</div>
-                </div>
-                <div className="p-4 bg-white/5 rounded-2xl">
-                  <div className="text-[10px] font-bold text-muted uppercase mb-1">Student Limit</div>
-                  <div className="text-2xl font-bold">2,500 <span className="text-xs text-muted font-normal">/ 5,000</span></div>
-                </div>
-                <div className="p-4 bg-white/5 rounded-2xl">
-                  <div className="text-[10px] font-bold text-muted uppercase mb-1">Payment Status</div>
-                  <div className="text-2xl font-bold text-success">Paid</div>
+                <div className={`px-4 py-2 rounded-xl border ${school.status === 'active' ? 'bg-success/10 border-success/20 text-success' : 'bg-warning/10 border-warning/20 text-warning'}`}>
+                   <span className="text-sm font-bold uppercase tracking-widest">{school.status === 'active' ? 'Full Access' : 'Trial / Suspended'}</span>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="text-[10px] font-bold text-muted uppercase mb-1 tracking-widest">Student Capacity</div>
+                  <div className="text-3xl font-black text-white">2,500 <span className="text-sm text-muted font-normal">/ 5,000 Seats</span></div>
+                </div>
+                <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="text-[10px] font-bold text-muted uppercase mb-1 tracking-widest">License Verification</div>
+                  <div className="text-3xl font-black text-success">Verified</div>
+                </div>
+              </div>
+              <p className="text-xs text-muted leading-relaxed italic">
+                 Note: Subscription tiers are managed at the infrastructure level. No financial transactions are processed through this administrative portal.
+              </p>
             </div>
           )}
 

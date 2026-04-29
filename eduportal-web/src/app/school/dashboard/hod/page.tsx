@@ -3,6 +3,9 @@
 import AttendanceConfig from '@/features/school-settings/AttendanceConfig';
 import TeacherList from '@/features/staff-management/TeacherList';
 import AnnouncementComposer from '@/features/announcements/AnnouncementComposer';
+import ComplianceReportGenerator from '@/features/compliance/ComplianceReportGenerator';
+import SupportTicketSystem from '@/features/support/SupportTicketSystem';
+import PromotionConsole from '@/features/school-operations/PromotionConsole';
 import { Shield, Settings, Users, BarChart } from 'lucide-react';
 
 export default function HODDashboard() {
@@ -35,34 +38,19 @@ export default function HODDashboard() {
       <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="grid grid-cols-12 gap-8 max-w-[1600px] mx-auto">
           
-          {/* Left Column: Staff Management */}
+          {/* Left Column: Staff Management & Promotion */}
           <div className="col-span-8 flex flex-col gap-8">
             <div className="h-[600px]">
               <TeacherList />
             </div>
             
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-3 gap-6">
-               <div className="bg-card border border-white/5 rounded-2xl p-6">
-                  <BarChart className="w-5 h-5 text-warning mb-4" />
-                  <h4 className="text-sm font-bold mb-1">Attendance Alerts</h4>
-                  <p className="text-2xl font-bold">12 <span className="text-xs text-muted font-normal">Students below 75%</span></p>
-               </div>
-               <div className="bg-card border border-white/5 rounded-2xl p-6">
-                  <Users className="w-5 h-5 text-secondary mb-4" />
-                  <h4 className="text-sm font-bold mb-1">Teacher Leaves</h4>
-                  <p className="text-2xl font-bold">02 <span className="text-xs text-muted font-normal">Active today</span></p>
-               </div>
-               <div className="bg-card border border-white/5 rounded-2xl p-6">
-                  <Settings className="w-5 h-5 text-primary mb-4" />
-                  <h4 className="text-sm font-bold mb-1">System Health</h4>
-                  <p className="text-2xl font-bold text-success">Nominal</p>
-               </div>
-            </div>
+            <PromotionConsole />
           </div>
 
-          {/* Right Column: Settings & Broadcast */}
+          {/* Right Column: Settings, Compliance & Support */}
           <div className="col-span-4 flex flex-col gap-8">
+            <ComplianceReportGenerator />
+            <SupportTicketSystem />
             <AttendanceConfig />
             <AnnouncementComposer />
           </div>

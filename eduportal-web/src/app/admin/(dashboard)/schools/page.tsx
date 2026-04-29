@@ -47,6 +47,29 @@ export default function SchoolsPage() {
     fetchSchools();
   }, []);
 
+  const handleBatchUpdate = async (status: string) => {
+    if (selectedSchools.length === 0) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/schools/batch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          schoolIds: selectedSchools, 
+          updates: { status } 
+        })
+      });
+      if (res.ok) {
+        setSelectedSchools([]);
+        fetchSchools();
+      }
+    } catch (err) {
+      console.error("Batch update failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       const res = await fetch('/api/admin/schools', {
@@ -82,12 +105,26 @@ export default function SchoolsPage() {
       <div className="p-8 flex flex-col gap-6">
         {/* Bulk Actions Bar */}
         {selectedSchools.length > 0 && (
-          <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center justify-between animate-in slide-in-from-top-4">
-            <span className="text-sm font-bold text-primary">{selectedSchools.length} schools selected</span>
+          <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center justify-between animate-in slide-in-from-top-4 backdrop-blur-sm sticky top-0 z-50">
+            <div className="flex items-center gap-4">
+               <span className="text-sm font-bold text-primary">{selectedSchools.length} schools selected</span>
+               <div className="h-4 w-px bg-primary/20"></div>
+               <p className="text-xs text-muted">Apply bulk changes to tenant status or configurations.</p>
+            </div>
             <div className="flex gap-2">
-              <button className="btn btn-primary btn-sm" onClick={() => handleUpdateStatus(selectedSchools[0], 'active')}>Activate All</button>
-              <button className="btn btn-outline btn-sm text-danger border-danger/20 hover:bg-danger/10" onClick={() => handleUpdateStatus(selectedSchools[0], 'suspended')}>Suspend All</button>
-              <button className="btn btn-outline btn-sm" onClick={() => setSelectedSchools([])}>Cancel</button>
+              <button 
+                className="btn btn-primary btn-sm px-6" 
+                onClick={() => handleBatchUpdate('active')}
+              >
+                Activate All
+              </button>
+              <button 
+                className="btn btn-outline btn-sm text-danger border-danger/20 hover:bg-danger/10 px-6" 
+                onClick={() => handleBatchUpdate('suspended')}
+              >
+                Suspend All
+              </button>
+              <button className="btn btn-outline btn-sm px-4" onClick={() => setSelectedSchools([])}>Cancel</button>
             </div>
           </div>
         )}

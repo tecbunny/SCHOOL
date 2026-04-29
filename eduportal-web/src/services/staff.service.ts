@@ -87,5 +87,30 @@ export const staffService = {
     
     if (error) throw error;
     return data;
+  },
+
+  // Phase 7: Biometric Hardware Sync
+  async syncBiometricAttendance(logs: { student_id: string; timestamp: string; device_id: string }[]) {
+    const { data, error } = await supabase
+      .from('attendance')
+      .upsert(logs.map(log => ({
+        student_id: log.student_id,
+        date: log.timestamp.split('T')[0],
+        status: 'present',
+        school_id: 'pending_context_fetch' // Should be fetched from session
+      })));
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Phase 8: AI Grading Bridge
+  async getAiGradingSuggestion(worksheetImage: string, rubric: any) {
+    // This will call the /api/ai/grade endpoint
+    const res = await fetch('/api/ai/grade', {
+      method: 'POST',
+      body: JSON.stringify({ worksheetImage, rubric })
+    });
+    return res.json();
   }
 };

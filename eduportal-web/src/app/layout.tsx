@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PWARegistration from "@/components/school/PWARegistration";
+import GlobalChatDrawer from "@/features/chat/GlobalChatDrawer";
 
 export const metadata: Metadata = {
   title: "EduPortal | The Multi-Tenant School Ecosystem",
@@ -26,6 +27,7 @@ export default function RootLayout({
       <body className="antialiased bg-[var(--bg-dark)]">
         <PWARegistration />
         {children}
+        <GlobalChatDrawer />
       </body>
     </html>
   );

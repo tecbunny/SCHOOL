@@ -14,14 +14,38 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import WorksheetScanner from './WorksheetScanner';
+
 export default function SplitScreenGrader() {
   const [suggesting, setSuggesting] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [scores, setScores] = useState<Record<string, number>>({
     conceptual: 0,
     grammar: 0,
     presentation: 0
   });
+
+  const handleScanComplete = async (image: string) => {
+    setScannedImage(image);
+    setSuggesting(true);
+    try {
+      const res = await fetch('/api/ai/ocr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image })
+      });
+      const data = await res.json();
+      if (data.answers) {
+        const text = data.answers.map((a: any) => `Q${a.questionNumber}: ${a.text}`).join('\n');
+        setFeedback(prev => `${prev}\n\n[Extracted Text]:\n${text}`);
+      }
+    } catch (err) {
+      console.error("OCR Error:", err);
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   const handleAISuggestion = async () => {
     setSuggesting(true);
@@ -32,7 +56,7 @@ export default function SplitScreenGrader() {
         grammar: 7,
         presentation: 9
       });
-      setFeedback("The student shows strong conceptual understanding but needs to focus on punctuation in the second paragraph.");
+      setFeedback(prev => `${prev}\n\n[Gemini Suggestion]: The student shows strong conceptual understanding but needs to focus on punctuation in the second paragraph.`);
       setSuggesting(false);
     }, 1500);
   };
@@ -53,33 +77,25 @@ export default function SplitScreenGrader() {
           </div>
         </header>
         
-        <div className="flex-1 overflow-y-auto p-12 flex justify-center bg-[#111]">
-          {/* Mock Document */}
-          <div className="w-full max-w-2xl bg-white aspect-[1/1.414] shadow-2xl p-16 flex flex-col gap-8 text-black font-serif">
-             <div className="flex justify-between border-b-2 border-black pb-4 mb-4">
-                <div className="font-bold text-xl uppercase">Class Test: Physics</div>
-                <div className="text-right">
-                   <div className="font-bold">Roll No: 12</div>
-                   <div className="text-sm">Time: 45m</div>
-                </div>
-             </div>
-             
-             <div className="flex flex-col gap-6">
-                <div>
-                   <p className="font-bold mb-2">Q1. Define Newton's Second Law of Motion.</p>
-                   <p className="italic text-blue-800">"The rate of change of momentum is proportional to the applied force and takes place in the direction of the force. F = ma."</p>
-                </div>
-                
-                <div>
-                   <p className="font-bold mb-2">Q2. Calculate the force needed to accelerate a 5kg mass at 2m/s².</p>
-                   <p className="italic text-blue-800 underline decoration-red-400">"F = 5kg * 2m/s = 10 Newtons."</p>
-                </div>
+        <div className="flex-1 overflow-y-auto p-12 flex flex-col items-center gap-8 bg-[#111]">
+          
+          {scannedImage ? (
+            <img src={scannedImage} className="w-full max-w-2xl bg-white aspect-[1/1.414] shadow-2xl object-contain" alt="Scanned" />
+          ) : (
+            <div className="w-full max-w-2xl">
+              <WorksheetScanner onScanComplete={handleScanComplete} />
+            </div>
+          )}
 
-                <div className="mt-20 border-t pt-8">
-                   <p className="text-sm text-gray-400 uppercase tracking-widest text-center">End of Worksheet</p>
-                </div>
-             </div>
-          </div>
+          {/* Fallback Mock Document if scanner not used */}
+          {!scannedImage && (
+            <div className="w-full max-w-2xl bg-white aspect-[1/1.414] shadow-2xl p-16 flex flex-col gap-8 text-black font-serif opacity-50">
+               <div className="flex justify-between border-b-2 border-black pb-4 mb-4">
+                  <div className="font-bold text-xl uppercase">Reference: Physics Unit 1</div>
+               </div>
+               <p className="italic text-gray-400 text-center">Reference sheet will appear here after scanning.</p>
+            </div>
+          )}
         </div>
 
         <footer className="p-4 border-t border-white/5 bg-white/[0.02] flex items-center justify-center gap-8">
