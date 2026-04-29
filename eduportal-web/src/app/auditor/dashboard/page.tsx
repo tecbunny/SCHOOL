@@ -4,7 +4,7 @@ import { Printer, Bell, ShieldAlert, Building, CalendarCheck, Award, AlertTriang
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
-import ChatDrawer from '@/components/school/ChatDrawer';
+import { ChatDrawer } from '@/components/school/ClassroomTools';
 
 export default function AuditorDashboard() {
   const chartRef = useRef<HTMLCanvasElement>(null);

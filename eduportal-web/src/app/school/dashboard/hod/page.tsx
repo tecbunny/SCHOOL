@@ -3,7 +3,7 @@
 import { Megaphone, Users2, CalendarCheck, Award, BookOpen, CheckCircle, AlertCircle } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
-import ChatDrawer from '@/components/school/ChatDrawer';
+import { ChatDrawer } from '@/components/school/ClassroomTools';
 
 export default function HODDashboard() {
   const chartRef = useRef<HTMLCanvasElement>(null);

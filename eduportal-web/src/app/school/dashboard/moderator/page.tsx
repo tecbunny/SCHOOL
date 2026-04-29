@@ -1,7 +1,7 @@
 "use client";
 
 import { UploadCloud, FileText, FolderUp, HardDrive, Search, Edit, Trash2, Video, Check } from 'lucide-react';
-import ChatDrawer from '@/components/school/ChatDrawer';
+import { ChatDrawer } from '@/components/school/ClassroomTools';
 
 export default function ModeratorDashboard() {
   return (

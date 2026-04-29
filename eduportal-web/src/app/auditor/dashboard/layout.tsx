@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
-import AuditorSidebar from '@/components/auditor/AuditorSidebar';
+import SchoolSidebar from '@/components/school/SchoolSidebar';
 
 export default function AuditorDashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="app-layout">
-      <AuditorSidebar />
+      <SchoolSidebar role="auditor" />
       <main className="flex flex-col h-screen overflow-y-auto relative">
         {children}
       </main>
