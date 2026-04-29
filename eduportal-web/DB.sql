@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     full_name TEXT,
     role user_role NOT NULL,
     school_id UUID REFERENCES public.schools(id) ON DELETE SET NULL,
+    mac_address TEXT UNIQUE, -- Hardware binding for SSPH-01 devices
+    is_hardware_bound BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -303,5 +305,73 @@ CREATE POLICY "Auditors see all advanced" ON public.smc_minutes FOR SELECT USING
 
 DROP POLICY IF EXISTS "Auditors see vocational" ON public.vocational_skills;
 CREATE POLICY "Auditors see vocational" ON public.vocational_skills FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
+-- 16. REVERSE QR AUTHENTICATION HANDSHAKE
+CREATE TABLE IF NOT EXISTS public.qr_sessions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    device_id TEXT NOT NULL, -- The MAC/Fingerprint of the student device
+    session_token TEXT UNIQUE NOT NULL,
+    status TEXT DEFAULT 'pending', -- 'pending', 'verified', 'expired'
+    authenticated_user_id UUID REFERENCES auth.users(id),
+    expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '5 minutes'),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
 
+ALTER TABLE public.qr_sessions ENABLE ROW LEVEL SECURITY;
+
+-- Students can read their own pending session
+CREATE POLICY "View own pending QR session" ON public.qr_sessions 
+    FOR SELECT USING (status = 'pending');
+
+-- Teachers/Principals can verify sessions in their school
+CREATE POLICY "Teachers verify QR sessions" ON public.qr_sessions 
+    FOR UPDATE USING (get_my_role() IN ('teacher', 'principal', 'moderator'));
+
+-- 17. REAL-TIME MONITORING (Teacher God-Mode)
+CREATE TABLE IF NOT EXISTS public.student_sessions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    current_activity TEXT, -- e.g., 'Math Quiz', 'Syllabus Review'
+    status TEXT DEFAULT 'active', -- 'active', 'idle', 'offline'
+    last_ping TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    UNIQUE(student_id)
+);
+
+ALTER TABLE public.student_sessions ENABLE ROW LEVEL SECURITY;
+
+-- Students update their own heartbeat
+CREATE POLICY "Students manage own session" ON public.student_sessions 
+    FOR ALL USING (student_id = auth.uid());
+
+-- Teachers view all sessions in their school
+CREATE POLICY "Teachers monitor school sessions" ON public.student_sessions 
+    FOR SELECT USING (get_my_role() IN ('teacher', 'principal', 'moderator'));
+
+-- 18. REMOTE OVERRIDE (Command System)
+CREATE TABLE IF NOT EXISTS public.device_commands (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    target_student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    issuer_id UUID REFERENCES public.profiles(id) NOT NULL,
+    command_type TEXT NOT NULL, -- 'PUSH_URL', 'LOCK_SCREEN', 'SHOW_HINT', 'RESET'
+    payload JSONB,
+    is_executed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+ALTER TABLE public.device_commands ENABLE ROW LEVEL SECURITY;
+
+-- Students listen for commands
+CREATE POLICY "Students listen for commands" ON public.device_commands 
+    FOR SELECT USING (target_student_id = auth.uid());
+
+-- Teachers issue commands
+CREATE POLICY "Teachers issue commands" ON public.device_commands 
+    FOR INSERT WITH CHECK (get_my_role() IN ('teacher', 'principal', 'moderator'));
+
+-- Enable Realtime for Monitoring and Commands
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.student_sessions;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.device_commands;
+EXCEPTION
+    WHEN others THEN null;
+END $$;
 

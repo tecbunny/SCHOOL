@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent, useEffect } from 'react';
 import { signInWithCode, navigateByRole, UserRole } from '@/lib/auth-utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Fingerprint, Camera } from 'lucide-react';
+import QRLoginModal from '@/components/school/QRLoginModal';
+import QRScannerModal from '@/components/school/QRScannerModal';
 
 export default function SchoolLogin() {
   const router = useRouter();
@@ -16,16 +18,33 @@ export default function SchoolLogin() {
   const [error, setError] = useState<string | null>(null);
   const [userCode, setUserCode] = useState('');
   const [password, setPassword] = useState('');
+  const [showQR, setShowQR] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [deviceId, setDeviceId] = useState('FETCHING...');
 
   useEffect(() => {
     const embedded = document.cookie.includes('is-eduos=true') || window.innerWidth < 500;
     setIsEmbedded(embedded);
+    
+    setDeviceId(window.navigator.userAgent.split(' ').pop() || 'SSPH-01-MOCK-ID');
+
     if (embedded) {
       setActiveTab('student');
       const savedId = localStorage.getItem('remembered_student_id');
       if (savedId) setUserCode(savedId);
     }
   }, []);
+
+  const handleHandshakeLogin = async (code: string) => {
+    setUserCode(code);
+    setPassword('SSPH01_HANDSHAKE_SECURE'); // In prod, this would be a real session handover
+    setShowScanner(false);
+    // Trigger login
+    setTimeout(() => {
+       const form = document.querySelector('form');
+       if (form) form.requestSubmit();
+    }, 500);
+  };
 
   const handleLogin = async (e: FormEvent, code: string) => {
     e.preventDefault();
@@ -192,8 +211,34 @@ export default function SchoolLogin() {
             <button type="submit" className="btn btn-primary w-full mt-2 py-3 justify-center text-md disabled:opacity-50" disabled={isLoading}>
               {isLoading ? <Loader2 className="animate-spin" /> : <>Access Dashboard <ArrowRight /></>}
             </button>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[var(--border)]" /></div>
+              <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-[var(--bg-card)] px-2 text-muted tracking-widest">or Secure Handshake</span></div>
+            </div>
+
+            <button 
+              type="button" 
+              onClick={() => setShowQR(true)}
+              className="btn w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white py-3 justify-center text-sm gap-2 mb-2"
+            >
+              <Fingerprint className="w-4 h-4 text-primary" />
+              Teacher Handshake
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => setShowScanner(true)}
+              className="btn w-full bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary py-3 justify-center text-sm gap-2"
+            >
+              <Camera className="w-4 h-4" />
+              Scan Gate to Login
+            </button>
           </form>
         )}
+
+        {showQR && <QRLoginModal deviceId={deviceId} onClose={() => setShowQR(false)} />}
+        {showScanner && <QRScannerModal deviceId={deviceId} onLoginSuccess={handleHandshakeLogin} onClose={() => setShowScanner(false)} />}
 
         {!isEmbedded && (
           <div className="mt-6 text-center">

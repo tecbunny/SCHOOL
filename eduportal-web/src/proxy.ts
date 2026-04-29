@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -56,16 +56,44 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 2. EduOS Detection
+  // 2. SSPH-01 Hardware Binding & Security
+  let profile = null;
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role, is_hardware_bound, mac_address')
+      .eq('id', user.id)
+      .single();
+    profile = data;
+  }
+
   const isEduOS = request.headers.get('x-eduos') === 'true'
+  const deviceId = request.headers.get('x-eduos-device-id')
+
   if (isEduOS) {
     response.cookies.set('is-eduos', 'true')
   }
 
+  // Strict Hardware Check
+  if (profile?.is_hardware_bound && profile.mac_address) {
+    if (deviceId !== profile.mac_address) {
+      // Hardware mismatch! Logout and block.
+      await supabase.auth.signOut();
+      return NextResponse.redirect(new URL('/school?error=hardware_mismatch', request.url))
+    }
+  }
+
   // Protection Logic
   const url = new URL(request.url)
+
+  // 1. Standalone Security: Block admin/auditor routes on student hardware
+  if (process.env.EDUOS_STANDALONE === 'true') {
+    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/auditor')) {
+      return NextResponse.redirect(new URL('/school/dashboard/student', request.url))
+    }
+  }
   
-  // 1. If trying to access any dashboard without being logged in -> Redirect to Login
+  // 2. If trying to access any dashboard without being logged in -> Redirect to Login
   if (!user && (url.pathname.includes('/dashboard') || url.pathname.startsWith('/admin') || url.pathname.startsWith('/auditor'))) {
     if (url.pathname.startsWith('/admin')) return NextResponse.redirect(new URL('/admin', request.url))
     if (url.pathname.startsWith('/auditor')) return NextResponse.redirect(new URL('/auditor', request.url))

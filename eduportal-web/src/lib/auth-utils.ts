@@ -34,8 +34,8 @@ export const signInWithCode = async (code: string, password: string) => {
   }
 
   // 2. Sign in with Supabase Auth
-  // We assume the email is formatted as code@eduportal.local for the prototype
-  const email = `${code.toLowerCase()}@eduportal.local`;
+  // We use an obfuscated suffix to prevent identifier guessing
+  const email = `${code.toLowerCase()}@auth.ssph01.eduportal.internal`;
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
     email,
     password,

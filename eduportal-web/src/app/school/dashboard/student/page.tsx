@@ -2,10 +2,25 @@
 
 import { BellRing, Award, CalendarCheck, ClipboardList, Building, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import ChatDrawer from '@/components/school/ChatDrawer';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
+import { useDeviceMonitoring } from '@/hooks/useDeviceMonitoring';
 
 export default function StudentDashboard() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState<string>('');
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setStudentId(user.id);
+    };
+    fetchUser();
+  }, []);
+
+  // Activate Cloud Monitoring & Remote Control
+  useDeviceMonitoring(studentId, 'Browsing Student Dashboard');
 
   const toggleRow = (subject: string) => {
     setExpandedRow(expandedRow === subject ? null : subject);

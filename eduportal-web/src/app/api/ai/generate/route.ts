@@ -12,14 +12,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Validate environment
+    // 2. Role-Based Access Control (Security Fix for SSPH-01)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const { type, topics, grade, difficulty, totalMarks } = await req.json();
+
+    if (type === 'exam' && profile?.role === 'student') {
+      return NextResponse.json({ error: "Students are not permitted to generate full exam papers." }, { status: 403 });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("Missing GEMINI_API_KEY");
       return NextResponse.json({ error: "AI Service configuration missing" }, { status: 500 });
     }
-
-    const { type, topics, grade, difficulty, totalMarks } = await req.json();
 
     if (!topics || !Array.isArray(topics) || topics.length === 0) {
       return NextResponse.json({ error: "Topics are required" }, { status: 400 });

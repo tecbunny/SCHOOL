@@ -3,6 +3,7 @@
 import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck, CheckSquare, PenTool } from 'lucide-react';
 import ChatDrawer from '@/components/school/ChatDrawer';
 import { useState } from 'react';
+import LiveMonitorGrid from '@/components/school/LiveMonitorGrid';
 
 export default function TeacherDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -79,6 +80,11 @@ export default function TeacherDashboard() {
           <button className="glass-panel hover:bg-white/5 transition-colors border border-[var(--border)] rounded-lg p-4 flex items-center justify-center gap-3 flex-1 text-secondary font-semibold">
             <PenTool className="w-5 h-5" /> Quick Grade Entry
           </button>
+        </div>
+
+        {/* Live Monitoring Section (SSPH-01 Hardware Management) */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8">
+          <LiveMonitorGrid schoolId="current-school" />
         </div>
 
         <div className="grid grid-cols-2 gap-8">
