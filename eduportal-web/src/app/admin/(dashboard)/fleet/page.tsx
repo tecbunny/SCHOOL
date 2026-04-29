@@ -42,6 +42,20 @@ export default function FleetManagementPage() {
     }
   };
 
+  const handlePushGlobalUpdate = async () => {
+    alert("Broadcasting OTA Update v1.2.0 to all online nodes...");
+    // Logic to fetch latest release and trigger for all active nodes
+  };
+
+  const handlePushNodeUpdate = async (nodeId: string) => {
+    try {
+      await analyticsService.triggerOtaUpdate(nodeId, 'LATEST_RELEASE_ID');
+      alert(`Update queued for node ${nodeId}`);
+    } catch (err) {
+      console.error("Deploy failed:", err);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a]">
       {/* Header */}
@@ -64,7 +78,10 @@ export default function FleetManagementPage() {
                 className="bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:border-primary transition-all w-64"
               />
            </div>
-           <button className="btn btn-primary gap-2">
+           <button 
+             onClick={handlePushGlobalUpdate}
+             className="btn btn-primary gap-2"
+           >
               <RefreshCw className="w-4 h-4" /> Push OTA Update
            </button>
         </div>

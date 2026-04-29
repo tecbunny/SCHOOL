@@ -1,124 +1,158 @@
 "use client";
 
-import { ShieldCheck, Search, Filter, Download, AlertCircle, Info, CheckCircle, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  Shield, 
+  Search, 
+  Filter, 
+  Terminal, 
+  AlertCircle, 
+  CheckCircle2, 
+  Info,
+  Clock,
+  Cpu,
+  Zap,
+  RefreshCw,
+  ArrowUpRight
+} from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 
-const MOCK_LOGS = [
-  { id: 1, type: 'Security', event: 'New Admin Login', user: 'admin@eduportal.com', ip: '192.168.1.1', time: '2 mins ago', severity: 'low' },
-  { id: 2, type: 'System', event: 'Database Backup', user: 'System', ip: 'internal', time: '1 hour ago', severity: 'info' },
-  { id: 3, type: 'Action', event: 'School Provisioned', user: 'admin@eduportal.com', ip: '192.168.1.1', time: '3 hours ago', severity: 'info' },
-  { id: 4, type: 'Security', event: 'Failed Login Attempt', user: 'unknown@hacker.com', ip: '45.12.33.2', time: '5 hours ago', severity: 'high' },
-  { id: 5, type: 'System', event: 'AI Model Re-indexed', user: 'System', ip: 'internal', time: '12 hours ago', severity: 'info' },
-  { id: 6, type: 'Action', event: 'Plan Upgrade', user: 'SCH7878 Admin', ip: '10.0.0.5', time: '1 day ago', severity: 'medium' },
-];
+export default function AdminLogsPage() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-export default function LogsPage() {
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const { data, error } = await supabase
+        .from('system_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (!error) setLogs(data);
+      setLoading(false);
+    };
+
+    fetchLogs();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'system_logs' }, payload => {
+        setLogs(prev => [payload.new, ...prev].slice(0, 50));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'critical': return <AlertCircle className="w-4 h-4 text-danger" />;
+      case 'error': return <AlertCircle className="w-4 h-4 text-danger" />;
+      case 'warning': return <AlertCircle className="w-4 h-4 text-warning" />;
+      default: return <Info className="w-4 h-4 text-primary" />;
+    }
+  };
+
+  const getEventIcon = (type: string) => {
+    switch (type) {
+      case 'HARDWARE': return <Cpu className="w-4 h-4" />;
+      case 'AI_GRADING': return <Zap className="w-4 h-4" />;
+      case 'AUTH': return <Shield className="w-4 h-4" />;
+      default: return <Terminal className="w-4 h-4" />;
+    }
+  };
+
   return (
-    <>
-      <header className="header-glass py-4 px-8 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-[#0a0a0a]">
+      {/* Header */}
+      <header className="header-glass py-6 px-8 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="bg-success/20 p-2 rounded-lg">
-            <ShieldCheck className="w-6 h-6 text-success" />
+          <div className="bg-primary/20 p-2 rounded-lg">
+            <Terminal className="w-6 h-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Vault Logs</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-white">System Vault Logs</h1>
+            <p className="text-sm text-muted">Real-time institutional audit trail & telemetry stream.</p>
+          </div>
         </div>
-        <button className="btn btn-outline gap-2">
-          <Download className="w-4 h-4" /> Export Logs
-        </button>
+        <div className="flex items-center gap-4">
+           <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input 
+                type="text" 
+                placeholder="Search events..."
+                className="bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:border-primary transition-all w-64"
+              />
+           </div>
+           <button className="btn btn-outline gap-2 border-white/10 hover:bg-white/5 text-xs">
+              <Filter className="w-4 h-4" /> Filter Logs
+           </button>
+        </div>
       </header>
 
-      <div className="p-8 flex flex-col gap-6">
-        {/* Status bar */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-card border border-[var(--border)] p-4 rounded-xl flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center text-success"><CheckCircle className="w-5 h-5" /></div>
-            <div>
-              <p className="text-[10px] text-muted font-bold uppercase tracking-wider">System Integrity</p>
-              <p className="text-sm font-bold">COMPROMISE FREE</p>
+      {/* Main Stream Area */}
+      <div className="flex-1 p-8 overflow-hidden">
+         <div className="h-full bg-card border border-white/5 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+               <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                  <span className="text-xs font-bold text-success uppercase tracking-widest">Live Stream Active</span>
+               </div>
+               <span className="text-[10px] text-muted font-bold uppercase tracking-widest">Last 50 Institutional Events</span>
             </div>
-          </div>
-          <div className="bg-card border border-[var(--border)] p-4 rounded-xl flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Clock className="w-5 h-5" /></div>
-            <div>
-              <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Uptime</p>
-              <p className="text-sm font-bold">99.98% (30d)</p>
-            </div>
-          </div>
-          <div className="bg-card border border-[var(--border)] p-4 rounded-xl flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center text-warning"><AlertCircle className="w-5 h-5" /></div>
-            <div>
-              <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Warnings</p>
-              <p className="text-sm font-bold">12 Active</p>
-            </div>
-          </div>
-          <div className="bg-card border border-[var(--border)] p-4 rounded-xl flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary"><Info className="w-5 h-5" /></div>
-            <div>
-              <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Active Sessions</p>
-              <p className="text-sm font-bold">452 Users</p>
-            </div>
-          </div>
-        </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+               <div className="flex flex-col">
+                  {logs.map((log) => (
+                    <div key={log.id} className="p-6 border-b border-white/5 hover:bg-white/[0.02] transition-colors flex items-center gap-8 group">
+                       <div className="w-32 flex flex-col gap-1">
+                          <div className="text-[10px] font-bold text-muted flex items-center gap-1.5 uppercase">
+                             <Clock className="w-3 h-3" />
+                             {new Date(log.created_at).toLocaleTimeString()}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted/50">{new Date(log.created_at).toLocaleDateString()}</div>
+                       </div>
 
-        {/* Search & Filter */}
-        <div className="flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-            <input 
-              type="text" 
-              placeholder="Search logs by keyword, user or IP..." 
-              className="w-full bg-card border border-[var(--border)] rounded-xl pl-10 pr-4 py-2.5 outline-none focus:border-primary transition-colors"
-            />
-          </div>
-          <select className="bg-card border border-[var(--border)] rounded-xl px-4 py-2.5 outline-none focus:border-primary text-sm text-muted">
-            <option>All Severities</option>
-            <option>High</option>
-            <option>Medium</option>
-            <option>Low / Info</option>
-          </select>
-        </div>
+                       <div className="w-40">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-2 w-fit bg-white/5 border border-white/10`}>
+                             {getEventIcon(log.event_type)}
+                             {log.event_type}
+                          </span>
+                       </div>
 
-        {/* Log List */}
-        <div className="bg-card border border-[var(--border)] rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/5">
-                  <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Event</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">User / Source</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Severity</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {MOCK_LOGS.map((log) => (
-                  <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 text-sm text-muted whitespace-nowrap">{log.time}</td>
-                    <td className="px-6 py-4 text-sm font-medium">{log.type}</td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-white font-semibold">{log.event}</div>
-                      <div className="text-[10px] text-muted font-mono mt-0.5">{log.ip}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted">{log.user}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        log.severity === 'high' ? 'bg-danger/20 text-danger' : 
-                        log.severity === 'medium' ? 'bg-warning/20 text-warning' : 
-                        'bg-success/20 text-success'
-                      }`}>
-                        {log.severity}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="p-4 border-t border-[var(--border)] text-center">
-            <button className="text-sm text-primary hover:underline">Load More Logs</button>
-          </div>
-        </div>
+                       <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                             {getSeverityIcon(log.severity)}
+                             <span className="text-sm font-medium text-white group-hover:text-primary transition-colors">{log.message}</span>
+                          </div>
+                          {log.metadata && (
+                            <div className="mt-2 text-[10px] font-mono text-muted bg-black/40 p-2 rounded-lg border border-white/5 overflow-hidden text-ellipsis whitespace-nowrap opacity-60 group-hover:opacity-100 transition-opacity max-w-2xl">
+                               {JSON.stringify(log.metadata)}
+                            </div>
+                          )}
+                       </div>
+
+                       <div className="w-32 text-right">
+                          <button className="p-2 hover:bg-white/10 rounded-lg text-muted opacity-0 group-hover:opacity-100 transition-all">
+                             <ArrowUpRight className="w-4 h-4" />
+                          </button>
+                       </div>
+                    </div>
+                  ))}
+
+                  {logs.length === 0 && !loading && (
+                    <div className="flex flex-col items-center justify-center p-20 opacity-20">
+                       <RefreshCw className="w-12 h-12 mb-4" />
+                       <p className="font-bold">Waiting for system events...</p>
+                    </div>
+                  )}
+               </div>
+            </div>
+         </div>
       </div>
-    </>
+    </div>
   );
 }

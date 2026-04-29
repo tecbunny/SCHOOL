@@ -57,5 +57,19 @@ export const analyticsService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async triggerOtaUpdate(nodeId: string, releaseId: string) {
+    const { error } = await supabase
+      .from('fleet_deployments')
+      .upsert({
+        node_id: nodeId,
+        release_id: releaseId,
+        status: 'pending',
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw error;
+    return { success: true };
   }
 };

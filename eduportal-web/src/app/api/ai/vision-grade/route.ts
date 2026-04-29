@@ -50,6 +50,19 @@ export async function POST(req: Request) {
     // Clean JSON response (remove markdown blocks if present)
     const jsonString = text.replace(/```json|```/g, "").trim();
     
+    // 5. Log the AI Event for Accountability
+    const { logger } = await import("@/services/logger.service");
+    await logger.log({
+      eventType: 'AI_GRADING',
+      severity: 'info',
+      message: `AI Assessment performed for worksheet scan.`,
+      metadata: {
+        confidence: result.overallConfidence,
+        extracted_length: result.extractedText?.length,
+        rubric: rubric
+      }
+    });
+
     return NextResponse.json(JSON.parse(jsonString));
 
   } catch (error: any) {
