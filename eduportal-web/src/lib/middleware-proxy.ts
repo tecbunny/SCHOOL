@@ -39,6 +39,13 @@ export async function proxy(request: NextRequest) {
     response = NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
+  // 1. Standalone Security: Block admin/auditor routes on student hardware
+  if (process.env.EDUOS_STANDALONE === 'true') {
+    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/auditor')) {
+      return NextResponse.redirect(new URL('/school/dashboard/student', request.url));
+    }
+  }
+
   // FIX: Apply EduOS cookie to whatever response object we finalized above
   if (request.headers.get('x-eduos') === 'true') {
     response.cookies.set('is-eduos', 'true');

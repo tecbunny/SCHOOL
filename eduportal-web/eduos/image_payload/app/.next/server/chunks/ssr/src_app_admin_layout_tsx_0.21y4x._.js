@@ -1,0 +1,3 @@
+module.exports=[88615,a=>{"use strict";var b=a.i(87924),c=a.i(35211);a.s(["default",0,function({children:a}){return(0,b.jsxs)("div",{className:"flex h-screen overflow-hidden bg-[var(--bg-dark)] text-[var(--text-main)]","data-theme":"admin",children:[(0,b.jsx)(c.default,{role:"admin"}),(0,b.jsx)("main",{className:"flex-1 flex flex-col overflow-y-auto relative",children:a})]})}])}];
+
+//# sourceMappingURL=src_app_admin_layout_tsx_0.21y4x._.js.map
