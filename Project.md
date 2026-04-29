@@ -1,4 +1,6 @@
 # EduPortal: The Multi-Tenant Educational Management Ecosystem
+**Project Status**: 🚀 Production Ready
+**Version**: 1.0.0 (Production Stable)
 
 ## 📌 Executive Summary
 EduPortal is a high-performance, multi-tenant platform designed to orchestrate entire school ecosystems. It bridges the gap between massive cloud-scale administration and low-latency, offline-capable classroom execution on edge hardware (**EduOS Kiosks**). 
