@@ -1,6 +1,6 @@
 "use client";
 
-import { Building, Search, Filter, Plus, MoreVertical, ExternalLink, Loader2 } from 'lucide-react';
+import { Building, Search, Filter, Plus, MoreVertical, ExternalLink, Loader2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -170,15 +170,19 @@ export default function SchoolsPage() {
                     </td>
                     <td className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Link 
+                          href={`/admin/schools/${school.id}`}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors text-muted hover:text-white" 
+                          title="View Profile"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
                         <button 
                           className="p-2 hover:bg-white/10 rounded-lg transition-colors text-muted hover:text-white" 
                           title={school.status === 'active' ? 'Suspend' : 'Activate'}
                           onClick={() => handleUpdateStatus(school.id, school.status === 'active' ? 'suspended' : 'active')}
                         >
                           {school.status === 'active' ? <XCircle className="w-4 h-4 text-danger" /> : <CheckCircle className="w-4 h-4 text-success" />}
-                        </button>
-                        <button className="p-2 hover:bg-white/10 rounded-lg transition-colors text-muted hover:text-white">
-                          <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
