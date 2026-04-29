@@ -1,0 +1,60 @@
+/* src/app/embedded.css */
+/* Optimized styles for SSPH-01 / EduOS Embedded Environment */
+
+@media (max-width: 600px), (hover: none) {
+  :root {
+    --sidebar-width: 0px;
+    --sp-6: 1rem;
+    --sp-12: 2rem;
+  }
+
+  body {
+    background-color: #050811; /* Slightly darker for contrast */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide header on extremely small screens if needed, or compact it */
+  .header-glass h1 {
+    font-size: 1rem;
+  }
+
+  /* Compact the dashboard for small screens */
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: var(--sp-4);
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  /* Ensure buttons are large enough for touch */
+  .btn {
+    min-height: 44px;
+  }
+}
+
+/* Kiosk/EduOS Specific Interface Overrides */
+.is-eduos .sidebar {
+  display: none !important;
+}
+
+.is-eduos .app-layout {
+  grid-template-columns: 1fr !important;
+}
+
+/* Animation for smooth transitions between views in embedded mode */
+.page-transition-enter {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}

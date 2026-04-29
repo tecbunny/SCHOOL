@@ -1,0 +1,3 @@
+{
+  "/api/auth/gate/login/route": "app/api/auth/gate/login/route.js"
+}
