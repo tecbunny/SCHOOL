@@ -7,8 +7,7 @@ import { useState, FormEvent, useEffect } from 'react';
 import { signInWithCode, navigateByRole } from '@/lib/auth';
 import { UserRole } from '@/lib/auth';
 import { Loader2, Fingerprint, Camera } from 'lucide-react';
-import QRLoginModal from '@/components/school/QRLoginModal';
-import QRScannerModal from '@/components/school/QRScannerModal';
+import { QRLoginModal, QRScannerModal } from '@/components/school/AuthModals';
 
 export default function SchoolLogin() {
   const router = useRouter();

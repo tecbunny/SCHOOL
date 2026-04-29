@@ -1,6 +1,7 @@
 import { createClient } from './supabase';
+export { createClient };
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/request';
+import { NextResponse, type NextRequest } from 'next/server';
 import { JwtPayload } from "jsonwebtoken";
 import { useEffect } from 'react';
 

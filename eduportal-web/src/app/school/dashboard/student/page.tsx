@@ -1,10 +1,9 @@
 "use client";
 
 import { BellRing, Award, CalendarCheck, ClipboardList, Building, Download, ChevronDown, ChevronUp } from 'lucide-react';
-import ChatDrawer from '@/components/school/ChatDrawer';
+import { ChatDrawer } from '@/components/school/ClassroomTools';
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
-import { useDeviceMonitoring } from '@/lib/hooks';
+import { createClient, useDeviceMonitoring } from '@/lib/auth';
 import DigitalIDCard from '@/components/school/DigitalIDCard';
 
 export default function StudentDashboard() {

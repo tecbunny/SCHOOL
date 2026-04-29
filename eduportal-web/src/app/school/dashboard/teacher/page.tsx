@@ -1,7 +1,7 @@
 "use client";
 
 import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck, CheckSquare, PenTool } from 'lucide-react';
-import ChatDrawer from '@/components/school/ChatDrawer';
+import { ChatDrawer } from '@/components/school/ClassroomTools';
 import { useState } from 'react';
 import LiveMonitorGrid from '@/components/school/LiveMonitorGrid';
 import ClassAnalytics from '@/components/school/ClassAnalytics';
