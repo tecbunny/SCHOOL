@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCap, Hash, Lock, Loader2, ArrowRight, Camera, Fingerprint, Info, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Hash, Lock, Loader2, ArrowRight, Camera, Fingerprint, Info, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent, useEffect } from 'react';
@@ -12,31 +12,39 @@ export default function StudentAppLogin() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userCode, setUserCode] = useState('');
+  const [userCode, setUserCode] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('remembered_student_id') || '';
+  });
   const [password, setPassword] = useState('');
+  const [schoolCode, setSchoolCode] = useState('SCH7878');
   const [showQR, setShowQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [deviceId, setDeviceId] = useState('FETCHING...');
-  const [isEduOS, setIsEduOS] = useState(false);
+  const [deviceId] = useState(() => {
+    if (typeof window === 'undefined') return 'FETCHING...';
+    return window.navigator.userAgent.split(' ').pop() || 'SSPH-01-STUDENT';
+  });
+  const [isEduOS] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.search.includes('sim=true') || document.cookie.includes('is-eduos=true');
+  });
 
   useEffect(() => {
-    const isSim = window.location.search.includes('sim=true') || document.cookie.includes('is-eduos=true');
-    setIsEduOS(isSim);
-    setDeviceId(window.navigator.userAgent.split(' ').pop() || 'SSPH-01-STUDENT');
-    const savedId = localStorage.getItem('remembered_student_id');
-    if (savedId) setUserCode(savedId);
-  }, []);
+    if (isEduOS) {
+      document.cookie = 'is-eduos=true;path=/;max-age=31536000;samesite=lax';
+    }
+  }, [isEduOS]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
-      const { profile } = await signInWithCode(userCode, password);
+      await signInWithCode(userCode, password, { allowedRoles: ['student'], schoolCode });
       localStorage.setItem('remembered_student_id', userCode);
       router.push(navigateByRole('student'));
-    } catch (err: any) {
-      setError(err.message || 'Identity verification failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Identity verification failed');
     } finally {
       setIsLoading(false);
     }
@@ -63,6 +71,21 @@ export default function StudentAppLogin() {
         )}
 
         <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <div className="input-group">
+            <label className="text-[11px] font-bold text-muted uppercase tracking-wider ml-1">School Code</label>
+            <div className="input-field py-4">
+              <Hash className="w-5 h-5 text-muted mr-3" />
+              <input
+                type="text"
+                placeholder="SCHXXXX"
+                className="w-full tracking-[0.2em] font-mono text-lg"
+                value={schoolCode}
+                onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
+                required
+              />
+            </div>
+          </div>
+
           <div className="input-group">
             <label className="text-[11px] font-bold text-muted uppercase tracking-wider ml-1">Identity Hub ID</label>
             <div className="input-field py-4">

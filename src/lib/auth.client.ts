@@ -2,25 +2,50 @@
 
 import { createClient } from './supabase';
 import { useEffect } from 'react';
-import { APP_CONFIG, ROUTES } from './constants';
+import { APP_CONFIG, ROUTES, type UserRole } from './constants';
 
 export { createClient };
 
-export const signInWithCode = async (code: string, password: string) => {
+type SignInOptions = {
+  allowedRoles?: UserRole[];
+  schoolCode?: string;
+};
+
+const normalizeCode = (code: string) => code.trim().toUpperCase();
+
+export const signInWithCode = async (code: string, password: string, options: SignInOptions = {}) => {
   const supabase = createClient();
   if (!supabase) throw new Error('Supabase initialization failed.');
-  
-  const email = `${code.toLowerCase()}@${APP_CONFIG.AUTH_DOMAIN}`;
+
+  const normalizedCode = normalizeCode(code);
+  const email = `${normalizedCode.toLowerCase()}@${APP_CONFIG.AUTH_DOMAIN}`;
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
   if (authError) throw new Error('Invalid User Code or Password.');
 
   const { data: profile, error: profileError } = await supabase
-    .from('profiles').select('id, role').eq('user_code', code).single();
+    .from('profiles')
+    .select('id, role, school_id, schools(school_code)')
+    .eq('id', authData.user.id)
+    .eq('user_code', normalizedCode)
+    .single();
 
   if (profileError || !profile) {
     await supabase.auth.signOut();
     throw new Error('Account setup incomplete. Profile not found.');
   }
+
+  if (options.allowedRoles && !options.allowedRoles.includes(profile.role as UserRole)) {
+    await supabase.auth.signOut();
+    throw new Error('Access denied for this login portal.');
+  }
+
+  const schoolCode = options.schoolCode?.trim().toUpperCase();
+  const profileSchool = Array.isArray(profile.schools) ? profile.schools[0] : profile.schools;
+  if (schoolCode && profile.role !== 'admin' && profileSchool?.school_code !== schoolCode) {
+    await supabase.auth.signOut();
+    throw new Error('This account does not belong to the selected school.');
+  }
+
   return { profile, authData };
 };
 

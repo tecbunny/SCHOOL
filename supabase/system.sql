@@ -611,17 +611,9 @@ CREATE INDEX IF NOT EXISTS idx_timetable_room ON public.timetables(room_id, day_
 -- PRODUCTION HARDENING MIGRATION (2026-05-01)
 -- This migration ensures all tables have RLS enabled and proper multi-tenant policies.
 
--- 1. Helper Functions (if not already exists)
--- Note: These might already exist, using CREATE OR REPLACE to be safe.
-CREATE OR REPLACE FUNCTION get_my_school_id()
-RETURNS UUID AS $$
-  SELECT school_id FROM public.profiles WHERE id = auth.uid();
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
-
-CREATE OR REPLACE FUNCTION get_my_role()
-RETURNS user_role AS $$
-  SELECT role FROM public.profiles WHERE id = auth.uid();
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+-- 1. Remove legacy public helper functions.
+-- Existing policies are recreated below to use auth_helpers.* instead.
+-- The old public functions are dropped in the final security hardening block.
 
 -- 2. Define Missing Tables (Ensuring existence)
 CREATE TABLE IF NOT EXISTS public.school_profiles (
@@ -708,32 +700,32 @@ ALTER TABLE IF EXISTS public.registration_requests ENABLE ROW LEVEL SECURITY;
 -- Announcements: Viewable by anyone in the same school
 DROP POLICY IF EXISTS "Announcements viewable by school members" ON public.announcements;
 CREATE POLICY "Announcements viewable by school members" ON public.announcements
-    FOR SELECT USING (school_id = get_my_school_id());
+    FOR SELECT USING (school_id = auth_helpers.get_my_school_id());
 
 -- Announcements: Only Principal/Admin can manage
 DROP POLICY IF EXISTS "Principals manage announcements" ON public.announcements;
 CREATE POLICY "Principals manage announcements" ON public.announcements
-    FOR ALL USING (get_my_role() IN ('principal', 'admin'));
+    FOR ALL USING (auth_helpers.get_my_role() IN ('principal', 'admin'));
 
 -- Timetables: Viewable by school members
 DROP POLICY IF EXISTS "Timetables viewable by school members" ON public.timetables;
 CREATE POLICY "Timetables viewable by school members" ON public.timetables
-    FOR SELECT USING (school_id = get_my_school_id());
+    FOR SELECT USING (school_id = auth_helpers.get_my_school_id());
 
 -- Hardware Nodes: Only Admins can see/manage
 DROP POLICY IF EXISTS "Admins manage hardware nodes" ON public.hardware_nodes;
 CREATE POLICY "Admins manage hardware nodes" ON public.hardware_nodes
-    FOR ALL USING (get_my_role() = 'admin');
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin');
 
 -- System Logs: Only Admins can see
 DROP POLICY IF EXISTS "Admins view system logs" ON public.system_logs;
 CREATE POLICY "Admins view system logs" ON public.system_logs
-    FOR SELECT USING (get_my_role() = 'admin');
+    FOR SELECT USING (auth_helpers.get_my_role() = 'admin');
 
 -- System Logs: Users can insert their own logs
 DROP POLICY IF EXISTS "Users can insert own logs" ON public.system_logs;
 CREATE POLICY "Users can insert own logs" ON public.system_logs
-    FOR INSERT WITH CHECK (user_id = auth.uid() OR tenant_id = get_my_school_id());
+    FOR INSERT WITH CHECK (user_id = auth.uid() OR tenant_id = auth_helpers.get_my_school_id());
 
 -- Global Materials: Viewable by all authenticated users
 DROP POLICY IF EXISTS "Global materials viewable by all" ON public.global_materials;
@@ -743,13 +735,197 @@ CREATE POLICY "Global materials viewable by all" ON public.global_materials
 -- Study Materials: Viewable by same school
 DROP POLICY IF EXISTS "View materials in same school" ON public.study_materials;
 CREATE POLICY "View materials in same school" ON public.study_materials
-    FOR SELECT USING (school_id = get_my_school_id());
+    FOR SELECT USING (school_id = auth_helpers.get_my_school_id());
 
 -- 5. Indexing for Performance
 CREATE INDEX IF NOT EXISTS idx_announcements_school ON public.announcements(school_id);
 CREATE INDEX IF NOT EXISTS idx_timetables_school ON public.timetables(school_id);
 CREATE INDEX IF NOT EXISTS idx_hpc_tenant ON public.hpc_competencies(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_materials_school ON public.study_materials(school_id);
+
+-- 6. RLS Policy Coverage
+-- These policies ensure every RLS-enabled table has an explicit access rule.
+-- Service-role backend jobs still bypass RLS; browser clients only get scoped access.
+
+DROP POLICY IF EXISTS "Schools viewable by members" ON public.schools;
+CREATE POLICY "Schools viewable by members" ON public.schools
+    FOR SELECT USING (
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        id = auth_helpers.get_my_school_id()
+    );
+
+DROP POLICY IF EXISTS "Admins manage schools" ON public.schools;
+CREATE POLICY "Admins manage schools" ON public.schools
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "Chat rooms viewable by school members" ON public.chat_rooms;
+CREATE POLICY "Chat rooms viewable by school members" ON public.chat_rooms
+    FOR SELECT USING (
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        school_id = auth_helpers.get_my_school_id()
+    );
+
+DROP POLICY IF EXISTS "Staff manage school chat rooms" ON public.chat_rooms;
+CREATE POLICY "Staff manage school chat rooms" ON public.chat_rooms
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('admin', 'principal', 'moderator') AND
+        (auth_helpers.get_my_role() = 'admin' OR school_id = auth_helpers.get_my_school_id())
+    );
+
+DROP POLICY IF EXISTS "Teachers manage own CPD logs" ON public.cpd_logs;
+CREATE POLICY "Teachers manage own CPD logs" ON public.cpd_logs
+    FOR ALL USING (teacher_id = auth.uid());
+
+DROP POLICY IF EXISTS "Admins and auditors view CPD logs" ON public.cpd_logs;
+CREATE POLICY "Admins and auditors view CPD logs" ON public.cpd_logs
+    FOR SELECT USING (auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Materials viewable by school members" ON public.materials;
+CREATE POLICY "Materials viewable by school members" ON public.materials
+    FOR SELECT USING (
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        school_id = auth_helpers.get_my_school_id()
+    );
+
+DROP POLICY IF EXISTS "Staff manage school materials" ON public.materials;
+CREATE POLICY "Staff manage school materials" ON public.materials
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('admin', 'principal', 'teacher', 'moderator') AND
+        (auth_helpers.get_my_role() = 'admin' OR school_id = auth_helpers.get_my_school_id())
+    );
+
+DROP POLICY IF EXISTS "Student wellbeing viewable by student or staff" ON public.student_wellbeing;
+CREATE POLICY "Student wellbeing viewable by student or staff" ON public.student_wellbeing
+    FOR SELECT USING (
+        student_id = auth.uid() OR
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        EXISTS (
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = public.student_wellbeing.student_id
+            AND p.school_id = auth_helpers.get_my_school_id()
+            AND auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator')
+        )
+    );
+
+DROP POLICY IF EXISTS "Staff manage student wellbeing" ON public.student_wellbeing;
+CREATE POLICY "Staff manage student wellbeing" ON public.student_wellbeing
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('admin', 'principal', 'teacher', 'moderator') AND
+        (recorded_by = auth.uid() OR auth_helpers.get_my_role() = 'admin')
+    );
+
+DROP POLICY IF EXISTS "Behavioral logs viewable by student or staff" ON public.behavioral_logs;
+CREATE POLICY "Behavioral logs viewable by student or staff" ON public.behavioral_logs
+    FOR SELECT USING (
+        student_id = auth.uid() OR
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        (
+            tenant_id = auth_helpers.get_my_school_id() AND
+            auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator')
+        )
+    );
+
+DROP POLICY IF EXISTS "Staff manage behavioral logs" ON public.behavioral_logs;
+CREATE POLICY "Staff manage behavioral logs" ON public.behavioral_logs
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('admin', 'principal', 'teacher', 'moderator') AND
+        (auth_helpers.get_my_role() = 'admin' OR tenant_id = auth_helpers.get_my_school_id())
+    );
+
+DROP POLICY IF EXISTS "Admins manage fleet releases" ON public.fleet_releases;
+CREATE POLICY "Admins manage fleet releases" ON public.fleet_releases
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "Admins manage fleet deployments" ON public.fleet_deployments;
+CREATE POLICY "Admins manage fleet deployments" ON public.fleet_deployments
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "HPC competencies viewable by student or staff" ON public.hpc_competencies;
+CREATE POLICY "HPC competencies viewable by student or staff" ON public.hpc_competencies
+    FOR SELECT USING (
+        student_id = auth.uid() OR
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        (
+            tenant_id = auth_helpers.get_my_school_id() AND
+            auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator')
+        )
+    );
+
+DROP POLICY IF EXISTS "Staff manage HPC competencies" ON public.hpc_competencies;
+CREATE POLICY "Staff manage HPC competencies" ON public.hpc_competencies
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('admin', 'principal', 'teacher') AND
+        (auth_helpers.get_my_role() = 'admin' OR tenant_id = auth_helpers.get_my_school_id())
+    );
+
+DROP POLICY IF EXISTS "Platform config viewable by authenticated users" ON public.platform_config;
+CREATE POLICY "Platform config viewable by authenticated users" ON public.platform_config
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins manage platform config" ON public.platform_config;
+CREATE POLICY "Admins manage platform config" ON public.platform_config
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "Promotion history viewable by owner or admin" ON public.promotion_history;
+CREATE POLICY "Promotion history viewable by owner or admin" ON public.promotion_history
+    FOR SELECT USING (principal_id = auth.uid() OR auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Principals create promotion history" ON public.promotion_history;
+CREATE POLICY "Principals create promotion history" ON public.promotion_history
+    FOR INSERT WITH CHECK (
+        principal_id = auth.uid() AND
+        auth_helpers.get_my_role() IN ('principal', 'admin')
+    );
+
+DROP POLICY IF EXISTS "Anyone can submit registration requests" ON public.registration_requests;
+CREATE POLICY "Anyone can submit registration requests" ON public.registration_requests
+    FOR INSERT WITH CHECK (
+        length(trim(school_name)) >= 2 AND
+        contact_email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$' AND
+        status = 'pending'
+    );
+
+DROP POLICY IF EXISTS "Admins manage registration requests" ON public.registration_requests;
+CREATE POLICY "Admins manage registration requests" ON public.registration_requests
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "School profiles viewable by owner or admin" ON public.school_profiles;
+CREATE POLICY "School profiles viewable by owner or admin" ON public.school_profiles
+    FOR SELECT USING (id = auth.uid() OR auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Admins manage school profiles" ON public.school_profiles;
+CREATE POLICY "Admins manage school profiles" ON public.school_profiles
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "School rooms viewable by school members" ON public.school_rooms;
+CREATE POLICY "School rooms viewable by school members" ON public.school_rooms
+    FOR SELECT USING (
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        school_id = auth_helpers.get_my_school_id()
+    );
+
+DROP POLICY IF EXISTS "Staff manage school rooms" ON public.school_rooms;
+CREATE POLICY "Staff manage school rooms" ON public.school_rooms
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('admin', 'principal', 'moderator') AND
+        (auth_helpers.get_my_role() = 'admin' OR school_id = auth_helpers.get_my_school_id())
+    );
+
+ALTER TABLE IF EXISTS archive.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS archive.attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS archive.hardware_heartbeats ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins view archived messages" ON archive.messages;
+CREATE POLICY "Admins view archived messages" ON archive.messages
+    FOR SELECT USING (auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Admins view archived attendance" ON archive.attendance;
+CREATE POLICY "Admins view archived attendance" ON archive.attendance
+    FOR SELECT USING (auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Admins view archived hardware heartbeats" ON archive.hardware_heartbeats;
+CREATE POLICY "Admins view archived hardware heartbeats" ON archive.hardware_heartbeats
+    FOR SELECT USING (auth_helpers.get_my_role() IN ('admin', 'auditor'));
 
 -- ============================================================
 -- Hybrid principal academic access
@@ -855,56 +1031,50 @@ CREATE POLICY "Principals monitor school sessions" ON public.student_sessions
 -- ============================================================
 
 -- SUPABASE SECURITY HARDENING SCRIPT
--- Resolves linter warnings related to SECURITY DEFINER functions and search_path mutability.
+-- Removes SECURITY DEFINER functions from the exposed public RPC surface.
 
--- 1. Fix get_my_school_id()
--- Added explicit search_path for security and revoked public execution to prevent RPC exposure.
-CREATE OR REPLACE FUNCTION public.get_my_school_id()
-RETURNS UUID 
-LANGUAGE sql 
-STABLE 
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT school_id FROM public.profiles WHERE id = auth.uid();
-$$;
+-- 1. Remove legacy public helper functions.
+-- RLS policies use auth_helpers.get_my_school_id() and auth_helpers.get_my_role().
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'get_my_school_id' AND p.pronargs = 0) THEN
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.get_my_school_id() FROM PUBLIC';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.get_my_school_id() FROM anon';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.get_my_school_id() FROM authenticated';
+        BEGIN
+            EXECUTE 'DROP FUNCTION public.get_my_school_id()';
+        EXCEPTION
+            WHEN dependent_objects_still_exist THEN NULL;
+        END;
+    END IF;
 
-REVOKE EXECUTE ON FUNCTION public.get_my_school_id() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.get_my_school_id() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_my_school_id() TO service_role;
+    IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'get_my_role' AND p.pronargs = 0) THEN
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.get_my_role() FROM PUBLIC';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.get_my_role() FROM anon';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.get_my_role() FROM authenticated';
+        BEGIN
+            EXECUTE 'DROP FUNCTION public.get_my_role()';
+        EXCEPTION
+            WHEN dependent_objects_still_exist THEN NULL;
+        END;
+    END IF;
+END $$;
 
-
--- 2. Fix get_my_role()
--- Added explicit search_path and restricted access.
-CREATE OR REPLACE FUNCTION public.get_my_role()
-RETURNS user_role 
-LANGUAGE sql 
-STABLE 
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT role FROM public.profiles WHERE id = auth.uid();
-$$;
-
-REVOKE EXECUTE ON FUNCTION public.get_my_role() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.get_my_role() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_my_role() TO service_role;
-
-
--- 3. Fix rls_auto_enable() (if it exists)
--- This function is often used in migrations. Ensuring it has a safe search_path.
+-- 2. Restrict rls_auto_enable() if it exists.
 DO $$ 
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'rls_auto_enable') THEN
         EXECUTE 'ALTER FUNCTION public.rls_auto_enable() SET search_path = public';
         EXECUTE 'REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon';
+        EXECUTE 'REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM authenticated';
     END IF;
 EXCEPTION
     WHEN others THEN NULL;
 END $$;
 
 
--- 4. Fix archive.perform_annual_rollover(uuid)
+-- 3. Fix archive.perform_annual_rollover(uuid)
 -- Added explicit signature (uuid) to match the definition in the archival schema.
 DO $$ 
 BEGIN
@@ -917,7 +1087,7 @@ EXCEPTION
     WHEN others THEN NULL;
 END $$;
 
-SELECT 'Security hardening complete. Helper functions are now protected against search_path attacks and unauthorized RPC calls.' as status;
+SELECT 'Security hardening complete. Public SECURITY DEFINER RPC helpers are removed/restricted.' as status;
 
 -- ============================================================
 -- Demo seed users and school data
@@ -953,7 +1123,19 @@ BEGIN
     VALUES (v_user_id, 'AD00001', 'Super Admin', 'admin', NULL)
     ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role, school_id = EXCLUDED.school_id;
 
-    -- 3. Principal
+    -- 3. Auditor
+    v_email := 'au00001' || v_domain;
+    SELECT id INTO v_user_id FROM auth.users WHERE email = v_email LIMIT 1;
+    IF v_user_id IS NULL THEN
+        v_user_id := gen_random_uuid();
+        INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, aud, role)
+        VALUES (v_user_id, v_email, v_pass, NOW(), 'authenticated', 'authenticated');
+    END IF;
+    INSERT INTO public.profiles (id, user_code, full_name, role, school_id)
+    VALUES (v_user_id, 'AU00001', 'Compliance Auditor', 'auditor', NULL)
+    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role, school_id = EXCLUDED.school_id;
+
+    -- 4. Principal
     v_email := 'pr00001' || v_domain;
     SELECT id INTO v_user_id FROM auth.users WHERE email = v_email LIMIT 1;
     IF v_user_id IS NULL THEN
@@ -965,7 +1147,7 @@ BEGIN
     VALUES (v_user_id, 'PR00001', 'Dr. Anita Sharma', 'principal', v_school_id)
     ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role, school_id = EXCLUDED.school_id;
 
-    -- 3. Moderator
+    -- 5. Moderator
     v_email := 'md00001' || v_domain;
     SELECT id INTO v_user_id FROM auth.users WHERE email = v_email LIMIT 1;
     IF v_user_id IS NULL THEN
@@ -977,7 +1159,7 @@ BEGIN
     VALUES (v_user_id, 'MD00001', 'David Costa', 'moderator', v_school_id)
     ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role, school_id = EXCLUDED.school_id;
 
-    -- 4. Teachers
+    -- 6. Teachers
     FOR v_i IN 1..3 LOOP
         v_email := 't00000' || v_i || v_domain;
         SELECT id INTO v_user_id FROM auth.users WHERE email = v_email LIMIT 1;
@@ -991,7 +1173,7 @@ BEGIN
         ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role, school_id = EXCLUDED.school_id;
     END LOOP;
 
-    -- 5. Students
+    -- 7. Students
     FOR v_i IN 1..15 LOOP
         v_email := '787826090' || LPAD(v_i::text, 2, '0') || v_domain;
         SELECT id INTO v_user_id FROM auth.users WHERE email = v_email LIMIT 1;

@@ -19,13 +19,13 @@ export default function AdminLogin() {
     setIsLoading(true);
     setError(null);
     try {
-      const { profile } = await signInWithCode(userCode, password);
+      const { profile } = await signInWithCode(userCode, password, { allowedRoles: ['admin'] });
       if (profile.role !== 'admin') {
         throw new Error('Access denied. Administrative level clearance required.');
       }
       router.push(navigateByRole('admin'));
-    } catch (err: any) {
-      setError(err.message || 'Identity verification failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Identity verification failed');
     } finally {
       setIsLoading(false);
     }
