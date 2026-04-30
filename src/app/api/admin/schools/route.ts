@@ -22,7 +22,7 @@ export async function GET() {
       code: school.school_code,
       plan: school.plan_type,
       status: school.status,
-      students: school.profiles?.[0]?.count || 0,
+      students: (school.profiles as any)?.[0]?.count || 0,
       createdAt: school.created_at
     }));
 
