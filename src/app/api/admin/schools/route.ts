@@ -16,13 +16,23 @@ export async function GET() {
     if (schoolError) throw schoolError;
 
     // Transform data to match UI expectations
-    const transformedSchools = (schools || []).map((school: any) => ({
+    type SchoolData = {
+      id: string;
+      school_name: string;
+      school_code: string;
+      plan_type: string;
+      status: string;
+      profiles?: { count: number }[];
+      created_at: string;
+    };
+
+    const transformedSchools = (schools || []).map((school: SchoolData) => ({
       id: school.id,
       name: school.school_name,
       code: school.school_code,
       plan: school.plan_type,
       status: school.status,
-      students: (school.profiles as any)?.[0]?.count || 0,
+      students: school.profiles?.[0]?.count || 0,
       createdAt: school.created_at
     }));
 
