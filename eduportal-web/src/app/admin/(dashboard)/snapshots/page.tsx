@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderUp, Database, Clock, ArrowPath, Trash2, Shield, Plus } from 'lucide-react';
+import { FolderUp, Database, Clock, RotateCw, Trash2, Shield, Plus } from 'lucide-react';
 
 const MOCK_SNAPSHOTS = [
   { id: 1, name: "Weekly_Backup_290426", size: "1.2 GB", date: "2026-04-29 02:00", type: "Full", status: "Healthy" },
@@ -73,7 +73,7 @@ export default function SnapshotsPage() {
                 
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button className="btn btn-outline btn-sm gap-2">
-                    <ArrowPath className="w-3.5 h-3.5" /> Restore
+                    <RotateCw className="w-3.5 h-3.5" /> Restore
                   </button>
                   <button className="p-2 hover:bg-danger/10 rounded-lg text-muted hover:text-danger transition-colors">
                     <Trash2 className="w-4 h-4" />
@@ -100,6 +100,4 @@ export default function SnapshotsPage() {
   );
 }
 
-const ArrowPath = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
-);
+
