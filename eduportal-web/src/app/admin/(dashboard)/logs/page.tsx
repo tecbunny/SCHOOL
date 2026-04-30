@@ -39,7 +39,7 @@ export default function AdminLogsPage() {
     // Real-time subscription
     const channel = supabase
       .channel('schema-db-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'system_logs' }, payload => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'system_logs' }, (payload: any) => {
         setLogs(prev => [payload.new, ...prev].slice(0, 50));
       })
       .subscribe();
