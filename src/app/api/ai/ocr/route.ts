@@ -1,14 +1,23 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { errorMessage, requireUser } from "@/lib/api-auth";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const MAX_IMAGE_CHARS = 5_000_000;
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireUser(["teacher", "principal", "moderator", "admin"]);
+    if (!auth.ok) return auth.response;
+
     const { image } = await req.json();
 
-    if (!image) {
-      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    if (typeof image !== "string" || !image.startsWith("data:image/") || image.length > MAX_IMAGE_CHARS) {
+      return NextResponse.json({ error: "A valid worksheet image under 5MB is required." }, { status: 400 });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "AI Service configuration missing" }, { status: 500 });
     }
 
     // Convert base64 to parts for Gemini
@@ -56,8 +65,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json(data);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI OCR Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

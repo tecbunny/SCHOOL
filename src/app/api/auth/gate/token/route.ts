@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import { errorMessage } from "@/lib/api-auth";
 
 const GATE_SECRET = process.env.GATE_AUTH_SECRET;
 
@@ -9,6 +10,11 @@ export async function POST(req: Request) {
     if (!GATE_SECRET) {
       return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
     }
+    const stationSecret = req.headers.get("x-station-secret");
+    if (!process.env.GATE_STATION_SECRET || stationSecret !== process.env.GATE_STATION_SECRET) {
+      return NextResponse.json({ error: "Unauthorized station." }, { status: 401 });
+    }
+
     const { studentId, stationId } = await req.json();
 
     if (!studentId || !stationId) {
@@ -22,6 +28,7 @@ export async function POST(req: Request) {
       .from('profiles')
       .select('id, user_code, role, school_id')
       .eq('user_code', studentId)
+      .eq('role', 'student')
       .single();
 
     if (profileError || !profile) {
@@ -54,7 +61,7 @@ export async function POST(req: Request) {
       expiresIn: 60 
     });
 
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

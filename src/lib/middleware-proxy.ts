@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { navigateByRole, type UserRole } from './constants';
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -51,6 +52,28 @@ export async function proxy(request: NextRequest) {
       if (url.pathname.includes('/auditor')) redirectUrl = '/auditor';
       
       return NextResponse.redirect(new URL(redirectUrl, request.url));
+    }
+
+    if (user && isProtectedPath) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      const role = profile?.role as UserRole | undefined;
+      const isAllowed =
+        (url.pathname.startsWith('/admin') && role === 'admin') ||
+        (url.pathname.startsWith('/auditor') && role === 'auditor') ||
+        (url.pathname.startsWith('/school/dashboard/student') && role === 'student') ||
+        (url.pathname.startsWith('/school/dashboard/teacher') && role === 'teacher') ||
+        (url.pathname.startsWith('/school/dashboard/hod') && role === 'principal') ||
+        (url.pathname.startsWith('/school/dashboard/moderator') && role === 'moderator') ||
+        (url.pathname.startsWith('/school/dashboard/alumni') && role === 'alumni');
+
+      if (!role || !isAllowed) {
+        return NextResponse.redirect(new URL(role ? navigateByRole(role) : '/school', request.url));
+      }
     }
 
     // 2. Standalone Security: Block admin/auditor routes on student hardware

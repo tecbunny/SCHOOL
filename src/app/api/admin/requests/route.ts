@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
+import { errorMessage, requireUser } from "@/lib/api-auth";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+    const { supabase } = auth.context;
 
     const { data, error } = await supabase
       .from('registration_requests')
@@ -17,8 +20,8 @@ export async function GET() {
     }
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
 
@@ -36,15 +39,22 @@ export async function POST(req: Request) {
     if (error) throw error;
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
-    const supabase = await createClient();
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+    const { supabase } = auth.context;
     const { id, status } = await req.json();
+    const allowedStatuses = new Set(["pending", "approved", "rejected"]);
+
+    if (!id || !allowedStatuses.has(status)) {
+      return NextResponse.json({ error: "Valid request id and status are required." }, { status: 400 });
+    }
 
     const { data, error } = await supabase
       .from('registration_requests')
@@ -56,7 +66,7 @@ export async function PATCH(req: Request) {
     if (error) throw error;
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

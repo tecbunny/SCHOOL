@@ -10,17 +10,6 @@ export const signInWithCode = async (code: string, password: string) => {
   const supabase = createClient();
   if (!supabase) throw new Error('Supabase initialization failed.');
   
-  // --- MASTER BYPASS FOR LOCAL SIMULATION ---
-  if (password === '123456' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles').select('id, role').eq('user_code', code).single();
-    
-    if (profile && !profileError) {
-      return { profile, authData: { user: { id: profile.id } } };
-    }
-  }
-  // ------------------------------------------
-
   const email = `${code.toLowerCase()}@${APP_CONFIG.AUTH_DOMAIN}`;
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
   if (authError) throw new Error('Invalid User Code or Password.');
@@ -67,7 +56,7 @@ export function useDeviceMonitoring(studentId: string, currentActivity: string) 
     
     const channel = supabase.channel(`device_commands_${studentId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'device_commands', filter: `target_student_id=eq.${studentId}` }, 
-      (p: any) => handleCommand(p.new, supabase)).subscribe();
+      (p: { new: DeviceCommand }) => handleCommand(p.new, supabase)).subscribe();
       
     return () => { 
       clearInterval(interval); 
@@ -76,7 +65,21 @@ export function useDeviceMonitoring(studentId: string, currentActivity: string) 
   }, [studentId, currentActivity, supabase]);
 }
 
-const handleCommand = async (command: any, supabase: any) => {
+type DeviceCommand = {
+  id: string;
+  command_type: 'PUSH_URL' | 'LOCK_SCREEN' | 'RESET';
+  payload?: { url?: string };
+};
+
+type SupabaseCommandClient = {
+  from: (table: string) => {
+    update: (values: Record<string, unknown>) => {
+      eq: (column: string, value: string) => Promise<unknown>;
+    };
+  };
+};
+
+const handleCommand = async (command: DeviceCommand, supabase: SupabaseCommandClient) => {
   switch (command.command_type) {
     case 'PUSH_URL': if (command.payload?.url) window.location.href = command.payload.url; break;
     case 'LOCK_SCREEN': alert("🔒 Locked by Teacher."); break;

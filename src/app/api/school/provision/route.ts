@@ -1,15 +1,25 @@
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { errorMessage, getServiceClient, requireUser } from "@/lib/api-auth";
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+
     const { udiseCode, adminName, adminPassword } = await req.json();
 
     if (!udiseCode || udiseCode.length !== 11) {
       return NextResponse.json({ error: "Invalid 11-digit U-DISE code." }, { status: 400 });
     }
+    if (!adminName || typeof adminPassword !== "string" || adminPassword.length < 10) {
+      return NextResponse.json({ error: "Principal name and a stronger initial password are required." }, { status: 400 });
+    }
 
-    const supabase = await createClient();
+    const service = getServiceClient();
+    const supabase = createClient(service.url, service.key, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
 
     // 1. Check if school already exists
     const { data: existingSchool } = await supabase
@@ -41,9 +51,10 @@ export async function POST(req: Request) {
     const principalCode = `PR${udiseCode.substring(7)}01`;
     const email = `${principalCode.toLowerCase()}@auth.ssph01.eduportal.internal`;
     
-    const { data: authUser, error: authError } = await supabase.auth.signUp({
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
       password: adminPassword,
+      email_confirm: true,
     });
 
     if (authError) throw authError;
@@ -52,7 +63,7 @@ export async function POST(req: Request) {
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
-        id: authUser.user!.id,
+        id: authUser.user.id,
         user_code: principalCode,
         full_name: adminName,
         role: 'principal',
@@ -68,8 +79,8 @@ export async function POST(req: Request) {
       message: "School provisioned successfully. Please use the principal code to login."
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Provisioning Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

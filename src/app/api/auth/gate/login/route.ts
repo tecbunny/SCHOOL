@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { GateJwtPayload } from "@/lib/constants";
+import { errorMessage } from "@/lib/api-auth";
 
 const GATE_SECRET = process.env.GATE_AUTH_SECRET;
 
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     let decoded: GateJwtPayload;
     try {
       decoded = jwt.verify(token, GATE_SECRET) as GateJwtPayload;
-    } catch (jwtError) {
+    } catch {
       return NextResponse.json({ error: "Token expired or tampered with." }, { status: 401 });
     }
 
@@ -51,9 +52,9 @@ export async function POST(req: Request) {
       message: "Handshake successful. Logging in..." 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Catch-all for server errors, JSON parsing errors, etc.
     console.error("Gate Login Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

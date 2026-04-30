@@ -1,9 +1,11 @@
-import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
+import { errorMessage, requireUser } from "@/lib/api-auth";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+    const { supabase } = auth.context;
 
     // 1. Total Schools
     const { count: schoolCount, error: sErr } = await supabase
@@ -37,7 +39,7 @@ export async function GET() {
         standard: 0
       }
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

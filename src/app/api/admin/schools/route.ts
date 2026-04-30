@@ -1,9 +1,11 @@
-import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
+import { errorMessage, pickAllowed, requireUser } from "@/lib/api-auth";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+    const { supabase } = auth.context;
 
     // Fetch schools with profiles count (students)
     const { data: schools, error: schoolError } = await supabase
@@ -37,20 +39,27 @@ export async function GET() {
     }));
 
     return NextResponse.json(transformedSchools);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Admin Schools API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
-    const supabase = await createClient();
-    const { id, status, plan_type } = await req.json();
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+    const { supabase } = auth.context;
+    const { id, ...body } = await req.json();
+    const updates = pickAllowed(body, ["status", "plan_type"]);
+
+    if (!id || Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: "School id and valid updates are required." }, { status: 400 });
+    }
 
     const { data, error } = await supabase
       .from('schools')
-      .update({ status, plan_type })
+      .update(updates)
       .eq('id', id)
       .select()
       .single();
@@ -58,7 +67,7 @@ export async function PATCH(req: Request) {
     if (error) throw error;
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

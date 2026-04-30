@@ -1,11 +1,28 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/api-auth";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const MAX_IMAGE_CHARS = 5_000_000;
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireUser(["teacher", "principal", "moderator", "admin"]);
+    if (!auth.ok) return auth.response;
+
     const { image, rubric, context } = await req.json();
+
+    if (typeof image !== "string" || !image.startsWith("data:image/") || image.length > MAX_IMAGE_CHARS) {
+      return NextResponse.json({ error: "A valid worksheet image under 5MB is required." }, { status: 400 });
+    }
+
+    if (!rubric || typeof rubric !== "object") {
+      return NextResponse.json({ error: "Rubric is required." }, { status: 400 });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "AI Service configuration missing" }, { status: 500 });
+    }
 
     // 1. Initialize Gemini 1.5 Flash for vision tasks with limitations
     const model = genAI.getGenerativeModel({ 
@@ -70,7 +87,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(parsedResult);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Vision AI Error:", error);
     return NextResponse.json({ error: "Failed to process worksheet." }, { status: 500 });
   }

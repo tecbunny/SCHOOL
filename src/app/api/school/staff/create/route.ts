@@ -1,37 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { createClient as createServerClient } from '@/lib/supabase-server';
+import { errorMessage, getServiceClient, requireUser } from '@/lib/api-auth';
 
 export async function POST(req: Request) {
   try {
     // 1. Verify the requester is a Principal
-    const supabaseServer = await createServerClient();
-    const { data: { user: requester }, error: authError } = await supabaseServer.auth.getUser();
-    
-    if (authError || !requester) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: requesterProfile } = await supabaseServer
-      .from('profiles')
-      .select('role, school_id')
-      .eq('id', requester.id)
-      .single();
-
-    if (requesterProfile?.role !== 'principal') {
-      return NextResponse.json({ error: 'Only Principals can add staff' }, { status: 403 });
-    }
+    const auth = await requireUser(["principal"]);
+    if (!auth.ok) return auth.response;
+    const requesterProfile = auth.context.profile;
 
     // 2. Parse request data
     const { fullName, role } = await req.json();
+    const allowedRoles = new Set(["teacher", "moderator"]);
     if (!fullName || !role) {
       return NextResponse.json({ error: 'Name and Role are required' }, { status: 400 });
     }
+    if (!allowedRoles.has(role)) {
+      return NextResponse.json({ error: 'Principals can only create teacher or moderator accounts.' }, { status: 400 });
+    }
 
     // 3. Initialize Supabase Admin Client (using Service Role Key)
+    const service = getServiceClient();
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      service.url,
+      service.key,
       {
         auth: {
           autoRefreshToken: false,
@@ -42,10 +34,10 @@ export async function POST(req: Request) {
 
     // 4. Generate Credentials
     // Format: TCH-SCHOOLID-RANDOM (e.g. TCH-SCH7878-A1B2)
-    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const randomSuffix = crypto.randomUUID().replace(/-/g, '').substring(0, 6).toUpperCase();
     const loginId = `${role === 'teacher' ? 'TCH' : 'MOD'}-${requesterProfile.school_id.substring(0, 8)}-${randomSuffix}`;
     const email = `${loginId.toLowerCase()}@eduportal.internal`;
-    const tempPassword = `Edu@${Math.random().toString(36).substring(2, 10)}`;
+    const tempPassword = `Edu@${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
 
     // 5. Create Auth User silently
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -63,6 +55,7 @@ export async function POST(req: Request) {
       .insert({
         id: newUser.user.id,
         full_name: fullName,
+        user_code: loginId,
         role: role,
         school_id: requesterProfile.school_id,
         is_teaching_staff: role === 'teacher'
@@ -82,8 +75,8 @@ export async function POST(req: Request) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Staff Creation Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

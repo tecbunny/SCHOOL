@@ -13,9 +13,9 @@ export function QRLoginModal({ deviceId, onClose }: { deviceId: string, onClose:
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const response = await fetch('/api/auth/gate/token', { method: 'POST', body: JSON.stringify({ deviceId }) });
+        const response = await fetch('/api/auth/qr/generate', { method: 'POST', body: JSON.stringify({ deviceId }) });
         const data = await response.json();
-        setToken(data.token);
+        setToken(data.qrPayload);
       } catch (err) { console.error(err); }
       finally { setIsLoading(false); }
     };

@@ -36,7 +36,7 @@
   },
   "overrides": {
     "@tootallnate/once": "^3.0.1",
-    "ajv": "^8.17.2",
+    "ajv": "^6.14.0",
     "minimatch": "^10.2.3",
     "path-to-regexp": "^6.3.0",
     "postcss": "^8.5.10",

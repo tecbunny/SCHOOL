@@ -1,14 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { errorMessage, getServiceClient } from '@/lib/api-auth';
 
 
 export async function POST(req: Request) {
   try {
+    const service = getServiceClient();
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      service.url,
+      service.key
     );
-    const { deviceId, schoolCode, secretKey } = await req.json();
+    const { deviceId, schoolCode, secretKey, studentCode } = await req.json();
+
+    if (!process.env.HARDWARE_PROVISIONING_SECRET || secretKey !== process.env.HARDWARE_PROVISIONING_SECRET) {
+      return NextResponse.json({ error: 'Invalid provisioning secret.' }, { status: 401 });
+    }
+
+    if (!deviceId || !schoolCode || !studentCode) {
+      return NextResponse.json({ error: 'Device id, school code, and student code are required.' }, { status: 400 });
+    }
 
     // 1. Verify School Code
     const { data: school, error: schoolError } = await supabaseAdmin
@@ -23,16 +33,17 @@ export async function POST(req: Request) {
 
     // 2. Register Device
     // In a real scenario, we would verify the secretKey against the school's provisioned keys
-    const { data: device, error: deviceError } = await supabaseAdmin
+    const { error: deviceError } = await supabaseAdmin
       .from('profiles')
       .update({ 
         mac_address: deviceId,
         is_hardware_bound: true
       })
       .eq('school_id', school.id)
-      .eq('role', 'student') // Or teacher depending on device type
+      .eq('role', 'student')
+      .eq('user_code', studentCode)
       .select()
-      .limit(1);
+      .single();
 
     if (deviceError) throw deviceError;
 
@@ -45,7 +56,7 @@ export async function POST(req: Request) {
       }
     });
 
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

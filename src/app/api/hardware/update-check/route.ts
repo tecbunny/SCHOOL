@@ -1,10 +1,22 @@
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getServiceClient } from "@/lib/api-auth";
 
 export async function POST(req: Request) {
   try {
+    const nodeSecret = req.headers.get("x-node-secret");
+    if (!process.env.HARDWARE_NODE_SECRET || nodeSecret !== process.env.HARDWARE_NODE_SECRET) {
+      return NextResponse.json({ error: "Unauthorized node." }, { status: 401 });
+    }
+
     const { nodeId, currentVersion, releaseType } = await req.json();
-    const supabase = createClient();
+    if (!nodeId || !currentVersion || !releaseType) {
+      return NextResponse.json({ error: "Node id, version, and release type are required." }, { status: 400 });
+    }
+    const service = getServiceClient();
+    const supabase = createClient(service.url, service.key, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
 
     // 1. Fetch latest release of specified type
     const { data: latestRelease, error } = await supabase

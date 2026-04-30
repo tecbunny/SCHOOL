@@ -1,12 +1,14 @@
-import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
+import { errorMessage, pickAllowed, requireUser } from "@/lib/api-auth";
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+    const { supabase } = auth.context;
     const { id } = await params;
 
     const { data, error } = await supabase
@@ -18,8 +20,8 @@ export async function GET(
     if (error) throw error;
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
 
@@ -28,13 +30,20 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
+    const { supabase } = auth.context;
     const { id } = await params;
     const body = await req.json();
+    const updates = pickAllowed(body, ["school_name", "status", "plan_type"]);
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: "No valid school fields provided." }, { status: 400 });
+    }
 
     const { data, error } = await supabase
       .from('schools')
-      .update(body)
+      .update(updates)
       .eq('id', id)
       .select()
       .single();
@@ -42,7 +51,7 @@ export async function PATCH(
     if (error) throw error;
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

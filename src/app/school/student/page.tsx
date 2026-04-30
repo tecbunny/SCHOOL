@@ -125,7 +125,7 @@ export default function StudentAppLogin() {
       </div>
 
       {showQR && <QRLoginModal deviceId={deviceId} onClose={() => setShowQR(false)} />}
-      {showScanner && <QRScannerModal deviceId={deviceId} onLoginSuccess={(code) => { setUserCode(code); setPassword('SSPH01_HANDSHAKE_SECURE'); setShowScanner(false); }} onClose={() => setShowScanner(false)} />}
+      {showScanner && <QRScannerModal deviceId={deviceId} onLoginSuccess={(code) => { setUserCode(code); setShowScanner(false); }} onClose={() => setShowScanner(false)} />}
     </div>
   );
 }

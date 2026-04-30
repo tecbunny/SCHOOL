@@ -1,34 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { createClient as createServerClient } from '@/lib/supabase-server';
+import { errorMessage, getServiceClient, pickAllowed, requireUser } from '@/lib/api-auth';
 
 export async function PATCH(req: Request) {
   try {
-    const supabaseServer = await createServerClient();
-    const { data: { user } } = await supabaseServer.auth.getUser();
-
-    // 1. Verify Super Admin role
-    const { data: profile } = await supabaseServer
-      .from('profiles')
-      .select('role')
-      .eq('id', user?.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
-    }
+    const auth = await requireUser(["admin"]);
+    if (!auth.ok) return auth.response;
 
     // 2. Parse batch request
     const { schoolIds, updates } = await req.json();
+    const allowedUpdates = pickAllowed(updates || {}, ["status", "plan_type"]);
     
     if (!Array.isArray(schoolIds) || schoolIds.length === 0) {
       return NextResponse.json({ error: 'No schools selected for batch update.' }, { status: 400 });
     }
 
+    if (Object.keys(allowedUpdates).length === 0) {
+      return NextResponse.json({ error: 'No valid batch update fields provided.' }, { status: 400 });
+    }
+
     // 3. Initialize Admin Client
+    const service = getServiceClient();
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      service.url,
+      service.key,
       {
         auth: {
           autoRefreshToken: false,
@@ -40,7 +35,7 @@ export async function PATCH(req: Request) {
     // 4. Execute Batch Update
     const { data, error } = await supabaseAdmin
       .from('schools')
-      .update(updates)
+      .update(allowedUpdates)
       .in('id', schoolIds)
       .select();
 
@@ -53,8 +48,8 @@ export async function PATCH(req: Request) {
       timestamp: new Date().toISOString()
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Batch Update Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
