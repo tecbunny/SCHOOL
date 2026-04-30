@@ -38,8 +38,8 @@ export default function TimetableManager() {
       .select('teacher_id')
       .eq('start_time', slotStartTime);
 
-    const busyTeacherIds = new Set(activeSchedules?.map(s => s.teacher_id));
-    const available = teachers?.filter(t => !busyTeacherIds.has(t.id)) || [];
+    const busyTeacherIds = new Set(activeSchedules?.map((s: any) => s.teacher_id));
+    const available = teachers?.filter((t: any) => !busyTeacherIds.has(t.id)) || [];
     setAvailableSubstitutes(available);
   };
 
