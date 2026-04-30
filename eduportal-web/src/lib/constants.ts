@@ -14,11 +14,12 @@ export const ROUTES = {
   TEACHER: '/school/dashboard/teacher',
   MODERATOR: '/school/dashboard/moderator',
   STUDENT: '/school/dashboard/student',
+  ALUMNI: '/school/dashboard/alumni',
   LOGIN: '/school',
 };
 
 // --- TYPES ---
-export type UserRole = 'admin' | 'auditor' | 'principal' | 'teacher' | 'moderator' | 'student';
+export type UserRole = 'admin' | 'auditor' | 'principal' | 'teacher' | 'moderator' | 'student' | 'alumni';
 
 export interface Profile {
   id: string;
@@ -40,6 +41,7 @@ export const navigateByRole = (role: UserRole) => {
     case 'teacher': return ROUTES.TEACHER;
     case 'moderator': return ROUTES.MODERATOR;
     case 'student': return ROUTES.STUDENT;
+    case 'alumni': return ROUTES.ALUMNI;
     default: return ROUTES.LOGIN;
   }
 };

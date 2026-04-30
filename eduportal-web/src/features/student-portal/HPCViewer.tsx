@@ -6,10 +6,24 @@ import {
   Activity, 
   ShieldCheck,
   TrendingUp,
-  Award
+  Award,
+  Zap
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { skillService } from '@/services/skill.service';
 
 export default function HPCViewer() {
+  const [skills, setSkills] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Mock student ID for now, in real app fetch from auth
+    const loadSkills = async () => {
+      const data = await skillService.getSkillMetrics('STUDENT_ID');
+      setSkills(data);
+    };
+    loadSkills();
+  }, []);
+
   const metrics = [
     { 
       title: 'Academic Achievement', 
@@ -102,6 +116,42 @@ export default function HPCViewer() {
                </div>
             </div>
          ))}
+      </div>
+
+      {/* Vocational Skill Map (NEP 2020 Compliance) */}
+      <div className="bg-card border border-white/5 rounded-[2.5rem] p-8 flex flex-col gap-6">
+         <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+               <div className="bg-warning/20 p-2 rounded-xl">
+                  <Zap className="w-5 h-5 text-warning" />
+               </div>
+               <div>
+                  <h3 className="font-bold text-lg">Vocational Skill Map</h3>
+                  <p className="text-xs text-muted">NEP 2020 "Bagless Days" Internship Progress.</p>
+               </div>
+            </div>
+            <span className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">10-Day Module</span>
+         </div>
+
+         <div className="grid grid-cols-4 gap-6">
+            {['Carpentry', 'Gardening', 'Coding', 'Pottery'].map(skill => {
+              const hours = skills.filter(s => s.metadata?.skill === skill).reduce((acc, curr) => acc + (curr.metadata?.hours || 0), 0);
+              return (
+                <div key={skill} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col gap-3">
+                   <div className="flex justify-between items-center text-[10px] font-bold text-muted uppercase">
+                      <span>{skill}</span>
+                      <span className={hours >= 10 ? 'text-success' : 'text-warning'}>{hours}/10 Hrs</span>
+                   </div>
+                   <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ${hours >= 10 ? 'bg-success' : 'bg-warning'}`}
+                        style={{ width: `${Math.min((hours / 10) * 100, 100)}%` }}
+                      ></div>
+                   </div>
+                </div>
+              );
+            })}
+         </div>
       </div>
 
       {/* Recognition Footer */}

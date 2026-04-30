@@ -8,20 +8,40 @@ import {
   MapPin, 
   RefreshCw, 
   Plus, 
-  AlertCircle,
-  CheckCircle2,
-  Users,
-  Search,
-  Loader2
+  AlertCircle, 
+  CheckCircle2, 
+  Users, 
+  Search, 
+  Loader2,
+  ArrowRightLeft
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { timetableService } from '@/services/timetable.service';
+import { UserRole } from '@/lib/constants';
 
 export default function TimetableManager() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubstitutionMode, setIsSubstitutionMode] = useState(false);
+  const [availableSubstitutes, setAvailableSubstitutes] = useState<any[]>([]);
   const supabase = createClient();
+
+  const suggestSubstitutes = async (slotStartTime: string) => {
+    const { data: teachers } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'teacher')
+      .eq('is_teaching_staff', true);
+
+    const { data: activeSchedules } = await supabase
+      .from('timetables')
+      .select('teacher_id')
+      .eq('start_time', slotStartTime);
+
+    const busyTeacherIds = new Set(activeSchedules?.map(s => s.teacher_id));
+    const available = teachers?.filter(t => !busyTeacherIds.has(t.id)) || [];
+    setAvailableSubstitutes(available);
+  };
 
   useEffect(() => {
     const fetchSchedules = async () => {
