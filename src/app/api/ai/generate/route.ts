@@ -36,8 +36,8 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
       systemInstruction: "You are an expert academic assessment engine for the EduPortal platform. LIMITATION: You only generate pedagogical content for school students. You must NEVER generate harmful, political, or non-educational content. Format: strictly valid JSON. Do not include markdown code blocks or any conversational text."
     });
 
@@ -71,9 +71,9 @@ export async function POST(req: Request) {
       return NextResponse.json(parsedData);
     } catch (parseError) {
       console.error("AI JSON Parse Error:", text);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: "Failed to parse AI response. The model may have returned malformed data.",
-        raw: text 
+        raw: text
       }, { status: 502 });
     }
 

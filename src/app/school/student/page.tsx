@@ -43,8 +43,8 @@ export default function StudentAppLogin() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${isEduOS ? 'bg-[#000]' : 'bg-[var(--bg-dark)]'}`}>
-      <div className={`${isEduOS ? 'border-none shadow-none' : 'bg-card border rounded-xl shadow-premium p-8'} w-full max-w-[420px] animate-in fade-in zoom-in duration-700`}>
+    <div className={`min-h-screen flex items-center justify-center p-4 ${isEduOS ? 'bg-[#000]' : 'app-shell'}`}>
+      <div className={`${isEduOS ? 'border-none shadow-none' : 'auth-card'} w-full max-w-[420px] animate-in fade-in zoom-in duration-700`}>
         
         <div className="flex flex-col items-center gap-4 mb-10">
           <div className="bg-primary/20 p-4 rounded-2xl border border-primary/30 shadow-lg shadow-primary/10">
@@ -52,7 +52,7 @@ export default function StudentAppLogin() {
           </div>
           <div className="text-center">
             <h1 className="text-3xl font-extrabold tracking-tight">Student Hub</h1>
-            <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">EduOS Native Surface</p>
+            <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 opacity-80">Learner access surface</p>
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function StudentAppLogin() {
               <Lock className="w-5 h-5 text-muted mr-3" />
               <input 
                 type="password" 
-                placeholder="••••••••" 
+                placeholder="Password"
                 className="w-full"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -100,7 +100,7 @@ export default function StudentAppLogin() {
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
-            <div className="relative flex justify-center text-[10px] uppercase tracking-[0.3em] font-bold text-muted"><span className="bg-card px-4">Secure Handshake</span></div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-bold text-muted"><span className="bg-card px-4">Secure sign in</span></div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

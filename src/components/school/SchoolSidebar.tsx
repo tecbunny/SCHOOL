@@ -27,6 +27,7 @@ import {
   Globe 
 } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth.client';
 import BrandIcon from '@/components/BrandIcon';
@@ -39,6 +40,7 @@ interface SchoolSidebarProps {
 export default function SchoolSidebar({ role }: SchoolSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [notifications, setNotifications] = useState({ assignments: 1, materials: 3 });
+  const pathname = usePathname();
 
   // Update global CSS variable for layout transition
   useEffect(() => {
@@ -46,12 +48,12 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
   }, [isCollapsed]);
 
   const getNavItems = () => {
-    const activeClass = "bg-primary/10 text-primary border-primary/20 shadow-[0_0_15px_rgba(139,92,246,0.1)]";
-    const inactiveClass = "text-muted hover:bg-white/5 hover:text-white border-transparent";
-    const itemBase = "nav-item flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 font-bold text-sm mb-1 group";
+    const activeClass = "bg-primary/10 text-primary border-primary/20";
+    const inactiveClass = "text-muted hover:bg-primary/5 hover:text-primary border-transparent";
+    const itemBase = "nav-item flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 font-bold text-sm mb-1 group";
 
     const renderLink = (href: string, label: string, Icon: any, badge?: number, colorClass?: string) => (
-      <Link href={href} className={`${itemBase} ${href === '#' ? inactiveClass : activeClass}`}>
+      <Link href={href} className={`${itemBase} ${href !== '#' && pathname.startsWith(href) ? activeClass : inactiveClass}`}>
         <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${colorClass || ''}`} />
         {!isCollapsed && <span className="flex-1 truncate">{label}</span>}
         {!isCollapsed && badge && (
@@ -63,7 +65,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
     );
 
     const renderSection = (title: string) => !isCollapsed && (
-      <div className="mt-8 mb-3 px-4 text-[10px] font-black text-muted uppercase tracking-[0.3em] opacity-40">
+      <div className="mt-8 mb-3 px-4 text-[10px] font-black text-muted uppercase tracking-widest opacity-60">
         {title}
       </div>
     );
@@ -122,12 +124,12 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
   const profile = getProfile();
 
   return (
-    <aside className="h-screen bg-[#070B19] border-r border-white/5 flex flex-col p-4 relative transition-all duration-500 ease-in-out sidebar-glass overflow-hidden">
+    <aside className="h-screen border-r flex flex-col p-4 relative transition-all duration-500 ease-in-out sidebar-glass overflow-hidden">
       
       {/* Collapse Toggle */}
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-12 bg-primary text-white p-1.5 rounded-full border-4 border-[#070B19] shadow-xl z-50 hover:scale-110 transition-transform active:scale-95"
+        className="absolute -right-3 top-12 bg-primary text-white p-2 rounded-full border shadow-xl z-50 hover:scale-110 transition-transform active:scale-95"
       >
         {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
       </button>
@@ -137,10 +139,10 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         <BrandIcon className={isCollapsed ? "w-8 h-8" : "w-10 h-10"} />
         {!isCollapsed && (
           <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-            <h2 className="font-black text-xl tracking-tighter text-white leading-none">
+            <h2 className="font-black text-xl tracking-tighter leading-none">
               EduPortal<span className="text-primary">.</span>
             </h2>
-            <span className="text-[10px] text-primary font-black uppercase tracking-[0.3em] mt-1.5 block opacity-60">{role} hub</span>
+            <span className="text-[10px] text-primary font-black uppercase tracking-widest mt-1 block opacity-80">{role} hub</span>
           </div>
         )}
       </div>
@@ -151,19 +153,19 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
       </nav>
 
       {/* Profile Section */}
-      <div className={`mt-8 bg-white/5 rounded-3xl p-4 flex items-center gap-4 border border-white/5 shadow-premium ${isCollapsed ? 'justify-center flex-col p-2 gap-6' : ''}`}>
+      <div className={`mt-8 bg-primary/5 rounded-2xl p-4 flex items-center gap-4 border border-primary/20 ${isCollapsed ? 'justify-center flex-col p-2 gap-6' : ''}`}>
         <div className="relative flex-shrink-0">
           <img 
             src={profile.avatar} 
             alt={profile.name} 
             className={`w-10 h-10 rounded-2xl border-2 border-primary/50 object-cover shadow-lg`} 
           />
-          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success border-4 border-[#070B19] rounded-full"></div>
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success border-4 rounded-full"></div>
         </div>
         {!isCollapsed && (
           <div className="flex-1 overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-            <p className="text-sm font-black text-white truncate leading-none mb-1">{profile.name}</p>
-            <p className="text-[10px] text-muted truncate font-mono font-bold uppercase tracking-widest opacity-40">{profile.code}</p>
+            <p className="text-sm font-black truncate leading-none mb-1">{profile.name}</p>
+            <p className="text-[10px] text-muted truncate font-mono font-bold uppercase tracking-widest">{profile.code}</p>
           </div>
         )}
         <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>

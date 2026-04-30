@@ -30,8 +30,8 @@ export default function StaffAppLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg-dark)]">
-      <div className="bg-card border border-white/5 rounded-2xl shadow-premium p-10 w-full max-w-[460px] animate-in fade-in zoom-in duration-700">
+    <div className="min-h-screen flex items-center justify-center p-4 app-shell">
+      <div className="auth-card w-full max-w-[460px] animate-in fade-in zoom-in duration-700">
         
         <div className="flex flex-col items-center gap-4 mb-10">
           <div className="bg-secondary/10 p-4 rounded-2xl border border-secondary/20 shadow-lg shadow-secondary/5">
@@ -39,7 +39,7 @@ export default function StaffAppLogin() {
           </div>
           <div className="text-center">
             <h1 className="text-3xl font-extrabold tracking-tight">Staff Station</h1>
-            <p className="text-[10px] text-secondary font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">EduPortal Workforce Management</p>
+            <p className="text-[10px] text-secondary font-bold uppercase tracking-widest mt-1 opacity-80">Workforce management</p>
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export default function StaffAppLogin() {
               <Lock className="w-5 h-5 text-muted mr-3" />
               <input 
                 type="password" 
-                placeholder="••••••••" 
+                placeholder="Password"
                 className="w-full"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
