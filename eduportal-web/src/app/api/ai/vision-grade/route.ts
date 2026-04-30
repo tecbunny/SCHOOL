@@ -50,6 +50,8 @@ export async function POST(req: Request) {
     // Clean JSON response (remove markdown blocks if present)
     const jsonString = text.replace(/```json|```/g, "").trim();
     
+    const parsedResult = JSON.parse(jsonString);
+
     // 5. Log the AI Event for Accountability
     const { logger } = await import("@/services/logger.service");
     await logger.log({
@@ -57,13 +59,13 @@ export async function POST(req: Request) {
       severity: 'info',
       message: `AI Assessment performed for worksheet scan.`,
       metadata: {
-        confidence: result.overallConfidence,
-        extracted_length: result.extractedText?.length,
+        confidence: parsedResult.overallConfidence,
+        extracted_length: parsedResult.extractedText?.length,
         rubric: rubric
       }
     });
 
-    return NextResponse.json(JSON.parse(jsonString));
+    return NextResponse.json(parsedResult);
 
   } catch (error: any) {
     console.error("Vision AI Error:", error);
