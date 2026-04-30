@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { GraduationCap, ShieldCheck, Cpu, Wifi } from 'lucide-react';
+import { ShieldCheck, Cpu, Wifi } from 'lucide-react';
+import BrandIcon from '@/components/BrandIcon';
 
 export default function BootSplash({ onComplete }: { onComplete: () => void }) {
   const [stage, setStage] = useState(0);
@@ -33,10 +34,8 @@ export default function BootSplash({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[99999] bg-[#000] text-white flex flex-col items-center justify-center font-mono">
-      <div className="flex flex-col items-center gap-6 mb-12 animate-in fade-in zoom-in duration-700">
-        <div className="bg-primary/20 p-6 rounded-full border border-primary/30 animate-pulse">
-          <GraduationCap className="w-12 h-12 text-primary" />
-        </div>
+      <div className="flex flex-col items-center gap-8 mb-12 animate-in fade-in zoom-in duration-700">
+        <BrandIcon className="w-20 h-20" />
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-[0.2em]">EDUOS</h1>
           <p className="text-[10px] text-muted tracking-widest uppercase mt-1">Next-Gen Education Operating System</p>

@@ -57,10 +57,18 @@ Located at `/school/dashboard/student`, optimized for 7-10 inch touchscreens.
 
 ---
 
-## 🤖 AI Integration (Gemini)
-*   **Context Injection**: The `SyllabusManager` prepares the grounding context for Gemini.
-*   **Workflow**: `Moderator Upload` -> `AI Indexing` -> `Teacher Prompting` -> `JSON Assessment Generation`.
-*   **Prompting Strategy**: Focused on pedagogical alignment and NEP 2020 competency mapping.
+## 🤖 AI Integration (Gemini 3.1)
+The platform is powered by the **Gemini 3.1** series (Enterprise Agent Platform), providing high-throughput and low-latency reasoning.
+
+*   **Models**: 
+    *   **Gemini 3.1 Flash**: Primary engine for real-time OCR, subjective grading, and quiz generation.
+    *   **Gemini 3.1 Pro**: Utilized for complex syllabus indexing and long-context pedagogical mapping.
+*   **Capabilities**:
+    *   **Context Injection**: The `SyllabusManager` prepares the grounding context for Gemini.
+    *   **Thinking Mode**: Enabled for auditor compliance mapping to ensure deep reasoning on NEP mandates.
+    *   **Structured Output**: All AI routes enforce strict JSON schemas via system instructions and regex post-processing.
+*   **Workflow**: `Moderator Upload` -> `AI Indexing (Pro)` -> `Teacher Prompting (Flash)` -> `JSON Assessment Generation`.
+*   **Prompting Strategy**: Focused on pedagogical alignment, Bloom's Taxonomy, and NEP 2020 competency mapping.
 
 ---
 

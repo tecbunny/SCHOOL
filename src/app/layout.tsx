@@ -4,6 +4,7 @@ import PWARegistration from "@/components/school/PWARegistration";
 import GlobalChatDrawer from "@/features/chat/GlobalChatDrawer";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://eduportal.ssph01.internal"),
   title: "EduPortal | The Multi-Tenant School Ecosystem",
   description: "Next-generation NEP 2020 compliant school management platform with AI-driven academic tools.",
   manifest: "/manifest.json",

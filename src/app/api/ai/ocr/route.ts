@@ -20,7 +20,10 @@ export async function POST(req: Request) {
       },
     };
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: "You are a specialized Handwriting OCR and Academic Assessor. LIMITATION: Focus exclusively on text extraction from school worksheets. If the content is non-academic or inappropriate, do not process. Output format: strictly valid JSON without markdown wrapping."
+    });
     const prompt = `
       You are an expert Handwriting OCR and Academic Assessor for the EduPortal platform.
       Extract all handwritten text from this school worksheet AND provide a scoring suggestion.

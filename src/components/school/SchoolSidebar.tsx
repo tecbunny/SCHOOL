@@ -1,7 +1,6 @@
 "use client";
 
 import { 
-  GraduationCap, 
   Building, 
   LayoutDashboard, 
   FileText, 
@@ -30,6 +29,8 @@ import {
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth.client';
+import BrandIcon from '@/components/BrandIcon';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface SchoolSidebarProps {
   role: 'student' | 'teacher' | 'hod' | 'moderator' | 'admin' | 'auditor' | 'alumni';
@@ -133,12 +134,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
 
       {/* Brand Header */}
       <div className={`flex items-center gap-4 mb-12 mt-4 px-2 ${isCollapsed ? 'justify-center' : ''}`}>
-        <div className="relative group">
-           <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full group-hover:animate-pulse" />
-           <div className="bg-primary/20 p-2.5 rounded-2xl border border-primary/30 relative z-10">
-              <GraduationCap className="text-primary w-7 h-7" />
-           </div>
-        </div>
+        <BrandIcon className={isCollapsed ? "w-8 h-8" : "w-10 h-10"} />
         {!isCollapsed && (
           <div className="animate-in fade-in slide-in-from-left-4 duration-500">
             <h2 className="font-black text-xl tracking-tighter text-white leading-none">
@@ -170,13 +166,16 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             <p className="text-[10px] text-muted truncate font-mono font-bold uppercase tracking-widest opacity-40">{profile.code}</p>
           </div>
         )}
-        <button 
-          onClick={() => signOut()} 
-          className={`text-muted hover:text-danger transition-all bg-white/5 p-2.5 rounded-xl hover:bg-danger/10 border border-transparent hover:border-danger/20`} 
-          title="Sign Out"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
+        <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
+          <ThemeToggle />
+          <button 
+            onClick={() => signOut()} 
+            className={`text-muted hover:text-danger transition-all bg-white/5 p-2.5 rounded-xl hover:bg-danger/10 border border-transparent hover:border-danger/20`} 
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
     </aside>

@@ -47,7 +47,7 @@ Optimized for touchscreens with offline-first capabilities and Luckfox hardware 
 
 ## 🛡️ Security & AI
 - **Supabase RLS**: Strict multi-tenant isolation ensuring school data privacy.
-- **Gemini AI**: Pedagogy-aware context indexing and subjective grading engine.
+- **Gemini AI**: Pedagogy-aware context indexing and subjective grading engine. See [DOCS_AI.md](./DOCS_AI.md) for full technical specifications.
 - **Middleware Protection**: Server-side auth verification for all dashboard routes.
 - **Silent Provisioning**: Secure staff account creation via service roles.
 

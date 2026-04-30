@@ -7,8 +7,11 @@ export async function POST(req: Request) {
   try {
     const { image, rubric, context } = await req.json();
 
-    // 1. Initialize Gemini 1.5 Flash for vision tasks
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // 1. Initialize Gemini 1.5 Flash for vision tasks with limitations
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: "You are an expert educator providing objective grading. LIMITATION: You must strictly adhere to the provided rubric. If student answers are illegible or missing, penalize accordingly as per rubric rules. Output: strictly valid JSON. Do not include markdown code blocks."
+    });
 
     // 2. Prepare the Prompt for Pedagogical Evaluation
     const prompt = `

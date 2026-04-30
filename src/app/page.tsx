@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { 
-  GraduationCap, 
   ArrowRight, 
   Sparkles, 
   Activity, 
@@ -11,33 +10,35 @@ import {
   Layers,
   Users
 } from 'lucide-react';
+import BrandIcon from '@/components/BrandIcon';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#070B19] overflow-hidden">
+    <main className="min-h-screen bg-[var(--bg-dark)] overflow-hidden">
       
-      {/* Background Decor */}
+      {/* Background Decor - Simplified */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-float"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/10 rounded-full blur-[120px] animate-float" style={{ animationDelay: '-3s' }}></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px]"></div>
       </div>
 
-      {/* Header */}
-      <header className="header-glass py-4 px-8 flex items-center justify-between relative z-50">
+      {/* Header - Minimalist */}
+      <header className="fixed top-0 left-0 right-0 z-[100] py-4 px-12 flex items-center justify-between border-b border-white/5 backdrop-blur-md bg-bg-dark/20">
         <div className="flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-xl shadow-premium">
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-black tracking-tighter text-white">EduPortal<span className="text-primary">.</span></span>
+          <BrandIcon className="w-7 h-7" animated={false} />
+          <span className="text-lg font-black tracking-tighter text-white">EduPortal<span className="text-primary">.</span></span>
         </div>
-        <nav className="hidden md:flex items-center gap-8 text-sm font-bold text-muted">
-          <Link href="#features" className="hover:text-white transition-colors">Features</Link>
-          <Link href="#ecosystem" className="hover:text-white transition-colors">Ecosystem</Link>
-          <Link href="#eduos" className="hover:text-white transition-colors">EduOS</Link>
+        
+        <nav className="hidden md:flex items-center gap-10">
+          <Link href="#features" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted hover:text-white transition-all">Features</Link>
+          <Link href="#ecosystem" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted hover:text-white transition-all">Ecosystem</Link>
+          <Link href="#eduos" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted hover:text-white transition-all">EduOS</Link>
         </nav>
-        <div className="flex items-center gap-4">
-          <Link href="/school" className="text-sm font-bold text-white hover:text-primary transition-colors">Sign In</Link>
-          <Link href="/school" className="btn btn-primary">Launch App</Link>
+
+        <div className="flex items-center gap-6">
+          <ThemeToggle />
+          <Link href="/school" className="text-[10px] font-black uppercase tracking-[0.2em] text-white hover:text-primary transition-colors">Sign In</Link>
+          <Link href="/school" className="btn btn-primary px-6 py-2.5 rounded-lg text-xs">Launch App</Link>
         </div>
       </header>
 
@@ -57,11 +58,11 @@ export default function LandingPage() {
           EduPortal is an AI-first, edge-capable ecosystem designed to orchestrate entire school infrastructures with zero latency and absolute security.
         </p>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          <Link href="/school" className="btn btn-primary py-4 px-10 text-lg w-full md:w-auto shadow-premium">
-            Get Started Free <ArrowRight className="w-5 h-5" />
+        <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-8">
+          <Link href="/school" className="btn btn-primary py-3.5 px-8 text-sm w-full md:w-auto">
+            Get Started Free
           </Link>
-          <Link href="#eduos" className="btn btn-outline py-4 px-10 text-lg w-full md:w-auto">
+          <Link href="#eduos" className="btn btn-outline py-3.5 px-8 text-sm w-full md:w-auto">
              Explore EduOS
           </Link>
         </div>
@@ -152,8 +153,53 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 py-12 px-8 border-t border-white/5 text-center">
-        <p className="text-muted text-sm font-bold tracking-widest uppercase">© 2026 EduPortal Ecosystem. Built for the next decade.</p>
+      <footer className="relative z-10 py-24 px-8 border-t border-white/5">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-3 mb-6">
+              <BrandIcon className="w-8 h-8" />
+              <span className="text-2xl font-black tracking-tighter text-white">EduPortal<span className="text-primary">.</span></span>
+            </div>
+            <p className="text-muted text-sm max-w-sm mb-8 leading-relaxed">
+              The world's first AI-native educational operating system designed for mass-scale school orchestration and offline-first edge deployment.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20 text-[10px] font-black text-success uppercase tracking-widest">
+                <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></div>
+                Ecosystem Online
+              </div>
+              <div className="text-[10px] text-muted font-black uppercase tracking-widest">v1.0.0-SSPH01</div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="text-white font-black text-sm uppercase tracking-widest mb-6">Solutions</h4>
+            <ul className="flex flex-col gap-4 text-sm font-bold text-muted">
+              <li><Link href="#" className="hover:text-primary transition-colors">EduOS Hardware</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Teacher Command</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Admin Governance</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Compliance Audit</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-black text-sm uppercase tracking-widest mb-6">Resources</h4>
+            <ul className="flex flex-col gap-4 text-sm font-bold text-muted">
+              <li><Link href="#" className="hover:text-primary transition-colors">Documentation</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">API Reference</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Hardware Guide</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Security Audit</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
+          <p className="text-muted text-[10px] font-black uppercase tracking-[0.2em]">© 2026 EduPortal Ecosystem. All rights reserved.</p>
+          <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-muted">
+             <Link href="#" className="hover:text-white transition-colors">Privacy Protocol</Link>
+             <Link href="#" className="hover:text-white transition-colors">Service Level Agreement</Link>
+          </div>
+        </div>
       </footer>
 
     </main>
