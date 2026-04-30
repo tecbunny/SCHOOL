@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth.client';
 
 interface SchoolSidebarProps {
-  role: 'student' | 'teacher' | 'hod' | 'moderator' | 'admin' | 'auditor';
+  role: 'student' | 'teacher' | 'hod' | 'moderator' | 'admin' | 'auditor' | 'alumni';
 }
 
 export default function SchoolSidebar({ role }: SchoolSidebarProps) {
@@ -138,6 +138,14 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             <Link href="#" className="nav-item"><Award className="w-5 h-5" /> {!isCollapsed && <span>Certifications</span>}</Link>
           </>
         );
+      case 'alumni':
+        return (
+          <>
+            <Link href="/school/dashboard/alumni" className="nav-item active"><LayoutDashboard className="w-5 h-5" /> {!isCollapsed && <span>Alumni Desk</span>}</Link>
+            <Link href="#" className="nav-item"><Users className="w-5 h-5" /> {!isCollapsed && <span>Network</span>}</Link>
+            <Link href="#" className="nav-item"><Award className="w-5 h-5" /> {!isCollapsed && <span>Transcript</span>}</Link>
+          </>
+        );
     }
   };
 
@@ -149,6 +157,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
       case 'moderator': return { name: 'David Costa', code: 'MD00001', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026302d' };
       case 'admin': return { name: 'Super Admin', code: 'ADM-001', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026305d' };
       case 'auditor': return { name: 'External Auditor', code: 'AUD-772', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026308d' };
+      case 'alumni': return { name: 'Vikram Singh', code: 'AL-2024-081', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026708d' };
     }
   };
 
