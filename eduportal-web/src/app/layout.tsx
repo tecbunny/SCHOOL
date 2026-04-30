@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "EduPortal | The Multi-Tenant School Ecosystem",
   description: "Next-generation NEP 2020 compliant school management platform with AI-driven academic tools.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export const viewport: Viewport = {
