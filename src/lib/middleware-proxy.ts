@@ -24,38 +24,43 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const url = new URL(request.url);
-  
-  // 1. Determine if the path is protected
-  const isProtectedPath = 
-    url.pathname.startsWith('/school/dashboard') || 
-    url.pathname.startsWith('/admin/dashboard') || 
-    url.pathname.startsWith('/auditor/dashboard') ||
-    url.pathname.startsWith('/admin/provision') ||
-    url.pathname.startsWith('/admin/schools') ||
-    url.pathname.startsWith('/admin/users') ||
-    url.pathname.startsWith('/admin/analytics');
-  
-  if (!user && isProtectedPath) {
-    let redirectUrl = '/school';
-    if (url.pathname.includes('/admin')) redirectUrl = '/admin';
-    if (url.pathname.includes('/auditor')) redirectUrl = '/auditor';
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const url = new URL(request.url);
     
-    return NextResponse.redirect(new URL(redirectUrl, request.url));
-  }
-
-  // 1. Standalone Security: Block admin/auditor routes on student hardware
-  if (process.env.EDUOS_STANDALONE === 'true') {
-    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/auditor')) {
-      return NextResponse.redirect(new URL('/school/dashboard/student', request.url));
+    // 1. Determine if the path is protected
+    const isProtectedPath = 
+      url.pathname.startsWith('/school/dashboard') || 
+      url.pathname.startsWith('/admin/dashboard') || 
+      url.pathname.startsWith('/auditor/dashboard') ||
+      url.pathname.startsWith('/admin/provision') ||
+      url.pathname.startsWith('/admin/schools') ||
+      url.pathname.startsWith('/admin/users') ||
+      url.pathname.startsWith('/admin/analytics');
+    
+    if (!user && isProtectedPath) {
+      let redirectUrl = '/school';
+      if (url.pathname.includes('/admin')) redirectUrl = '/admin';
+      if (url.pathname.includes('/auditor')) redirectUrl = '/auditor';
+      
+      return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
-  }
 
-  // FIX: Apply EduOS cookie to whatever response object we finalized above
-  if (request.headers.get('x-eduos') === 'true') {
-    response.cookies.set('is-eduos', 'true');
+    // 2. Standalone Security: Block admin/auditor routes on student hardware
+    if (process.env.EDUOS_STANDALONE === 'true') {
+      if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/auditor')) {
+        return NextResponse.redirect(new URL('/school/dashboard/student', request.url));
+      }
+    }
+
+    // FIX: Apply EduOS cookie to whatever response object we finalized above
+    if (request.headers.get('x-eduos') === 'true') {
+      response.cookies.set('is-eduos', 'true');
+    }
+    
+    return response;
+  } catch (error) {
+    console.error("Middleware Proxy Error:", error);
+    return response; // Fallback to normal request flow if proxy fails
   }
-  
-  return response;
 }
