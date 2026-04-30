@@ -14,16 +14,37 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- 2.1 Helper function to avoid recursion in RLS
-CREATE OR REPLACE FUNCTION get_my_school_id()
-RETURNS UUID AS $$
-  SELECT school_id FROM public.profiles WHERE id = auth.uid();
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+-- 2. CREATE SECURITY SCHEMAS
+CREATE SCHEMA IF NOT EXISTS auth_helpers;
+REVOKE ALL ON SCHEMA auth_helpers FROM PUBLIC;
+GRANT USAGE ON SCHEMA auth_helpers TO authenticated;
+GRANT USAGE ON SCHEMA auth_helpers TO service_role;
 
-CREATE OR REPLACE FUNCTION get_my_role()
-RETURNS user_role AS $$
+-- 2.1 Helper functions for RLS (Moved to auth_helpers to prevent RPC exposure)
+CREATE OR REPLACE FUNCTION auth_helpers.get_my_school_id()
+RETURNS UUID 
+LANGUAGE sql 
+STABLE 
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT school_id FROM public.profiles WHERE id = auth.uid();
+$$;
+
+CREATE OR REPLACE FUNCTION auth_helpers.get_my_role()
+RETURNS user_role 
+LANGUAGE sql 
+STABLE 
+SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid();
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$;
+
+GRANT EXECUTE ON FUNCTION auth_helpers.get_my_school_id() TO authenticated;
+GRANT EXECUTE ON FUNCTION auth_helpers.get_my_school_id() TO service_role;
+GRANT EXECUTE ON FUNCTION auth_helpers.get_my_role() TO authenticated;
+GRANT EXECUTE ON FUNCTION auth_helpers.get_my_role() TO service_role;
 
 -- 3. CREATE SCHOOLS TABLE
 CREATE TABLE IF NOT EXISTS public.schools (
@@ -86,8 +107,8 @@ DROP POLICY IF EXISTS "Viewable by same school or higher" ON public.profiles;
 CREATE POLICY "Viewable by same school or higher" ON public.profiles
     FOR SELECT USING (
         id = auth.uid() OR
-        get_my_role() IN ('admin', 'auditor') OR 
-        school_id = get_my_school_id()
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR 
+        school_id = auth_helpers.get_my_school_id()
     );
 
 -- Messages: Only participants can read messages
@@ -117,7 +138,7 @@ DROP POLICY IF EXISTS "Self-join rooms in same school" ON public.chat_participan
 CREATE POLICY "Self-join rooms in same school" ON public.chat_participants
     FOR INSERT WITH CHECK (
         profile_id = auth.uid() AND
-        EXISTS (SELECT 1 FROM public.chat_rooms r WHERE r.id = room_id AND r.school_id = get_my_school_id())
+        EXISTS (SELECT 1 FROM public.chat_rooms r WHERE r.id = room_id AND r.school_id = auth_helpers.get_my_school_id())
     );
 
 -- 10. ENABLE REALTIME
@@ -212,18 +233,20 @@ CREATE POLICY "Students view own grades" ON public.hpc_grades FOR SELECT USING (
 -- Teachers can view/insert for their school
 DROP POLICY IF EXISTS "Teachers manage school attendance" ON public.attendance;
 CREATE POLICY "Teachers manage school attendance" ON public.attendance 
-    FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND school_id = public.attendance.school_id AND role = 'teacher'));
+    FOR ALL USING (auth_helpers.get_my_role() = 'teacher' AND school_id = auth_helpers.get_my_school_id());
 
 DROP POLICY IF EXISTS "Teachers manage school grades" ON public.hpc_grades;
 CREATE POLICY "Teachers manage school grades" ON public.hpc_grades 
-    FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher'));
+    FOR ALL USING (auth_helpers.get_my_role() = 'teacher');
 
 -- Auditors have read-only access to everything
 DROP POLICY IF EXISTS "Auditors read-only attendance" ON public.attendance;
-CREATE POLICY "Auditors read-only attendance" ON public.attendance FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
+CREATE POLICY "Auditors read-only attendance" ON public.attendance 
+    FOR SELECT USING (auth_helpers.get_my_role() = 'auditor');
 
 DROP POLICY IF EXISTS "Auditors read-only grades" ON public.hpc_grades;
-CREATE POLICY "Auditors read-only grades" ON public.hpc_grades FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
+CREATE POLICY "Auditors read-only grades" ON public.hpc_grades 
+    FOR SELECT USING (auth_helpers.get_my_role() = 'auditor');
 
 -- 14. ADVANCED NEP 2020 MODULES
 
@@ -297,14 +320,17 @@ CREATE POLICY "Student view own FLN" ON public.fln_milestones FOR SELECT USING (
 
 -- HOD/Principals manage SMC
 DROP POLICY IF EXISTS "Principals manage SMC" ON public.smc_minutes;
-CREATE POLICY "Principals manage SMC" ON public.smc_minutes FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'principal'));
+CREATE POLICY "Principals manage SMC" ON public.smc_minutes 
+    FOR ALL USING (auth_helpers.get_my_role() = 'principal' AND school_id = auth_helpers.get_my_school_id());
 
 -- Auditors see all for compliance auditing
 DROP POLICY IF EXISTS "Auditors see all advanced" ON public.smc_minutes;
-CREATE POLICY "Auditors see all advanced" ON public.smc_minutes FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
+CREATE POLICY "Auditors see all advanced" ON public.smc_minutes 
+    FOR SELECT USING (auth_helpers.get_my_role() = 'auditor');
 
 DROP POLICY IF EXISTS "Auditors see vocational" ON public.vocational_skills;
-CREATE POLICY "Auditors see vocational" ON public.vocational_skills FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'auditor'));
+CREATE POLICY "Auditors see vocational" ON public.vocational_skills 
+    FOR SELECT USING (auth_helpers.get_my_role() = 'auditor');
 -- 16. REVERSE QR AUTHENTICATION HANDSHAKE
 CREATE TABLE IF NOT EXISTS public.qr_sessions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -324,7 +350,7 @@ CREATE POLICY "View own pending QR session" ON public.qr_sessions
 
 -- Teachers/Principals can verify sessions in their school
 CREATE POLICY "Teachers verify QR sessions" ON public.qr_sessions 
-    FOR UPDATE USING (get_my_role() IN ('teacher', 'principal', 'moderator'));
+    FOR UPDATE USING (auth_helpers.get_my_role() IN ('teacher', 'principal', 'moderator'));
 
 -- 17. REAL-TIME MONITORING (Teacher God-Mode)
 CREATE TABLE IF NOT EXISTS public.student_sessions (
@@ -344,7 +370,7 @@ CREATE POLICY "Students manage own session" ON public.student_sessions
 
 -- Teachers view all sessions in their school
 CREATE POLICY "Teachers monitor school sessions" ON public.student_sessions 
-    FOR SELECT USING (get_my_role() IN ('teacher', 'principal', 'moderator'));
+    FOR SELECT USING (auth_helpers.get_my_role() IN ('teacher', 'principal', 'moderator'));
 
 -- 18. REMOTE OVERRIDE (Command System)
 CREATE TABLE IF NOT EXISTS public.device_commands (
@@ -365,7 +391,7 @@ CREATE POLICY "Students listen for commands" ON public.device_commands
 
 -- Teachers issue commands
 CREATE POLICY "Teachers issue commands" ON public.device_commands 
-    FOR INSERT WITH CHECK (get_my_role() IN ('teacher', 'principal', 'moderator'));
+    FOR INSERT WITH CHECK (auth_helpers.get_my_role() IN ('teacher', 'principal', 'moderator'));
 
 -- Enable Realtime for Monitoring and Commands
 DO $$ BEGIN
