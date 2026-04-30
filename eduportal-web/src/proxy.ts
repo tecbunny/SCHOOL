@@ -1,8 +1,8 @@
 import { type NextRequest } from 'next/server';
-import { proxy } from '@/lib/middleware-proxy';
+import { proxy as middlewareProxy } from '@/lib/middleware-proxy';
 
-export async function middleware(request: NextRequest) {
-  return await proxy(request);
+export async function proxy(request: NextRequest) {
+  return await middlewareProxy(request);
 }
 
 export const config = {

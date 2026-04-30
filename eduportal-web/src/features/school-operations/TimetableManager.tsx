@@ -23,15 +23,16 @@ export default function TimetableManager() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubstitutionMode, setIsSubstitutionMode] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [availableSubstitutes, setAvailableSubstitutes] = useState<any[]>([]);
   const supabase = createClient();
 
   const suggestSubstitutes = async (slotStartTime: string) => {
+    setLoading(true);
     const { data: teachers } = await supabase
       .from('profiles')
       .select('*')
-      .eq('role', 'teacher')
-      .eq('is_teaching_staff', true);
+      .eq('role', 'teacher');
 
     const { data: activeSchedules } = await supabase
       .from('timetables')
@@ -41,6 +42,7 @@ export default function TimetableManager() {
     const busyTeacherIds = new Set(activeSchedules?.map((s: any) => s.teacher_id));
     const available = teachers?.filter((t: any) => !busyTeacherIds.has(t.id)) || [];
     setAvailableSubstitutes(available);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -70,14 +72,16 @@ export default function TimetableManager() {
   }, []);
 
   const handleSubstitution = async (scheduleId: string, newTeacherId: string) => {
-    // Logic to update the teacher for a specific slot
+    if (!newTeacherId) return;
+    
     const { error } = await supabase
       .from('timetables')
       .update({ teacher_id: newTeacherId })
       .eq('id', scheduleId);
 
     if (!error) {
-      alert("Substitution successful. Broadcasting to student desks...");
+      setSelectedSlot(null);
+      setAvailableSubstitutes([]);
     }
   };
 
@@ -135,13 +139,39 @@ export default function TimetableManager() {
               </div>
               
               {isSubstitutionMode && (
-                <div className="flex items-center gap-2">
-                   <button 
-                     onClick={() => handleSubstitution(slot.id, 'NEW_TEACHER_ID')}
-                     className="btn btn-secondary btn-xs px-4"
-                   >
-                      Swap Teacher
-                   </button>
+                <div className="flex flex-col gap-2">
+                   {selectedSlot === slot.id ? (
+                     <div className="flex flex-col gap-2">
+                        <select 
+                          className="bg-white/10 border border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none focus:border-secondary transition-all"
+                          onChange={(e) => handleSubstitution(slot.id, e.target.value)}
+                          defaultValue=""
+                        >
+                           <option value="" disabled>Select Substitute</option>
+                           {availableSubstitutes.map(teacher => (
+                             <option key={teacher.id} value={teacher.id} className="bg-[#1a1a1a]">
+                               {teacher.full_name}
+                             </option>
+                           ))}
+                        </select>
+                        <button 
+                          onClick={() => setSelectedSlot(null)}
+                          className="text-[10px] text-muted hover:text-white transition-colors uppercase font-black"
+                        >
+                          Cancel
+                        </button>
+                     </div>
+                   ) : (
+                     <button 
+                       onClick={() => {
+                         setSelectedSlot(slot.id);
+                         suggestSubstitutes(slot.start_time);
+                       }}
+                       className="btn btn-secondary btn-xs px-4"
+                     >
+                        Swap Teacher
+                     </button>
+                   )}
                 </div>
               )}
            </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   FileText, 
   Download, 
@@ -13,14 +13,19 @@ import {
   PieChart
 } from 'lucide-react';
 import { analyticsService } from '@/services/analytics.service';
+import { promotionService } from '@/services/promotion.service';
 
 export default function AcademicSnapshotsPage() {
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
-  const classes = [
-    { id: 'c1', name: 'Class 5-A', students: 42, lastGenerated: '2 days ago' },
-    { id: 'c2', name: 'Class 5-B', students: 38, lastGenerated: 'Never' },
-    { id: 'c3', name: 'Class 8-C', students: 45, lastGenerated: '1 week ago' },
-  ];
+  const [classes, setClasses] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      const data = await promotionService.getClasses();
+      setClasses(data);
+    };
+    fetchClasses();
+  }, []);
 
   const handleGenerate = async (classId: string) => {
     setIsGenerating(classId);
@@ -29,7 +34,6 @@ export default function AcademicSnapshotsPage() {
       console.log("Generated Snapshot:", data);
       // Simulate PDF generation delay
       await new Promise(r => setTimeout(r, 2000));
-      alert(`Snapshot generated for ${data.className}!`);
     } catch (err) {
       console.error("Generation failed:", err);
     } finally {

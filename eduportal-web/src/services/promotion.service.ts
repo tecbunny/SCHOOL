@@ -13,6 +13,32 @@ export const promotionService = {
     return data.global_features?.is_promotion_open || false;
   },
 
+  async getClasses() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('class_id, current_grade')
+      .eq('role', 'student')
+      .not('class_id', 'is', null);
+
+    if (error) return [];
+
+    // Group by class_id and count students
+    const classMap: Record<string, any> = {};
+    data.forEach((p: { class_id: string; current_grade: string }) => {
+      if (!classMap[p.class_id]) {
+        classMap[p.class_id] = { 
+          id: p.class_id, 
+          name: `Class ${p.class_id}`, 
+          grade: p.current_grade, 
+          students: 0 
+        };
+      }
+      classMap[p.class_id].students++;
+    });
+
+    return Object.values(classMap);
+  },
+
   async promoteClass(currentClassId: string, nextGradeLevel: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");

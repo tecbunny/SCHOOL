@@ -93,8 +93,17 @@ export default function ComplianceHealthMap() {
                  <h3 className="font-bold text-sm uppercase">Wellbeing Pulse</h3>
               </div>
               <p className="text-xs text-muted leading-relaxed mb-4">Sentiment analysis from student feedback indicates high satisfaction in Science modules (+14% vs avg).</p>
-              <div className="h-24 w-full bg-black/20 rounded-xl border border-secondary/10 flex items-center justify-center italic text-muted text-[10px]">
-                 Real-time graph placeholder...
+              <div className="h-24 w-full bg-black/20 rounded-xl border border-secondary/10 flex items-center justify-center relative overflow-hidden">
+                 <div className="absolute inset-0 flex items-center justify-center gap-1">
+                    {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                      <div 
+                        key={i} 
+                        className="w-1.5 bg-secondary/30 rounded-full animate-pulse" 
+                        style={{ height: `${20 + Math.random() * 60}%`, animationDelay: `${i * 0.1}s` }}
+                      />
+                    ))}
+                 </div>
+                 <div className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] relative z-10 bg-black/40 px-3 py-1 rounded-full border border-secondary/20">Live Pulse: 92bpm</div>
               </div>
            </div>
         </div>

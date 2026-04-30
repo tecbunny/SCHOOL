@@ -22,8 +22,13 @@ export default function HpcAnalytics() {
     const { data: { session } } = await supabase.auth.getSession();
     
     try {
-      // In a real env, currentSchoolId would come from context or profileData
-      const currentSchoolId = "TENANT-001"; 
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', session?.user.id)
+        .single();
+
+      if (!profile?.school_id) return;
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/hpc-aggregator`,
@@ -34,7 +39,7 @@ export default function HpcAnalytics() {
             'Authorization': `Bearer ${session?.access_token}`
           },
           body: JSON.stringify({ 
-            schoolId: currentSchoolId, 
+            schoolId: profile.school_id, 
             academicYear: "2025-26" 
           })
         }

@@ -16,18 +16,18 @@ import { promotionService } from '@/services/promotion.service';
 export default function PromotionConsole() {
   const [isOpen, setIsOpen] = useState<boolean | null>(null);
   const [isPromoting, setIsPromoting] = useState<string | null>(null);
-  const [classes, setClasses] = useState([
-    { id: 'c1', name: 'Class 5-A', grade: '5', students: 42 },
-    { id: 'c2', name: 'Class 5-B', grade: '5', students: 38 },
-    { id: 'c3', name: 'Class 8-C', grade: '8', students: 45 },
-  ]);
+  const [classes, setClasses] = useState<any[]>([]);
 
   useEffect(() => {
-    const checkStatus = async () => {
-      const status = await promotionService.getPromotionStatus();
+    const init = async () => {
+      const [status, classData] = await Promise.all([
+        promotionService.getPromotionStatus(),
+        promotionService.getClasses()
+      ]);
       setIsOpen(status);
+      setClasses(classData);
     };
-    checkStatus();
+    init();
   }, []);
 
   const handlePromote = async (classId: string, currentGrade: string) => {
