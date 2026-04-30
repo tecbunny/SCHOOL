@@ -16,7 +16,7 @@ export async function GET() {
     if (schoolError) throw schoolError;
 
     // Transform data to match UI expectations
-    const transformedSchools = schools.map(school => ({
+    const transformedSchools = (schools || []).map((school: any) => ({
       id: school.id,
       name: school.school_name,
       code: school.school_code,
