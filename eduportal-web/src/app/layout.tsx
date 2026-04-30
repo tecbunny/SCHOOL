@@ -11,6 +11,27 @@ export const metadata: Metadata = {
     icon: "/icon.png",
     apple: "/icon.png",
   },
+  openGraph: {
+    title: "EduPortal | The Multi-Tenant School Ecosystem",
+    description: "Next-generation NEP 2020 compliant school management platform with AI-driven academic tools.",
+    url: "https://eduportal.ssph01.internal",
+    siteName: "EduPortal",
+    images: [
+      {
+        url: "/icon.png",
+        width: 512,
+        height: 512,
+      },
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EduPortal | The Multi-Tenant School Ecosystem",
+    description: "Next-generation NEP 2020 compliant school management platform with AI-driven academic tools.",
+    images: ["/icon.png"],
+  },
 };
 
 export const viewport: Viewport = {

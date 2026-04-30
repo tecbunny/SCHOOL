@@ -2,10 +2,13 @@ import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
-const GATE_SECRET = process.env.GATE_AUTH_SECRET || "ssph-01-gate-secure-key";
+const GATE_SECRET = process.env.GATE_AUTH_SECRET;
 
 export async function POST(req: Request) {
   try {
+    if (!GATE_SECRET) {
+      return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
+    }
     const { studentId, stationId } = await req.json();
 
     if (!studentId || !stationId) {

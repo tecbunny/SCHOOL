@@ -3,10 +3,14 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { GateJwtPayload } from "@/lib/constants";
 
-const GATE_SECRET = process.env.GATE_AUTH_SECRET || "ssph-01-gate-secure-key";
+const GATE_SECRET = process.env.GATE_AUTH_SECRET;
 
 export async function POST(req: Request) {
   try {
+    if (!GATE_SECRET) {
+      console.error("GATE_AUTH_SECRET is not configured in environment variables.");
+      return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
+    }
     const body = await req.json();
     const { token, deviceId } = body;
 
