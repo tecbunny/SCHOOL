@@ -1,11 +1,16 @@
--- RESILIENT SUPABASE DATA WIPE SCRIPT (PUBLIC TABLES ONLY)
--- This script removes all data from public tables safely.
--- It skips the 'auth' schema to avoid permission errors.
+-- EDUPORTAL DATA CLEAR SCRIPT
+-- Clears application data only. It intentionally skips auth.users.
+-- Run supabase/system.sql for schema/setup, and this file only when data must be wiped.
 
 DO $$ 
 DECLARE
     tab_name TEXT;
-    tables_to_clear TEXT[] := ARRAY[
+    public_tables_to_clear TEXT[] := ARRAY[
+        'fleet_deployments', 'fleet_releases', 'hardware_nodes',
+        'system_logs', 'behavioral_logs', 'global_materials',
+        'timetables', 'school_rooms', 'school_profiles',
+        'hpc_competencies', 'registration_requests', 'study_materials',
+        'announcements', 'platform_config', 'promotion_history',
         'device_commands', 'student_sessions', 'qr_sessions', 
         'student_wellbeing', 'smc_minutes', 'fln_milestones', 
         'vocational_skills', 'parent_feedback', 'exam_papers', 
@@ -13,20 +18,31 @@ DECLARE
         'chat_participants', 'chat_messages', 'chat_rooms', 
         'profiles', 'schools'
     ];
+    archive_tables_to_clear TEXT[] := ARRAY[
+        'messages', 'attendance', 'hardware_heartbeats'
+    ];
 BEGIN
-    -- 1. Elevate session to bypass RLS and triggers
+    -- 1. Elevate session to bypass RLS and triggers.
     SET session_replication_role = 'replica';
 
-    -- 2. Loop through and truncate only existing public tables
-    FOREACH tab_name IN ARRAY tables_to_clear
+    -- 2. Truncate only existing public tables.
+    FOREACH tab_name IN ARRAY public_tables_to_clear
     LOOP
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tab_name) THEN
             EXECUTE format('TRUNCATE TABLE public.%I RESTART IDENTITY CASCADE', tab_name);
         END IF;
     END LOOP;
 
-    -- 3. Restore session behavior
+    -- 3. Truncate only existing archive tables.
+    FOREACH tab_name IN ARRAY archive_tables_to_clear
+    LOOP
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'archive' AND table_name = tab_name) THEN
+            EXECUTE format('TRUNCATE TABLE archive.%I RESTART IDENTITY CASCADE', tab_name);
+        END IF;
+    END LOOP;
+
+    -- 4. Restore session behavior.
     SET session_replication_role = 'origin';
 END $$;
 
-SELECT 'Resilient wipe of public tables completed.' as status;
+SELECT 'EduPortal application data cleared. auth.users was not touched.' as status;
