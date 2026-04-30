@@ -54,7 +54,7 @@ export default function StaffAppLogin() {
             <label className="text-[11px] font-bold text-muted uppercase tracking-wider ml-1">Institutional Code</label>
             <div className="input-field">
               <Building className="w-5 h-5 text-muted mr-3" />
-              <input type="text" placeholder="SCHXXXX" defaultValue="SCH7878" required className="font-mono" />
+              <input type="text" placeholder="SCHXXXX" defaultValue="SCH7878" required className="w-full font-mono" />
             </div>
           </div>
 
@@ -65,7 +65,7 @@ export default function StaffAppLogin() {
               <select 
                 value={staffRole}
                 onChange={(e) => setStaffRole(e.target.value)}
-                className="font-semibold cursor-pointer pr-10"
+                className="w-full font-semibold cursor-pointer pr-10"
                 required
               >
                 <option value="teacher">Academic Instructor</option>
@@ -85,7 +85,7 @@ export default function StaffAppLogin() {
                 placeholder="TXXXXXX / PRXXXXX" 
                 value={userCode}
                 onChange={(e) => setUserCode(e.target.value)}
-                className="font-mono"
+                className="w-full font-mono"
                 required 
               />
             </div>
@@ -99,6 +99,7 @@ export default function StaffAppLogin() {
               <input 
                 type="password" 
                 placeholder="••••••••" 
+                className="w-full"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required 

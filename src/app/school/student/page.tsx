@@ -71,7 +71,7 @@ export default function StudentAppLogin() {
                 type="text" 
                 placeholder="11-Digit Student ID" 
                 pattern="[0-9]{11}" 
-                className="tracking-[0.2em] font-mono text-lg"
+                className="w-full tracking-[0.2em] font-mono text-lg"
                 value={userCode}
                 onChange={(e) => setUserCode(e.target.value)}
                 required 
@@ -86,6 +86,7 @@ export default function StudentAppLogin() {
               <input 
                 type="password" 
                 placeholder="••••••••" 
+                className="w-full"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required 
