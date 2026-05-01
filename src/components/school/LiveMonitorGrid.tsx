@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { Monitor, Lock, ExternalLink, Zap, Users } from 'lucide-react';
 
@@ -12,16 +12,28 @@ interface StudentSession {
   profiles: {
     full_name: string;
     user_code: string;
+    school_id: string;
   };
 }
 
 export default function LiveMonitorGrid({ schoolId }: { schoolId: string }) {
   const [sessions, setSessions] = useState<StudentSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+
+  const fetchSessions = useCallback(async () => {
+    const { data } = await supabase
+      .from('student_sessions')
+      .select('*, profiles!inner(full_name, user_code, school_id)')
+      .eq('profiles.school_id', schoolId)
+      .order('last_ping', { ascending: false });
+
+    setSessions(data || []);
+    setIsLoading(false);
+  }, [schoolId, supabase]);
 
   useEffect(() => {
-    fetchSessions();
+    void Promise.resolve().then(fetchSessions);
 
     const channel = supabase
       .channel('live_monitoring')
@@ -37,19 +49,18 @@ export default function LiveMonitorGrid({ schoolId }: { schoolId: string }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchSessions, supabase]);
 
-  const fetchSessions = async () => {
-    const { data } = await supabase
-      .from('student_sessions')
-      .select('*, profiles(full_name, user_code)')
-      .order('last_ping', { ascending: false });
-    
-    setSessions(data || []);
-    setIsLoading(false);
+  const isSafeAppPath = (url: string) => {
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return parsed.origin === window.location.origin && parsed.pathname.startsWith('/school/');
+    } catch {
+      return false;
+    }
   };
 
-  const sendCommand = async (studentId: string, type: string, payload: any = {}) => {
+  const sendCommand = async (studentId: string, type: string, payload: Record<string, unknown> = {}) => {
     const { data: { user } } = await supabase.auth.getUser();
     await supabase.from('device_commands').insert({
       target_student_id: studentId,
@@ -105,7 +116,7 @@ export default function LiveMonitorGrid({ schoolId }: { schoolId: string }) {
               <button 
                 onClick={() => {
                   const url = prompt("Enter URL to push (e.g. /school/dashboard/student/exam):");
-                  if (url) sendCommand(session.student_id, 'PUSH_URL', { url });
+                  if (url && isSafeAppPath(url)) sendCommand(session.student_id, 'PUSH_URL', { url });
                 }}
                 className="btn py-2 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 text-[10px] justify-center gap-1.5"
               >

@@ -216,7 +216,27 @@ CREATE POLICY "Teachers manage school attendance" ON public.attendance
 
 DROP POLICY IF EXISTS "Teachers manage school grades" ON public.hpc_grades;
 CREATE POLICY "Teachers manage school grades" ON public.hpc_grades 
-    FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher'));
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1
+            FROM public.profiles staff
+            JOIN public.profiles student ON student.id = public.hpc_grades.student_id
+            WHERE staff.id = auth.uid()
+              AND staff.role IN ('teacher', 'principal')
+              AND staff.school_id = student.school_id
+        )
+    )
+    WITH CHECK (
+        teacher_id = auth.uid()
+        AND EXISTS (
+            SELECT 1
+            FROM public.profiles staff
+            JOIN public.profiles student ON student.id = public.hpc_grades.student_id
+            WHERE staff.id = auth.uid()
+              AND staff.role IN ('teacher', 'principal')
+              AND staff.school_id = student.school_id
+        )
+    );
 
 -- Auditors have read-only access to everything
 DROP POLICY IF EXISTS "Auditors read-only attendance" ON public.attendance;
@@ -320,11 +340,11 @@ ALTER TABLE public.qr_sessions ENABLE ROW LEVEL SECURITY;
 
 -- Students can read their own pending session
 CREATE POLICY "View own pending QR session" ON public.qr_sessions 
-    FOR SELECT USING (status = 'pending');
+    FOR SELECT USING (authenticated_user_id = auth.uid());
 
 -- Teachers/Principals can verify sessions in their school
 CREATE POLICY "Teachers verify QR sessions" ON public.qr_sessions 
-    FOR UPDATE USING (get_my_role() IN ('teacher', 'principal', 'moderator'));
+    FOR UPDATE USING (false);
 
 -- 17. REAL-TIME MONITORING (Teacher God-Mode)
 CREATE TABLE IF NOT EXISTS public.student_sessions (
@@ -340,11 +360,19 @@ ALTER TABLE public.student_sessions ENABLE ROW LEVEL SECURITY;
 
 -- Students update their own heartbeat
 CREATE POLICY "Students manage own session" ON public.student_sessions 
-    FOR ALL USING (student_id = auth.uid());
+    FOR ALL USING (student_id = auth.uid())
+    WITH CHECK (student_id = auth.uid());
 
 -- Teachers view all sessions in their school
 CREATE POLICY "Teachers monitor school sessions" ON public.student_sessions 
-    FOR SELECT USING (get_my_role() IN ('teacher', 'principal', 'moderator'));
+    FOR SELECT USING (
+        get_my_role() IN ('teacher', 'principal', 'moderator')
+        AND EXISTS (
+            SELECT 1 FROM public.profiles student
+            WHERE student.id = public.student_sessions.student_id
+              AND student.school_id = get_my_school_id()
+        )
+    );
 
 -- 18. REMOTE OVERRIDE (Command System)
 CREATE TABLE IF NOT EXISTS public.device_commands (
@@ -363,9 +391,23 @@ ALTER TABLE public.device_commands ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Students listen for commands" ON public.device_commands 
     FOR SELECT USING (target_student_id = auth.uid());
 
+DROP POLICY IF EXISTS "Students acknowledge own commands" ON public.device_commands;
+CREATE POLICY "Students acknowledge own commands" ON public.device_commands
+    FOR UPDATE USING (target_student_id = auth.uid())
+    WITH CHECK (target_student_id = auth.uid());
+
 -- Teachers issue commands
 CREATE POLICY "Teachers issue commands" ON public.device_commands 
-    FOR INSERT WITH CHECK (get_my_role() IN ('teacher', 'principal', 'moderator'));
+    FOR INSERT WITH CHECK (
+        issuer_id = auth.uid()
+        AND get_my_role() IN ('teacher', 'principal', 'moderator')
+        AND EXISTS (
+            SELECT 1 FROM public.profiles target
+            WHERE target.id = public.device_commands.target_student_id
+              AND target.role = 'student'
+              AND target.school_id = get_my_school_id()
+        )
+    );
 
 -- Enable Realtime for Monitoring and Commands
 DO $$ BEGIN

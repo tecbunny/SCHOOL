@@ -30,9 +30,29 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const { school_name, udise_code, applicant_name, applicant_email } = await req.json();
 
+    if (
+      typeof school_name !== "string" ||
+      typeof udise_code !== "string" ||
+      typeof applicant_name !== "string" ||
+      typeof applicant_email !== "string" ||
+      school_name.trim().length < 2 ||
+      udise_code.trim().length !== 11 ||
+      applicant_name.trim().length < 2 ||
+      !applicant_email.includes("@")
+    ) {
+      return NextResponse.json({ error: "Valid school, U-DISE, applicant, and email details are required." }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('registration_requests')
-      .insert({ school_name, udise_code, applicant_name, applicant_email })
+      .insert({
+        school_name: school_name.trim(),
+        udise_code: udise_code.trim(),
+        applicant_name: applicant_name.trim(),
+        applicant_email: applicant_email.trim(),
+        contact_email: applicant_email.trim(),
+        status: "pending",
+      })
       .select()
       .single();
 

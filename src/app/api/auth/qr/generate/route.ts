@@ -1,17 +1,20 @@
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { errorMessage } from "@/lib/api-auth";
+import { errorMessage, getServiceClient } from "@/lib/api-auth";
 
 export async function POST(req: Request) {
   try {
     const { deviceId } = await req.json();
 
-    if (!deviceId) {
+    if (typeof deviceId !== "string" || deviceId.length < 6 || deviceId.length > 128) {
       return NextResponse.json({ error: "Device ID required for hardware handshake." }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const service = getServiceClient();
+    const supabase = createClient(service.url, service.key, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     const sessionToken = uuidv4();
 
     const { data, error } = await supabase

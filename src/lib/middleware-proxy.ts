@@ -4,11 +4,23 @@ import { navigateByRole, type UserRole } from './constants';
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
+  const url = new URL(request.url);
+  const isProtectedPath =
+    url.pathname.startsWith('/school/dashboard') ||
+    url.pathname.startsWith('/admin/dashboard') ||
+    url.pathname.startsWith('/auditor/dashboard') ||
+    url.pathname.startsWith('/admin/provision') ||
+    url.pathname.startsWith('/admin/schools') ||
+    url.pathname.startsWith('/admin/users') ||
+    url.pathname.startsWith('/admin/analytics');
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
+    if (isProtectedPath) {
+      return NextResponse.redirect(new URL('/school', request.url));
+    }
     return response;
   }
 
@@ -34,17 +46,6 @@ export async function proxy(request: NextRequest) {
     );
 
     const { data: { user } } = await supabase.auth.getUser();
-    const url = new URL(request.url);
-    
-    // 1. Determine if the path is protected
-    const isProtectedPath = 
-      url.pathname.startsWith('/school/dashboard') || 
-      url.pathname.startsWith('/admin/dashboard') || 
-      url.pathname.startsWith('/auditor/dashboard') ||
-      url.pathname.startsWith('/admin/provision') ||
-      url.pathname.startsWith('/admin/schools') ||
-      url.pathname.startsWith('/admin/users') ||
-      url.pathname.startsWith('/admin/analytics');
     
     if (!user && isProtectedPath) {
       let redirectUrl = '/school';
@@ -91,6 +92,12 @@ export async function proxy(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Middleware Proxy Error:", error);
+    if (isProtectedPath) {
+      let redirectUrl = '/school';
+      if (url.pathname.includes('/admin')) redirectUrl = '/admin';
+      if (url.pathname.includes('/auditor')) redirectUrl = '/auditor';
+      return NextResponse.redirect(new URL(redirectUrl, request.url));
+    }
     return response; 
   }
 }

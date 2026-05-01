@@ -1,22 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/api-auth";
+import { verifyHardwareNode } from "@/lib/hardware-auth";
 
 export async function POST(req: Request) {
   try {
-    const nodeSecret = req.headers.get("x-node-secret");
-    if (!process.env.HARDWARE_NODE_SECRET || nodeSecret !== process.env.HARDWARE_NODE_SECRET) {
-      return NextResponse.json({ error: "Unauthorized node." }, { status: 401 });
-    }
-
     const { nodeId, currentVersion, releaseType } = await req.json();
     if (!nodeId || !currentVersion || !releaseType) {
       return NextResponse.json({ error: "Node id, version, and release type are required." }, { status: 400 });
     }
+    if (!["os", "pwa"].includes(releaseType)) {
+      return NextResponse.json({ error: "Unsupported release type." }, { status: 400 });
+    }
+
     const service = getServiceClient();
     const supabase = createClient(service.url, service.key, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
+
+    const auth = await verifyHardwareNode(supabase, nodeId, req.headers.get("x-node-secret"));
+    if (!auth.ok) return auth.response;
 
     // 1. Fetch latest release of specified type
     const { data: latestRelease, error } = await supabase
@@ -36,7 +39,7 @@ export async function POST(req: Request) {
 
     // 3. Log the check-in from the node
     await supabase.from('fleet_deployments').upsert({
-      node_id: nodeId,
+      node_id: auth.node.id,
       release_id: latestRelease.id,
       status: isNewer ? 'pending' : 'installed',
       updated_at: new Date().toISOString()

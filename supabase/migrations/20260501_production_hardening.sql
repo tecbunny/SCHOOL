@@ -35,10 +35,19 @@ CREATE TABLE IF NOT EXISTS public.hpc_competencies (
 CREATE TABLE IF NOT EXISTS public.registration_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_name TEXT NOT NULL,
-    contact_email TEXT NOT NULL,
+    udise_code TEXT NOT NULL,
+    applicant_name TEXT NOT NULL,
+    applicant_email TEXT NOT NULL,
+    contact_email TEXT,
     status TEXT DEFAULT 'pending', -- pending, approved, rejected
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE IF EXISTS public.registration_requests
+    ADD COLUMN IF NOT EXISTS udise_code TEXT,
+    ADD COLUMN IF NOT EXISTS applicant_name TEXT,
+    ADD COLUMN IF NOT EXISTS applicant_email TEXT,
+    ADD COLUMN IF NOT EXISTS contact_email TEXT;
 
 CREATE TABLE IF NOT EXISTS public.study_materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -134,6 +143,16 @@ CREATE POLICY "Global materials viewable by all" ON public.global_materials
 DROP POLICY IF EXISTS "View materials in same school" ON public.study_materials;
 CREATE POLICY "View materials in same school" ON public.study_materials
     FOR SELECT USING (school_id = get_my_school_id());
+
+-- Registration Requests: public intake, admin review
+DROP POLICY IF EXISTS "Anyone can submit registration requests" ON public.registration_requests;
+CREATE POLICY "Anyone can submit registration requests" ON public.registration_requests
+    FOR INSERT WITH CHECK (status = 'pending');
+
+DROP POLICY IF EXISTS "Admins manage registration requests" ON public.registration_requests;
+CREATE POLICY "Admins manage registration requests" ON public.registration_requests
+    FOR ALL USING (get_my_role() = 'admin')
+    WITH CHECK (get_my_role() = 'admin');
 
 -- 5. Indexing for Performance
 CREATE INDEX IF NOT EXISTS idx_announcements_school ON public.announcements(school_id);

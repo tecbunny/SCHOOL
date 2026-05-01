@@ -79,9 +79,24 @@ type SupabaseCommandClient = {
   };
 };
 
+const getSafeAppPath = (url: string) => {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.origin !== window.location.origin) return null;
+    if (!parsed.pathname.startsWith('/school/')) return null;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+};
+
 const handleCommand = async (command: DeviceCommand, supabase: SupabaseCommandClient) => {
   switch (command.command_type) {
-    case 'PUSH_URL': if (command.payload?.url) window.location.href = command.payload.url; break;
+    case 'PUSH_URL': {
+      const safePath = command.payload?.url ? getSafeAppPath(command.payload.url) : null;
+      if (safePath) window.location.href = safePath;
+      break;
+    }
     case 'LOCK_SCREEN': alert("🔒 Locked by Teacher."); break;
     case 'RESET': window.location.reload(); break;
   }

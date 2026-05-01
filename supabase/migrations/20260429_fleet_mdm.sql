@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS public.hardware_nodes (
     school_id UUID REFERENCES public.schools(id),
     node_name TEXT NOT NULL,
     mac_address TEXT UNIQUE NOT NULL,
+    node_secret_hash TEXT,
     status TEXT DEFAULT 'offline',
     temp NUMERIC DEFAULT 0,
     version TEXT DEFAULT '1.0.0',
