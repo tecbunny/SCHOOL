@@ -10,8 +10,36 @@ import TimetableManager from '@/features/school-operations/TimetableManager';
 import EngagementHeatmap from '@/features/compliance/EngagementHeatmap';
 import HpcAnalytics from '@/features/compliance/HpcAnalytics';
 import { Shield, Settings, Users, BarChart } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { analyticsService } from '@/services/analytics.service';
+import { createClient } from '@/lib/supabase';
 
 export default function HODDashboard() {
+  const [stats, setStats] = useState<any>({ avgAttendance: '0', avgCpd: '0' });
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          const data = await analyticsService.getSchoolStats(profile.school_id);
+          setStats(data);
+        }
+      } catch (err) {
+        console.error("Fetch HOD Stats Error:", err);
+      }
+    };
+    fetchStats();
+  }, []);
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a]">
       {/* Header */}
@@ -28,11 +56,11 @@ export default function HODDashboard() {
         <div className="flex gap-4">
            <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 text-center">
               <div className="text-[10px] text-muted uppercase font-bold">Avg Attendance</div>
-              <div className="text-lg font-bold text-success">92.4%</div>
+              <div className="text-lg font-bold text-success">{stats.avgAttendance}%</div>
            </div>
            <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 text-center">
               <div className="text-[10px] text-muted uppercase font-bold">Staff CPD Avg</div>
-              <div className="text-lg font-bold text-primary">34.2h</div>
+              <div className="text-lg font-bold text-primary">{stats.avgCpd}h</div>
            </div>
         </div>
       </header>

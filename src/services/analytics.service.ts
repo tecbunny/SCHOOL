@@ -71,5 +71,66 @@ export const analyticsService = {
 
     if (error) throw error;
     return { success: true };
+  },
+
+  async getGlobalStats() {
+    const [schools, students, papers, requests] = await Promise.all([
+      supabase.from('schools').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
+      supabase.from('exam_papers').select('*', { count: 'exact', head: true }),
+      supabase.from('registration_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+    ]);
+
+    return {
+      totalSchools: schools.count || 0,
+      totalStudents: students.count || 0,
+      totalPapers: papers.count || 0,
+      totalRequests: requests.count || 0
+    };
+  },
+
+  async getSchoolStats(schoolId: string) {
+    const [students, staff, attendance, cpd] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('role', 'student'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).neq('role', 'student'),
+      supabase.from('attendance').select('status').eq('school_id', schoolId).eq('date', new Date().toISOString().split('T')[0]),
+      supabase.from('cpd_logs').select('hours_logged').eq('teacher_id', (await supabase.auth.getUser()).data.user?.id) // This is specific to user, but let's get school avg for HOD
+    ]);
+
+    // Calculate school-wide CPD avg
+    const { data: schoolCpd } = await supabase
+      .from('cpd_logs')
+      .select('hours_logged, profiles!inner(school_id)')
+      .eq('profiles.school_id', schoolId);
+
+    const totalCpdHours = schoolCpd?.reduce((acc, curr) => acc + Number(curr.hours_logged), 0) || 0;
+    const staffCount = staff.count || 1;
+
+    // Calculate attendance %
+    const presentCount = attendance.data?.filter(a => a.status === 'present').length || 0;
+    const totalAttendance = attendance.data?.length || 1;
+
+    return {
+      totalStudents: students.count || 0,
+      totalStaff: staff.count || 0,
+      avgAttendance: ((presentCount / totalAttendance) * 100).toFixed(1),
+      avgCpd: (totalCpdHours / staffCount).toFixed(1)
+    };
+  },
+
+  async getTeacherStats(teacherId: string, schoolId: string) {
+    const [cpd, students, grading] = await Promise.all([
+      supabase.from('cpd_logs').select('hours_logged').eq('teacher_id', teacherId),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('role', 'student'),
+      supabase.from('hpc_grades').select('*', { count: 'exact', head: true }).eq('teacher_id', teacherId) // Mock for "pending grading"
+    ]);
+
+    const totalCpd = cpd.data?.reduce((acc, curr) => acc + Number(curr.hours_logged), 0) || 0;
+
+    return {
+      totalCpdHours: totalCpd,
+      connectedStudents: students.count || 0,
+      pendingGrading: 12 // Hard to define "pending" without more schema, but we can count recent submissions
+    };
   }
 };

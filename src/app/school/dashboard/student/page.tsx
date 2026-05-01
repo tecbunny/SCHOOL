@@ -1,11 +1,12 @@
-﻿"use client";
+"use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import StudentDesk from '@/features/student-portal/StudentDesk';
 import HPCViewer from '@/features/student-portal/HPCViewer';
 import LiveTestEngine from '@/features/student-portal/LiveTestEngine';
 import StudyHub from '@/features/student-portal/StudyHub';
 import { isStudentHubDevice } from '@/lib/device.client';
+import { createClient } from '@/lib/supabase';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -21,6 +22,24 @@ type StudentTab = 'desk' | 'hub' | 'test' | 'hpc';
 export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState<StudentTab>('desk');
   const [isStudentHub] = useState(() => isStudentHubDevice());
+  const [profile, setProfile] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('*, schools(school_name)')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) setProfile(data);
+    };
+    fetchProfile();
+  }, []);
 
   const navItems = [
     { id: 'desk', label: 'My Desk', icon: LayoutDashboard, color: 'text-primary' },
@@ -70,7 +89,9 @@ export default function StudentDashboard() {
                <h1 className="text-3xl font-black text-white">
                   {navItems.find(n => n.id === activeTab)?.label}
                </h1>
-               <p className="text-xs text-muted font-bold uppercase tracking-widest mt-1">St. Mary&apos;s Convent - Grade 10-A</p>
+               <p className="text-xs text-muted font-bold uppercase tracking-widest mt-1">
+                 {profile?.schools?.school_name || "St. Mary's Convent"} - {profile?.class_id || "Grade 10-A"}
+               </p>
             </div>
             
             <div className="flex items-center gap-6">
@@ -78,11 +99,11 @@ export default function StudentDashboard() {
                   <Bell className="w-5 h-5 text-muted" />
                   <div className="w-2 h-2 bg-danger rounded-full animate-pulse"></div>
                </div>
-               <div className="flex items-center gap-4">
-                  <div className="text-right">
-                     <div className="text-sm font-bold text-white">Arjun Sharma</div>
-                     <div className="text-[10px] text-muted font-mono">ID: 7878-2609</div>
-                  </div>
+                <div className="flex items-center gap-4">
+                   <div className="text-right">
+                      <div className="text-sm font-bold text-white">{profile?.full_name || "Arjun Sharma"}</div>
+                      <div className="text-[10px] text-muted font-mono">ID: {profile?.user_code || "7878-2609"}</div>
+                   </div>
                   <img 
                      src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
                      alt="Arjun" 

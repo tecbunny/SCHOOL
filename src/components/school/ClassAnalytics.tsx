@@ -3,15 +3,29 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Brain, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
-const data = [
-  { subject: 'Algebra', score: 85, color: '#8B5CF6' },
-  { subject: 'Geometry', score: 62, color: '#F472B6' },
-  { subject: 'Statistics', score: 45, color: '#FB7185' },
-  { subject: 'Trig', score: 78, color: '#34D399' },
-  { subject: 'Calculus', score: 92, color: '#60A5FA' },
-];
+import { analyticsService } from '@/services/analytics.service';
+import { useEffect, useState } from 'react';
 
-export default function ClassAnalytics() {
+export default function ClassAnalytics({ classId = 'grade_10_a' }: { classId?: string }) {
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const data = await analyticsService.getClassHealthSnapshot(classId);
+        setAnalytics(data);
+        setChartData([
+          { subject: 'Academic', score: parseFloat(data.averageMastery.academic), color: '#8B5CF6' },
+          { subject: 'Socio-Emotional', score: parseFloat(data.averageMastery.socio_emotional), color: '#F472B6' },
+          { subject: 'Physical', score: parseFloat(data.averageMastery.physical), color: '#34D399' },
+        ]);
+      } catch (err) {
+        console.error("Fetch Analytics Error:", err);
+      }
+    };
+    fetchAnalytics();
+  }, [classId]);
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -34,7 +48,7 @@ export default function ClassAnalytics() {
           </h3>
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis 
                   dataKey="subject" 
@@ -52,7 +66,7 @@ export default function ClassAnalytics() {
                   contentStyle={{ backgroundColor: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
                 />
                 <Bar dataKey="score" radius={[4, 4, 0, 0]} barSize={40}>
-                  {data.map((entry, index) => (
+                  {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
                   ))}
                 </Bar>

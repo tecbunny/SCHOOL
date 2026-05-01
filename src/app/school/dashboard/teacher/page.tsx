@@ -2,7 +2,7 @@
 
 import { Bot, Bell, Award, Edit3, Sparkles, X, Loader2, FileCheck, CheckSquare, PenTool, Maximize2, Zap, CheckCircle } from 'lucide-react';
 import { ChatDrawer } from '@/components/school/ClassroomTools';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import LiveMonitorGrid from '@/components/school/LiveMonitorGrid';
 import ClassAnalytics from '@/components/school/ClassAnalytics';
@@ -12,11 +12,39 @@ type GeneratedQuestion = {
   question?: string;
 };
 
+import { analyticsService } from '@/services/analytics.service';
+import { createClient } from '@/lib/supabase';
+
 export default function TeacherDashboard() {
+  const [stats, setStats] = useState<any>({ totalCpdHours: 0, connectedStudents: 0, pendingGrading: 0 });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<GeneratedQuestion[] | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
   const [isClassStation] = useState(() => isClassStationDevice());
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          const data = await analyticsService.getTeacherStats(user.id, profile.school_id);
+          setStats(data);
+        }
+      } catch (err) {
+        console.error("Fetch Teacher Stats Error:", err);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleGenerateAI = async () => {
     if (!isClassStation) {
@@ -76,11 +104,11 @@ export default function TeacherDashboard() {
           </div>
           <div className="flex flex-col items-end gap-2 w-1/3">
             <div className="flex justify-between w-full text-sm font-bold">
-              <span>42 Hours Logged</span>
-              <span className="text-success">84%</span>
+              <span>{stats.totalCpdHours} Hours Logged</span>
+              <span className="text-success">{Math.min(100, Math.round((stats.totalCpdHours / 50) * 100))}%</span>
             </div>
             <div className="w-full bg-card rounded-full h-3 border border-[var(--border)] overflow-hidden">
-              <div className="bg-success h-full" style={{ width: '84%' }}></div>
+              <div className="bg-success h-full" style={{ width: `${Math.min(100, (stats.totalCpdHours / 50) * 100)}%` }}></div>
             </div>
             <button className="text-xs text-primary hover:underline mt-1">Log New CPD Session</button>
           </div>
@@ -113,7 +141,7 @@ export default function TeacherDashboard() {
                   <div className="w-10 h-10 rounded-full border-2 border-card bg-white/5 flex items-center justify-center font-bold text-xs text-muted">+12</div>
                 </div>
                 <div className="text-sm text-muted flex items-center">
-                  16 Worksheets awaiting AI-assisted grading
+                  {stats.pendingGrading} Worksheets awaiting AI-assisted grading
                 </div>
               </div>
             </div>
@@ -132,7 +160,7 @@ export default function TeacherDashboard() {
                 <span className="text-success flex items-center gap-1 font-bold"><CheckCircle className="w-3 h-3" /> Synchronized</span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-muted">Student Hubs (30 Connected)</span>
+                <span className="text-muted">Student Hubs ({stats.connectedStudents} Connected)</span>
                 <span className="text-success font-bold">100%</span>
               </div>
               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-2">

@@ -22,14 +22,29 @@ import {
   Globe,
   Monitor
 } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import Chart from 'chart.js/auto';
+import { analyticsService } from '@/services/analytics.service';
 
 export default function AdminDashboard() {
   const chartRef = useRef<HTMLCanvasElement>(null);
-  const [stats, setStats] = useState<any>({ totalSchools: 12, totalStudents: 4500, totalPapers: 120 });
-  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<any>({ totalSchools: 0, totalStudents: 0, totalPapers: 0, totalRequests: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await analyticsService.getGlobalStats();
+        setStats(data);
+      } catch (err) {
+        console.error("Fetch Stats Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   useEffect(() => {
     if (!chartRef.current || loading) return;
@@ -114,7 +129,7 @@ export default function AdminDashboard() {
               { label: 'Managed Schools', value: stats.totalSchools, icon: Building, color: 'text-primary' },
               { label: 'Active Students', value: stats.totalStudents, icon: Users, color: 'text-secondary' },
               { label: 'AI Operations', value: stats.totalPapers, icon: Bot, color: 'text-success' },
-              { label: 'Requests', value: '3', icon: Inbox, color: 'text-warning' },
+              { label: 'Requests', value: stats.totalRequests, icon: Inbox, color: 'text-warning' },
             ].map((stat, i) => (
               <div key={i} className="glass-card p-8 rounded-[2.5rem] relative group hover:bg-white/[0.05] transition-all">
                 <div className="flex justify-between items-start mb-6">
@@ -178,7 +193,7 @@ export default function AdminDashboard() {
                <Link href="/admin/schools" className="glass-card p-8 rounded-[3rem] flex items-center justify-between group hover:bg-primary/10 transition-all">
                   <div>
                     <h3 className="font-black text-white mb-1">Institution Ledger</h3>
-                    <p className="text-[10px] text-muted font-bold uppercase tracking-widest">Manage 1,200+ schools</p>
+                    <p className="text-[10px] text-muted font-bold uppercase tracking-widest">Manage {stats.totalSchools} schools</p>
                   </div>
                   <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:translate-x-2 transition-transform">
                      <ArrowRight className="w-6 h-6 text-primary" />
