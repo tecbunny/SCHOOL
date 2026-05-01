@@ -1,20 +1,22 @@
 import { createBrowserClient } from '@supabase/ssr'
+import { getSupabasePublishableKey, getSupabaseUrl } from './supabase-env';
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
 
   // Build-time safety: If variables are missing and we are on the server (e.g., during build)
-  // return null. This prevents '@supabase/ssr' from throwing an error.
+  // use inert placeholders. This prevents '@supabase/ssr' from throwing an error.
   if (!url || !key) {
     if (typeof window === 'undefined') {
-      return null as any;
+      return createBrowserClient('http://127.0.0.1', 'missing-supabase-publishable-key');
     }
+    throw new Error('Supabase public environment variables are not configured.');
   }
 
   return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '', 
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    url,
+    key
   );
 }
 

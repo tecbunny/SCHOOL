@@ -96,13 +96,7 @@ type DeviceCommand = {
   payload?: { url?: string };
 };
 
-type SupabaseCommandClient = {
-  from: (table: string) => {
-    update: (values: Record<string, unknown>) => {
-      eq: (column: string, value: string) => Promise<unknown>;
-    };
-  };
-};
+type SupabaseCommandClient = ReturnType<typeof createClient>;
 
 const getSafeAppPath = (url: string) => {
   try {

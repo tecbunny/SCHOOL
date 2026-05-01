@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase-server";
 import type { Profile, UserRole } from "@/lib/constants";
+import { getSupabaseUrl } from "@/lib/supabase-env";
 
 export type AuthorizedContext = {
   supabase: Awaited<ReturnType<typeof createServerClient>>;
@@ -53,7 +54,7 @@ export async function requireUser(allowedRoles?: UserRole[]): Promise<AuthResult
 }
 
 export function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = getSupabaseUrl();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {

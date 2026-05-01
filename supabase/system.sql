@@ -1,4 +1,4 @@
-﻿-- EDUPORTAL SYSTEM DATABASE SETUP
+-- EDUPORTAL SYSTEM DATABASE SETUP
 -- Single setup script for Supabase SQL Editor.
 -- Run this once for schema, policies, realtime setup, hardening, and demo seed data.
 -- Use supabase/clear_all_data.sql separately when you only need to clear data.
@@ -37,7 +37,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT school_id FROM public.profiles WHERE id = auth.uid();
+  SELECT school_id FROM public.profiles WHERE id = (select auth.uid());
 $$;
 
 CREATE OR REPLACE FUNCTION auth_helpers.get_my_role()
@@ -47,7 +47,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT role FROM public.profiles WHERE id = auth.uid();
+  SELECT role FROM public.profiles WHERE id = (select auth.uid());
 $$;
 
 GRANT EXECUTE ON FUNCTION auth_helpers.get_my_school_id() TO authenticated;
@@ -115,7 +115,7 @@ ALTER TABLE public.chat_participants ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Viewable by same school or higher" ON public.profiles;
 CREATE POLICY "Viewable by same school or higher" ON public.profiles
     FOR SELECT USING (
-        id = auth.uid() OR
+        id = (select auth.uid()) OR
         auth_helpers.get_my_role() IN ('admin', 'auditor') OR 
         school_id = auth_helpers.get_my_school_id()
     );
@@ -124,29 +124,29 @@ CREATE POLICY "Viewable by same school or higher" ON public.profiles
 DROP POLICY IF EXISTS "View messages if participant" ON public.chat_messages;
 CREATE POLICY "View messages if participant" ON public.chat_messages
     FOR SELECT USING (
-        EXISTS (SELECT 1 FROM public.chat_participants WHERE room_id = public.chat_messages.room_id AND profile_id = auth.uid())
+        EXISTS (SELECT 1 FROM public.chat_participants WHERE room_id = public.chat_messages.room_id AND profile_id = (select auth.uid()))
     );
 
 -- Messages: Only participants can send messages
 DROP POLICY IF EXISTS "Send messages if participant" ON public.chat_messages;
 CREATE POLICY "Send messages if participant" ON public.chat_messages
     FOR INSERT WITH CHECK (
-        EXISTS (SELECT 1 FROM public.chat_participants WHERE room_id = public.chat_messages.room_id AND profile_id = auth.uid())
+        EXISTS (SELECT 1 FROM public.chat_participants WHERE room_id = public.chat_messages.room_id AND profile_id = (select auth.uid()))
     );
 
 -- Participants: Users can only see participants in rooms they belong to
 DROP POLICY IF EXISTS "View participants in own rooms" ON public.chat_participants;
 CREATE POLICY "View participants in own rooms" ON public.chat_participants
     FOR SELECT USING (
-        profile_id = auth.uid() OR 
-        EXISTS (SELECT 1 FROM public.chat_participants p2 WHERE p2.room_id = public.chat_participants.room_id AND p2.profile_id = auth.uid())
+        profile_id = (select auth.uid()) OR
+        EXISTS (SELECT 1 FROM public.chat_participants p2 WHERE p2.room_id = public.chat_participants.room_id AND p2.profile_id = (select auth.uid()))
     );
 
 -- Participants: Users can only add themselves to rooms if they belong to the school
 DROP POLICY IF EXISTS "Self-join rooms in same school" ON public.chat_participants;
 CREATE POLICY "Self-join rooms in same school" ON public.chat_participants
     FOR INSERT WITH CHECK (
-        profile_id = auth.uid() AND
+        profile_id = (select auth.uid()) AND
         EXISTS (SELECT 1 FROM public.chat_rooms r WHERE r.id = room_id AND r.school_id = auth_helpers.get_my_school_id())
     );
 
@@ -234,10 +234,10 @@ ALTER TABLE public.exam_papers ENABLE ROW LEVEL SECURITY;
 
 -- Students can view their own attendance and grades
 DROP POLICY IF EXISTS "Students view own attendance" ON public.attendance;
-CREATE POLICY "Students view own attendance" ON public.attendance FOR SELECT USING (student_id = auth.uid());
+CREATE POLICY "Students view own attendance" ON public.attendance FOR SELECT USING (student_id = (select auth.uid()));
 
 DROP POLICY IF EXISTS "Students view own grades" ON public.hpc_grades;
-CREATE POLICY "Students view own grades" ON public.hpc_grades FOR SELECT USING (student_id = auth.uid());
+CREATE POLICY "Students view own grades" ON public.hpc_grades FOR SELECT USING (student_id = (select auth.uid()));
 
 -- Teachers can view/insert for their school
 DROP POLICY IF EXISTS "Teachers manage school attendance" ON public.attendance;
@@ -251,18 +251,18 @@ CREATE POLICY "Teachers manage school grades" ON public.hpc_grades
             SELECT 1
             FROM public.profiles staff
             JOIN public.profiles student ON student.id = public.hpc_grades.student_id
-            WHERE staff.id = auth.uid()
+            WHERE staff.id = (select auth.uid())
               AND staff.role IN ('teacher', 'principal')
               AND staff.school_id = student.school_id
         )
     )
     WITH CHECK (
-        teacher_id = auth.uid()
+        teacher_id = (select auth.uid())
         AND EXISTS (
             SELECT 1
             FROM public.profiles staff
             JOIN public.profiles student ON student.id = public.hpc_grades.student_id
-            WHERE staff.id = auth.uid()
+            WHERE staff.id = (select auth.uid())
               AND staff.role IN ('teacher', 'principal')
               AND staff.school_id = student.school_id
         )
@@ -339,13 +339,13 @@ ALTER TABLE public.student_wellbeing ENABLE ROW LEVEL SECURITY;
 
 -- General rule: Students/Parents view their own; Teachers/Principals view their school; Auditors view all.
 DROP POLICY IF EXISTS "Student/Parent view own feedback" ON public.parent_feedback;
-CREATE POLICY "Student/Parent view own feedback" ON public.parent_feedback FOR SELECT USING (student_id = auth.uid());
+CREATE POLICY "Student/Parent view own feedback" ON public.parent_feedback FOR SELECT USING (student_id = (select auth.uid()));
 
 DROP POLICY IF EXISTS "Student view own vocational" ON public.vocational_skills;
-CREATE POLICY "Student view own vocational" ON public.vocational_skills FOR SELECT USING (student_id = auth.uid());
+CREATE POLICY "Student view own vocational" ON public.vocational_skills FOR SELECT USING (student_id = (select auth.uid()));
 
 DROP POLICY IF EXISTS "Student view own FLN" ON public.fln_milestones;
-CREATE POLICY "Student view own FLN" ON public.fln_milestones FOR SELECT USING (student_id = auth.uid());
+CREATE POLICY "Student view own FLN" ON public.fln_milestones FOR SELECT USING (student_id = (select auth.uid()));
 
 -- HOD/Principals manage SMC
 DROP POLICY IF EXISTS "Principals manage SMC" ON public.smc_minutes;
@@ -376,7 +376,7 @@ ALTER TABLE public.qr_sessions ENABLE ROW LEVEL SECURITY;
 -- Students can read their own pending session
 DROP POLICY IF EXISTS "View own pending QR session" ON public.qr_sessions;
 CREATE POLICY "View own pending QR session" ON public.qr_sessions 
-    FOR SELECT USING (authenticated_user_id = auth.uid());
+    FOR SELECT USING (authenticated_user_id = (select auth.uid()));
 
 -- Teachers/Principals can verify sessions in their school
 DROP POLICY IF EXISTS "Teachers verify QR sessions" ON public.qr_sessions;
@@ -398,8 +398,8 @@ ALTER TABLE public.student_sessions ENABLE ROW LEVEL SECURITY;
 -- Students update their own heartbeat
 DROP POLICY IF EXISTS "Students manage own session" ON public.student_sessions;
 CREATE POLICY "Students manage own session" ON public.student_sessions 
-    FOR ALL USING (student_id = auth.uid())
-    WITH CHECK (student_id = auth.uid());
+    FOR ALL USING (student_id = (select auth.uid()))
+    WITH CHECK (student_id = (select auth.uid()));
 
 -- Teachers view all sessions in their school
 DROP POLICY IF EXISTS "Teachers monitor school sessions" ON public.student_sessions;
@@ -429,13 +429,13 @@ ALTER TABLE public.device_commands ENABLE ROW LEVEL SECURITY;
 -- Students listen for commands
 DROP POLICY IF EXISTS "Students listen for commands" ON public.device_commands;
 CREATE POLICY "Students listen for commands" ON public.device_commands 
-    FOR SELECT USING (target_student_id = auth.uid());
+    FOR SELECT USING (target_student_id = (select auth.uid()));
 
 -- Teachers issue commands
 DROP POLICY IF EXISTS "Teachers issue commands" ON public.device_commands;
 CREATE POLICY "Teachers issue commands" ON public.device_commands 
     FOR INSERT WITH CHECK (
-        issuer_id = auth.uid()
+        issuer_id = (select auth.uid())
         AND auth_helpers.get_my_role() IN ('teacher', 'principal', 'moderator')
         AND EXISTS (
             SELECT 1 FROM public.profiles target
@@ -447,8 +447,8 @@ CREATE POLICY "Teachers issue commands" ON public.device_commands
 
 DROP POLICY IF EXISTS "Students acknowledge own commands" ON public.device_commands;
 CREATE POLICY "Students acknowledge own commands" ON public.device_commands
-    FOR UPDATE USING (target_student_id = auth.uid())
-    WITH CHECK (target_student_id = auth.uid());
+    FOR UPDATE USING (target_student_id = (select auth.uid()))
+    WITH CHECK (target_student_id = (select auth.uid()));
 
 -- Enable Realtime for Monitoring and Commands
 DO $$ BEGIN
@@ -778,12 +778,12 @@ CREATE POLICY "Admins view system logs" ON public.system_logs
 -- System Logs: Users can insert their own logs
 DROP POLICY IF EXISTS "Users can insert own logs" ON public.system_logs;
 CREATE POLICY "Users can insert own logs" ON public.system_logs
-    FOR INSERT WITH CHECK (user_id = auth.uid() OR tenant_id = auth_helpers.get_my_school_id());
+    FOR INSERT WITH CHECK (user_id = (select auth.uid()) OR tenant_id = auth_helpers.get_my_school_id());
 
 -- Global Materials: Viewable by all authenticated users
 DROP POLICY IF EXISTS "Global materials viewable by all" ON public.global_materials;
 CREATE POLICY "Global materials viewable by all" ON public.global_materials
-    FOR SELECT USING (auth.role() = 'authenticated');
+    FOR SELECT USING ((select auth.role()) = 'authenticated');
 
 -- Study Materials: Viewable by same school
 DROP POLICY IF EXISTS "View materials in same school" ON public.study_materials;
@@ -827,7 +827,7 @@ CREATE POLICY "Staff manage school chat rooms" ON public.chat_rooms
 
 DROP POLICY IF EXISTS "Teachers manage own CPD logs" ON public.cpd_logs;
 CREATE POLICY "Teachers manage own CPD logs" ON public.cpd_logs
-    FOR ALL USING (teacher_id = auth.uid());
+    FOR ALL USING (teacher_id = (select auth.uid()));
 
 DROP POLICY IF EXISTS "Admins and auditors view CPD logs" ON public.cpd_logs;
 CREATE POLICY "Admins and auditors view CPD logs" ON public.cpd_logs
@@ -850,7 +850,7 @@ CREATE POLICY "Staff manage school materials" ON public.materials
 DROP POLICY IF EXISTS "Student wellbeing viewable by student or staff" ON public.student_wellbeing;
 CREATE POLICY "Student wellbeing viewable by student or staff" ON public.student_wellbeing
     FOR SELECT USING (
-        student_id = auth.uid() OR
+        student_id = (select auth.uid()) OR
         auth_helpers.get_my_role() IN ('admin', 'auditor') OR
         EXISTS (
             SELECT 1 FROM public.profiles p
@@ -865,7 +865,7 @@ CREATE POLICY "Staff manage student wellbeing" ON public.student_wellbeing
     FOR ALL USING (
         auth_helpers.get_my_role() = 'admin' OR (
             auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator') AND
-            recorded_by = auth.uid() AND
+            recorded_by = (select auth.uid()) AND
             EXISTS (
                 SELECT 1 FROM public.profiles p
                 WHERE p.id = public.student_wellbeing.student_id
@@ -876,7 +876,7 @@ CREATE POLICY "Staff manage student wellbeing" ON public.student_wellbeing
     WITH CHECK (
         auth_helpers.get_my_role() = 'admin' OR (
             auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator') AND
-            recorded_by = auth.uid() AND
+            recorded_by = (select auth.uid()) AND
             EXISTS (
                 SELECT 1 FROM public.profiles p
                 WHERE p.id = public.student_wellbeing.student_id
@@ -888,7 +888,7 @@ CREATE POLICY "Staff manage student wellbeing" ON public.student_wellbeing
 DROP POLICY IF EXISTS "Behavioral logs viewable by student or staff" ON public.behavioral_logs;
 CREATE POLICY "Behavioral logs viewable by student or staff" ON public.behavioral_logs
     FOR SELECT USING (
-        student_id = auth.uid() OR
+        student_id = (select auth.uid()) OR
         auth_helpers.get_my_role() IN ('admin', 'auditor') OR
         (
             tenant_id = auth_helpers.get_my_school_id() AND
@@ -913,7 +913,7 @@ CREATE POLICY "Staff manage behavioral logs" ON public.behavioral_logs
         auth_helpers.get_my_role() = 'admin' OR (
             auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator') AND
             tenant_id = auth_helpers.get_my_school_id() AND
-            teacher_id = auth.uid() AND
+            teacher_id = (select auth.uid()) AND
             EXISTS (
                 SELECT 1 FROM public.profiles p
                 WHERE p.id = public.behavioral_logs.student_id
@@ -933,7 +933,7 @@ CREATE POLICY "Admins manage fleet deployments" ON public.fleet_deployments
 DROP POLICY IF EXISTS "HPC competencies viewable by student or staff" ON public.hpc_competencies;
 CREATE POLICY "HPC competencies viewable by student or staff" ON public.hpc_competencies
     FOR SELECT USING (
-        student_id = auth.uid() OR
+        student_id = (select auth.uid()) OR
         auth_helpers.get_my_role() IN ('admin', 'auditor') OR
         (
             tenant_id = auth_helpers.get_my_school_id() AND
@@ -968,7 +968,7 @@ CREATE POLICY "Staff manage HPC competencies" ON public.hpc_competencies
 
 DROP POLICY IF EXISTS "Platform config viewable by authenticated users" ON public.platform_config;
 CREATE POLICY "Platform config viewable by authenticated users" ON public.platform_config
-    FOR SELECT USING (auth.role() = 'authenticated');
+    FOR SELECT USING ((select auth.role()) = 'authenticated');
 
 DROP POLICY IF EXISTS "Admins manage platform config" ON public.platform_config;
 CREATE POLICY "Admins manage platform config" ON public.platform_config
@@ -976,12 +976,12 @@ CREATE POLICY "Admins manage platform config" ON public.platform_config
 
 DROP POLICY IF EXISTS "Promotion history viewable by owner or admin" ON public.promotion_history;
 CREATE POLICY "Promotion history viewable by owner or admin" ON public.promotion_history
-    FOR SELECT USING (principal_id = auth.uid() OR auth_helpers.get_my_role() IN ('admin', 'auditor'));
+    FOR SELECT USING (principal_id = (select auth.uid()) OR auth_helpers.get_my_role() IN ('admin', 'auditor'));
 
 DROP POLICY IF EXISTS "Principals create promotion history" ON public.promotion_history;
 CREATE POLICY "Principals create promotion history" ON public.promotion_history
     FOR INSERT WITH CHECK (
-        principal_id = auth.uid() AND
+        principal_id = (select auth.uid()) AND
         auth_helpers.get_my_role() IN ('principal', 'admin')
     );
 
@@ -1003,7 +1003,7 @@ CREATE POLICY "Admins manage registration requests" ON public.registration_reque
 
 DROP POLICY IF EXISTS "School profiles viewable by owner or admin" ON public.school_profiles;
 CREATE POLICY "School profiles viewable by owner or admin" ON public.school_profiles
-    FOR SELECT USING (id = auth.uid() OR auth_helpers.get_my_role() IN ('admin', 'auditor'));
+    FOR SELECT USING (id = (select auth.uid()) OR auth_helpers.get_my_role() IN ('admin', 'auditor'));
 
 DROP POLICY IF EXISTS "Admins manage school profiles" ON public.school_profiles;
 CREATE POLICY "Admins manage school profiles" ON public.school_profiles
@@ -1099,7 +1099,7 @@ CREATE POLICY "Principals manage school attendance" ON public.attendance
     FOR ALL USING (
       EXISTS (
         SELECT 1 FROM public.profiles 
-        WHERE id = auth.uid() 
+        WHERE id = (select auth.uid())
         AND school_id = public.attendance.school_id 
         AND (role = 'teacher' OR (role = 'principal' AND is_teaching_staff = true))
       )
@@ -1113,18 +1113,18 @@ CREATE POLICY "Principals manage school grades" ON public.hpc_grades
         SELECT 1
         FROM public.profiles staff
         JOIN public.profiles student ON student.id = public.hpc_grades.student_id
-        WHERE staff.id = auth.uid()
+        WHERE staff.id = (select auth.uid())
         AND staff.school_id = student.school_id
         AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
       )
     )
     WITH CHECK (
-      teacher_id = auth.uid() AND
+      teacher_id = (select auth.uid()) AND
       EXISTS (
         SELECT 1
         FROM public.profiles staff
         JOIN public.profiles student ON student.id = public.hpc_grades.student_id
-        WHERE staff.id = auth.uid()
+        WHERE staff.id = (select auth.uid())
         AND staff.school_id = student.school_id
         AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
       )
@@ -1136,16 +1136,16 @@ CREATE POLICY "Principals manage exam papers" ON public.exam_papers
     FOR ALL USING (
       EXISTS (
         SELECT 1 FROM public.profiles staff
-        WHERE staff.id = auth.uid()
+        WHERE staff.id = (select auth.uid())
         AND staff.school_id = public.exam_papers.school_id
         AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
       )
     )
     WITH CHECK (
-      teacher_id = auth.uid() AND
+      teacher_id = (select auth.uid()) AND
       EXISTS (
         SELECT 1 FROM public.profiles staff
-        WHERE staff.id = auth.uid()
+        WHERE staff.id = (select auth.uid())
         AND staff.school_id = public.exam_papers.school_id
         AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
       )
@@ -1159,7 +1159,7 @@ CREATE POLICY "Principals monitor school sessions" ON public.student_sessions
         SELECT 1
         FROM public.profiles staff
         JOIN public.profiles student ON student.id = public.student_sessions.student_id
-        WHERE staff.id = auth.uid()
+        WHERE staff.id = (select auth.uid())
         AND staff.school_id = student.school_id
         AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true) OR staff.role = 'moderator')
       )
