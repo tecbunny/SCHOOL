@@ -64,6 +64,18 @@ CREATE POLICY "Admins manage registration requests" ON public.registration_reque
 ALTER TABLE IF EXISTS public.hardware_nodes
     ADD COLUMN IF NOT EXISTS node_secret_hash TEXT;
 
+-- Tenant-scoped announcements
+DROP POLICY IF EXISTS "Principals manage announcements" ON public.announcements;
+CREATE POLICY "Principals manage announcements" ON public.announcements
+    FOR ALL USING (
+        auth_helpers.get_my_role() = 'admin' OR
+        (auth_helpers.get_my_role() = 'principal' AND school_id = auth_helpers.get_my_school_id())
+    )
+    WITH CHECK (
+        auth_helpers.get_my_role() = 'admin' OR
+        (auth_helpers.get_my_role() = 'principal' AND school_id = auth_helpers.get_my_school_id())
+    );
+
 -- Tenant-scoped grades
 DROP POLICY IF EXISTS "Teachers manage school grades" ON public.hpc_grades;
 CREATE POLICY "Teachers manage school grades" ON public.hpc_grades
@@ -86,6 +98,126 @@ CREATE POLICY "Teachers manage school grades" ON public.hpc_grades
             WHERE staff.id = auth.uid()
               AND staff.role IN ('teacher', 'principal')
               AND staff.school_id = student.school_id
+        )
+    );
+
+DROP POLICY IF EXISTS "Principals manage school grades" ON public.hpc_grades;
+CREATE POLICY "Principals manage school grades" ON public.hpc_grades
+    FOR ALL USING (
+      EXISTS (
+        SELECT 1
+        FROM public.profiles staff
+        JOIN public.profiles student ON student.id = public.hpc_grades.student_id
+        WHERE staff.id = auth.uid()
+        AND staff.school_id = student.school_id
+        AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
+      )
+    )
+    WITH CHECK (
+      teacher_id = auth.uid() AND
+      EXISTS (
+        SELECT 1
+        FROM public.profiles staff
+        JOIN public.profiles student ON student.id = public.hpc_grades.student_id
+        WHERE staff.id = auth.uid()
+        AND staff.school_id = student.school_id
+        AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
+      )
+    );
+
+DROP POLICY IF EXISTS "Principals manage exam papers" ON public.exam_papers;
+CREATE POLICY "Principals manage exam papers" ON public.exam_papers
+    FOR ALL USING (
+      EXISTS (
+        SELECT 1 FROM public.profiles staff
+        WHERE staff.id = auth.uid()
+        AND staff.school_id = public.exam_papers.school_id
+        AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
+      )
+    )
+    WITH CHECK (
+      teacher_id = auth.uid() AND
+      EXISTS (
+        SELECT 1 FROM public.profiles staff
+        WHERE staff.id = auth.uid()
+        AND staff.school_id = public.exam_papers.school_id
+        AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true))
+      )
+    );
+
+DROP POLICY IF EXISTS "Staff manage student wellbeing" ON public.student_wellbeing;
+CREATE POLICY "Staff manage student wellbeing" ON public.student_wellbeing
+    FOR ALL USING (
+        auth_helpers.get_my_role() = 'admin' OR (
+            auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator') AND
+            recorded_by = auth.uid() AND
+            EXISTS (
+                SELECT 1 FROM public.profiles p
+                WHERE p.id = public.student_wellbeing.student_id
+                  AND p.school_id = auth_helpers.get_my_school_id()
+            )
+        )
+    )
+    WITH CHECK (
+        auth_helpers.get_my_role() = 'admin' OR (
+            auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator') AND
+            recorded_by = auth.uid() AND
+            EXISTS (
+                SELECT 1 FROM public.profiles p
+                WHERE p.id = public.student_wellbeing.student_id
+                  AND p.school_id = auth_helpers.get_my_school_id()
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS "Staff manage HPC competencies" ON public.hpc_competencies;
+CREATE POLICY "Staff manage HPC competencies" ON public.hpc_competencies
+    FOR ALL USING (
+        auth_helpers.get_my_role() = 'admin' OR (
+            auth_helpers.get_my_role() IN ('principal', 'teacher') AND
+            tenant_id = auth_helpers.get_my_school_id() AND
+            EXISTS (
+                SELECT 1 FROM public.profiles p
+                WHERE p.id = public.hpc_competencies.student_id
+                  AND p.school_id = auth_helpers.get_my_school_id()
+            )
+        )
+    )
+    WITH CHECK (
+        auth_helpers.get_my_role() = 'admin' OR (
+            auth_helpers.get_my_role() IN ('principal', 'teacher') AND
+            tenant_id = auth_helpers.get_my_school_id() AND
+            EXISTS (
+                SELECT 1 FROM public.profiles p
+                WHERE p.id = public.hpc_competencies.student_id
+                  AND p.school_id = auth_helpers.get_my_school_id()
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS "Staff manage behavioral logs" ON public.behavioral_logs;
+CREATE POLICY "Staff manage behavioral logs" ON public.behavioral_logs
+    FOR ALL USING (
+        auth_helpers.get_my_role() = 'admin' OR (
+            auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator') AND
+            tenant_id = auth_helpers.get_my_school_id() AND
+            EXISTS (
+                SELECT 1 FROM public.profiles p
+                WHERE p.id = public.behavioral_logs.student_id
+                  AND p.school_id = auth_helpers.get_my_school_id()
+            )
+        )
+    )
+    WITH CHECK (
+        auth_helpers.get_my_role() = 'admin' OR (
+            auth_helpers.get_my_role() IN ('principal', 'teacher', 'moderator') AND
+            tenant_id = auth_helpers.get_my_school_id() AND
+            teacher_id = auth.uid() AND
+            EXISTS (
+                SELECT 1 FROM public.profiles p
+                WHERE p.id = public.behavioral_logs.student_id
+                  AND p.school_id = auth_helpers.get_my_school_id()
+            )
         )
     );
 
@@ -113,6 +245,19 @@ CREATE POLICY "Teachers monitor school sessions" ON public.student_sessions
             WHERE student.id = public.student_sessions.student_id
               AND student.school_id = auth_helpers.get_my_school_id()
         )
+    );
+
+DROP POLICY IF EXISTS "Principals monitor school sessions" ON public.student_sessions;
+CREATE POLICY "Principals monitor school sessions" ON public.student_sessions
+    FOR SELECT USING (
+      EXISTS (
+        SELECT 1
+        FROM public.profiles staff
+        JOIN public.profiles student ON student.id = public.student_sessions.student_id
+        WHERE staff.id = auth.uid()
+        AND staff.school_id = student.school_id
+        AND (staff.role = 'teacher' OR (staff.role = 'principal' AND staff.is_teaching_staff = true) OR staff.role = 'moderator')
+      )
     );
 
 -- Tenant-scoped remote commands
