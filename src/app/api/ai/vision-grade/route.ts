@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
+import { requireClassStation } from "@/lib/device-context";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MAX_IMAGE_CHARS = 5_000_000;
@@ -9,6 +10,8 @@ export async function POST(req: Request) {
   try {
     const auth = await requireUser(["teacher", "principal", "moderator", "admin"]);
     if (!auth.ok) return auth.response;
+    const stationError = requireClassStation(req);
+    if (stationError) return stationError;
 
     const { image, rubric, context } = await req.json();
 

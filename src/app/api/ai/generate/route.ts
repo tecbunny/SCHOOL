@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { requireClassStation } from "@/lib/device-context";
+
+const ASSESSMENT_TYPES = new Set(["exam", "quiz", "test", "rapid_test", "rapid test"]);
 
 export async function POST(req: Request) {
   try {
@@ -20,8 +23,14 @@ export async function POST(req: Request) {
       .single();
 
     const { type, topics, grade, difficulty, totalMarks } = await req.json();
+    const normalizedType = typeof type === "string" ? type.toLowerCase() : "";
 
-    if (type === 'exam' && profile?.role === 'student') {
+    if (ASSESSMENT_TYPES.has(normalizedType)) {
+      const stationError = requireClassStation(req);
+      if (stationError) return stationError;
+    }
+
+    if (normalizedType === 'exam' && profile?.role === 'student') {
       return NextResponse.json({ error: "Students are not permitted to generate full exam papers." }, { status: 403 });
     }
 
@@ -43,7 +52,7 @@ export async function POST(req: Request) {
 
     let prompt = "";
 
-    if (type === "quiz") {
+    if (normalizedType === "quiz") {
       prompt = `Generate a Multiple Choice Quiz for ${grade} students on the following topics: ${topics.join(", ")}. 
       Difficulty: ${difficulty}. 
       Total Marks: ${totalMarks}. 
@@ -69,7 +78,7 @@ export async function POST(req: Request) {
       const jsonText = jsonMatch ? jsonMatch[0] : text;
       const parsedData = JSON.parse(jsonText);
       return NextResponse.json(parsedData);
-    } catch (parseError) {
+    } catch {
       console.error("AI JSON Parse Error:", text);
       return NextResponse.json({
         error: "Failed to parse AI response. The model may have returned malformed data.",
@@ -77,9 +86,9 @@ export async function POST(req: Request) {
       }, { status: 502 });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI Generation Route Error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 });
   }
 }
 

@@ -6,14 +6,26 @@ import { useState } from 'react';
 import Link from 'next/link';
 import LiveMonitorGrid from '@/components/school/LiveMonitorGrid';
 import ClassAnalytics from '@/components/school/ClassAnalytics';
+import { isClassStationDevice } from '@/lib/device.client';
+
+type GeneratedQuestion = {
+  question?: string;
+};
 
 export default function TeacherDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedResult, setGeneratedResult] = useState<any>(null);
+  const [generatedResult, setGeneratedResult] = useState<GeneratedQuestion[] | null>(null);
+  const [assessmentError, setAssessmentError] = useState<string | null>(null);
+  const [isClassStation] = useState(() => isClassStationDevice());
 
   const handleGenerateAI = async () => {
+    if (!isClassStation) {
+      setAssessmentError('Class Station device required for exam, test, and quiz creation.');
+      return;
+    }
     setIsGenerating(true);
     setGeneratedResult(null);
+    setAssessmentError(null);
     
     try {
       const response = await fetch('/api/ai/generate', {
@@ -29,7 +41,7 @@ export default function TeacherDashboard() {
       });
       
       const data = await response.json();
-      setGeneratedResult(data);
+      setGeneratedResult(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to generate:', error);
     } finally {
@@ -133,7 +145,7 @@ export default function TeacherDashboard() {
         {/* Quick Actions Menu */}
         <div className="flex gap-4">
           <button className="glass-panel hover:bg-white/5 transition-colors border border-[var(--border)] rounded-lg p-4 flex items-center justify-center gap-3 flex-1 text-primary font-semibold">
-            <CheckSquare className="w-5 h-5" /> Mark Today's Attendance
+            <CheckSquare className="w-5 h-5" /> Mark Today&apos;s Attendance
           </button>
           <button className="glass-panel hover:bg-white/5 transition-colors border border-[var(--border)] rounded-lg p-4 flex items-center justify-center gap-3 flex-1 text-secondary font-semibold">
             <PenTool className="w-5 h-5" /> Quick Grade Entry
@@ -249,19 +261,29 @@ export default function TeacherDashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-4 mt-4">
+            <div className="flex gap-4 mt-4">
                 <button className="btn btn-outline flex-1 justify-center"><Edit3 className="w-4 h-4" /> Create Manually</button>
                 <button 
                   className="btn btn-secondary flex-1 justify-center bg-secondary text-white hover:bg-opacity-80 border-none disabled:opacity-50"
                   onClick={handleGenerateAI}
-                  disabled={isGenerating}
+                  disabled={isGenerating || !isClassStation}
                 >
                   {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4" /> AI Auto-Draft</>}
                 </button>
               </div>
+              {!isClassStation && (
+                <p className="text-[11px] text-warning font-bold uppercase tracking-widest">
+                  Class Station required for exam, test, and quiz actions.
+                </p>
+              )}
             </div>
 
             {/* AI Result Preview */}
+            {assessmentError && (
+              <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 text-warning text-xs font-bold uppercase tracking-widest">
+                {assessmentError}
+              </div>
+            )}
             {generatedResult && (
               <div className="bg-[rgba(139,92,246,0.1)] border border-secondary rounded-lg p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4">
                 <div className="flex justify-between items-center">
@@ -270,7 +292,7 @@ export default function TeacherDashboard() {
                 </div>
                 <div className="text-sm text-muted">
                   <p className="font-semibold text-white mb-2">Example Question:</p>
-                  <p className="italic">"{generatedResult[0]?.question || 'Generating content...'}"</p>
+                  <p className="italic">&quot;{generatedResult[0]?.question || 'Generating content...'}&quot;</p>
                 </div>
                 <div className="flex gap-2">
                   <button className="btn btn-primary text-xs py-1 flex-1">Approve & Publish</button>

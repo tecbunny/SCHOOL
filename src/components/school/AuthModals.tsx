@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Fingerprint, Loader2, X, Camera } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
 
 // --- QR LOGIN MODAL ---
 export function QRLoginModal({ deviceId, onClose }: { deviceId: string, onClose: () => void }) {
@@ -43,13 +42,14 @@ export function QRLoginModal({ deviceId, onClose }: { deviceId: string, onClose:
 }
 
 // --- QR SCANNER MODAL ---
-export function QRScannerModal({ deviceId, onLoginSuccess, onClose }: { deviceId: string, onLoginSuccess: (code: string) => void, onClose: () => void }) {
+export function QRScannerModal({ onClose }: { deviceId: string, onLoginSuccess: (code: string) => void, onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(true);
 
   const simulateScan = () => {
     setTimeout(() => {
-       onLoginSuccess("78782609341"); // Mock scan result
+      setScanning(false);
+      setError('Gate scan requires a live station QR. Use password login until camera scanning is connected.');
     }, 2000);
   };
 
@@ -61,12 +61,13 @@ export function QRScannerModal({ deviceId, onLoginSuccess, onClose }: { deviceId
         <button onClick={onClose} className="absolute right-4 top-4 text-muted hover:text-white"><X className="w-5 h-5" /></button>
         <Camera className="w-12 h-12 text-primary mx-auto mb-4" />
         <h2 className="text-xl font-bold mb-2">Scanning Gate...</h2>
-        <p className="text-sm text-muted mb-6">Point your camera at the teacher's gate screen.</p>
+        <p className="text-sm text-muted mb-6">Point your camera at the teacher&apos;s gate screen.</p>
         <div className="relative aspect-video bg-black rounded-lg border border-primary/40 overflow-hidden flex items-center justify-center">
           <div className="absolute inset-0 border-2 border-primary/20 animate-pulse" />
           <div className="w-full h-0.5 bg-primary absolute top-1/2 animate-scan" />
           <span className="text-[10px] text-primary/50 font-mono">CAMERA_READY: RV1106_ISP</span>
         </div>
+        {scanning && <p className="text-primary text-xs mt-4">Waiting for a valid station QR...</p>}
         {error && <p className="text-danger text-xs mt-4">{error}</p>}
       </div>
     </div>

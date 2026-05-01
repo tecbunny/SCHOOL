@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
+import { isStudentHubDevice } from '@/lib/device.client';
 import { 
   Zap, 
   Clock, 
@@ -11,21 +12,44 @@ import {
   Loader2
 } from 'lucide-react';
 
+type TestQuestion = {
+  id: string;
+  question: string;
+  options: string[];
+};
+
+type LiveTest = {
+  title: string;
+  subject: string;
+  durationMinutes: number;
+  questions: TestQuestion[];
+};
+
 export default function LiveTestEngine({ classId }: { classId: string }) {
-  const [testData, setTestData] = useState<any>(null);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [testData, setTestData] = useState<LiveTest | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isStudentHub] = useState(() => isStudentHubDevice());
 
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+
+  const handleSubmit = useCallback(async () => {
+    if (!isStudentHub) return;
+    setIsSubmitting(true);
+    // Simulate DB Submission
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsSubmitting(false);
+    setIsFinished(true);
+  }, [isStudentHub]);
 
   useEffect(() => {
     // 1. Subscribe to Live Test Events
     const channel = supabase.channel(`class_room_${classId}`)
-      .on('broadcast', { event: 'DEPLOY_TEST' }, ({ payload }: { payload: any }) => {
-        setTestData(payload);
+      .on('broadcast', { event: 'DEPLOY_TEST' }, ({ payload }: { payload: LiveTest }) => {
         setTimeLeft(payload.durationMinutes * 60);
+        setTestData(payload);
         setIsFinished(false);
         setAnswers({});
       })
@@ -34,7 +58,7 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [classId]);
+  }, [classId, supabase]);
 
   // Timer logic
   useEffect(() => {
@@ -42,17 +66,26 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
       const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
       return () => clearInterval(timer);
     } else if (timeLeft === 0 && testData && !isFinished) {
-      handleSubmit();
+      const submitTimer = setTimeout(() => {
+        void handleSubmit();
+      }, 0);
+      return () => clearTimeout(submitTimer);
     }
-  }, [timeLeft, testData, isFinished]);
+  }, [timeLeft, testData, isFinished, handleSubmit]);
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    // Simulate DB Submission
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    setIsFinished(true);
-  };
+  if (!isStudentHub) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
+        <div className="bg-warning/10 p-8 rounded-[3rem] border border-warning/20">
+          <AlertCircle className="w-20 h-20 text-warning" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-3xl font-black text-white">Student Hub Device Required</h3>
+          <p className="text-muted max-w-md">For safety, exams, tests, and quizzes can only be answered on the assigned Student Hub device.</p>
+        </div>
+      </div>
+    );
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -117,7 +150,7 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
 
       {/* Questions Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-8">
-         {testData.questions.map((q: any, idx: number) => (
+         {testData.questions.map((q, idx) => (
             <div key={idx} className="bg-card border border-white/10 rounded-[2.5rem] p-8 shadow-xl">
                <div className="flex gap-6">
                   <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-lg shrink-0">

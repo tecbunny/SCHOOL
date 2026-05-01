@@ -1,17 +1,24 @@
 "use client";
 
-import { Building, Users, Badge as BadgeIcon, Lock, Loader2, ArrowRight, Info, ShieldCheck, ArrowLeft, Briefcase, ChevronDown } from 'lucide-react';
+import { Building, Users, Badge as BadgeIcon, Lock, Loader2, ArrowRight, Info, ArrowLeft, Briefcase, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent } from 'react';
 import { signInWithCode } from '@/lib/auth.client';
 import { navigateByRole, UserRole } from '@/lib/constants';
 
+const STAFF_ROLE_OPTIONS: Record<string, UserRole[]> = {
+  teacher: ['teacher'],
+  hod: ['principal'],
+  moderator: ['moderator'],
+};
+
 export default function StaffAppLogin() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staffRole, setStaffRole] = useState('teacher');
+  const [schoolCode, setSchoolCode] = useState('SCH7878');
   const [userCode, setUserCode] = useState('');
   const [password, setPassword] = useState('');
 
@@ -20,10 +27,13 @@ export default function StaffAppLogin() {
     setIsLoading(true);
     setError(null);
     try {
-      const { profile } = await signInWithCode(userCode, password);
+      const { profile } = await signInWithCode(userCode, password, {
+        allowedRoles: STAFF_ROLE_OPTIONS[staffRole],
+        schoolCode,
+      });
       router.push(navigateByRole(profile.role as UserRole));
-    } catch (err: any) {
-      setError(err.message || 'Staff authentication failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Staff authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +64,14 @@ export default function StaffAppLogin() {
             <label className="text-[11px] font-bold text-muted uppercase tracking-wider ml-1">Institutional Code</label>
             <div className="input-field">
               <Building className="w-5 h-5 text-muted mr-3" />
-              <input type="text" placeholder="SCHXXXX" defaultValue="SCH7878" required className="w-full font-mono" />
+              <input
+                type="text"
+                placeholder="SCHXXXX"
+                value={schoolCode}
+                onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
+                required
+                className="w-full font-mono"
+              />
             </div>
           </div>
 

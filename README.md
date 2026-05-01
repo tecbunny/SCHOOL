@@ -21,9 +21,9 @@ Key variables:
 - `EDUOS_STANDALONE`: Set to `true` if deploying on kiosk hardware.
 
 ### 3. Database Setup
-1. Execute the schema in `supabase/DB.sql` in your Supabase SQL Editor.
-2. Apply the hardening migrations in `eduportal-web/supabase/migrations/` in order.
-3. (Optional) Seed initial data using `supabase/seed_data.sql`.
+1. Execute `supabase/system.sql` in your Supabase SQL Editor for the full schema, RLS policies, hardening, realtime setup, and demo seed data.
+2. Use `supabase/clear_all_data.sql` only when you need to wipe application data without touching Supabase Auth users.
+3. In Supabase Dashboard, enable Auth leaked password protection under Authentication password security settings.
 
 ### 4. Installation & Development
 ```bash
