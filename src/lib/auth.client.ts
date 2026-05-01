@@ -2,7 +2,7 @@
 
 import { createClient } from './supabase';
 import { useEffect } from 'react';
-import { APP_CONFIG, ROUTES, type UserRole } from './constants';
+import { ROUTES, type UserRole } from './constants';
 
 export { createClient };
 
@@ -18,9 +18,23 @@ export const signInWithCode = async (code: string, password: string, options: Si
   if (!supabase) throw new Error('Supabase initialization failed.');
 
   const normalizedCode = normalizeCode(code);
-  const email = `${normalizedCode.toLowerCase()}@${APP_CONFIG.AUTH_DOMAIN}`;
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-  if (authError) throw new Error('Invalid User Code or Password.');
+  const response = await fetch('/api/auth/code-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code: normalizedCode,
+      password,
+      allowedRoles: options.allowedRoles,
+      schoolCode: options.schoolCode,
+    }),
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || 'Invalid User Code or Password.');
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.setSession(result.session);
+  if (authError || !authData.user) throw new Error('Invalid User Code or Password.');
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
