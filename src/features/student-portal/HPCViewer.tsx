@@ -10,27 +10,48 @@ import {
   Zap
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
+import { analyticsService } from '@/services/analytics.service';
 import { skillService } from '@/services/skill.service';
 
 export default function HPCViewer() {
+  const [stats, setStats] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [skills, setSkills] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    // Mock student ID for now, in real app fetch from auth
-    const loadSkills = async () => {
-      const data = await skillService.getSkillMetrics('STUDENT_ID');
-      setSkills(data);
+    const loadData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const [statsData, profileData, skillMetrics] = await Promise.all([
+          analyticsService.getStudentStats(user.id),
+          supabase.from('profiles').select('*, schools(school_name)').eq('id', user.id).single(),
+          skillService.getSkillMetrics(user.id)
+        ]);
+        
+        setStats(statsData);
+        setProfile(profileData.data);
+        setSkills(skillMetrics);
+      } catch (err) {
+        console.error("Fetch HPC Data Error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-    loadSkills();
+    loadData();
   }, []);
 
-  const metrics = [
+  const metrics = stats ? [
     { 
       title: 'Academic Achievement', 
       icon: GraduationCap, 
       color: 'text-primary', 
       bg: 'bg-primary/10',
-      value: 88, 
+      value: stats.mastery.academic, 
       desc: 'Competency-based performance across subjects.' 
     },
     { 
@@ -38,7 +59,7 @@ export default function HPCViewer() {
       icon: Heart, 
       color: 'text-secondary', 
       bg: 'bg-secondary/10',
-      value: 92, 
+      value: stats.mastery.socio_emotional, 
       desc: 'Collaboration, empathy, and peer interaction.' 
     },
     { 
@@ -46,10 +67,10 @@ export default function HPCViewer() {
       icon: Activity, 
       color: 'text-success', 
       bg: 'bg-success/10',
-      value: 75, 
+      value: stats.mastery.physical, 
       desc: 'Health, sports participation, and skill acquisition.' 
     },
-  ];
+  ] : [];
 
   return (
     <div className="flex flex-col gap-8 h-full">
@@ -64,7 +85,7 @@ export default function HPCViewer() {
             <ShieldCheck className="w-6 h-6 text-success" />
             <div className="text-right">
                <div className="text-[10px] font-bold text-muted uppercase">Verified By</div>
-               <div className="text-sm font-bold text-white">Academic Council</div>
+               <div className="text-sm font-bold text-white">{profile?.schools?.school_name || "Institution"}</div>
             </div>
          </div>
       </div>
@@ -135,7 +156,7 @@ export default function HPCViewer() {
 
          <div className="grid grid-cols-4 gap-6">
             {['Carpentry', 'Gardening', 'Coding', 'Pottery'].map(skill => {
-              const hours = skills.filter(s => s.metadata?.skill === skill).reduce((acc, curr) => acc + (curr.metadata?.hours || 0), 0);
+              const hours = skills.filter((s: any) => s.metadata?.skill === skill).reduce((acc: number, curr: any) => acc + (curr.metadata?.hours || 0), 0);
               return (
                 <div key={skill} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col gap-3">
                    <div className="flex justify-between items-center text-[10px] font-bold text-muted uppercase">
@@ -162,7 +183,7 @@ export default function HPCViewer() {
             </div>
             <div>
                <div className="text-sm font-bold text-white">Top Performer: Critical Thinking</div>
-               <div className="text-xs text-muted">Awarded by Peer Review Council • April 2026</div>
+               <div className="text-xs text-muted">Awarded by Peer Review Council • {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
             </div>
          </div>
          <button className="text-xs font-bold text-primary hover:underline">Download Certified HPC (PDF)</button>

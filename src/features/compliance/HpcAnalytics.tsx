@@ -40,7 +40,7 @@ export default function HpcAnalytics() {
           },
           body: JSON.stringify({ 
             schoolId: profile.school_id, 
-            academicYear: "2025-26" 
+            academicYear: `${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}` 
           })
         }
       );

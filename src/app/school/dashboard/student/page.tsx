@@ -90,7 +90,7 @@ export default function StudentDashboard() {
                   {navItems.find(n => n.id === activeTab)?.label}
                </h1>
                <p className="text-xs text-muted font-bold uppercase tracking-widest mt-1">
-                 {profile?.schools?.school_name || "St. Mary's Convent"} - {profile?.class_id || "Grade 10-A"}
+                 {profile?.schools?.school_name || "Institution"} - {profile?.class_id || "Classroom"}
                </p>
             </div>
             
@@ -101,12 +101,12 @@ export default function StudentDashboard() {
                </div>
                 <div className="flex items-center gap-4">
                    <div className="text-right">
-                      <div className="text-sm font-bold text-white">{profile?.full_name || "Arjun Sharma"}</div>
-                      <div className="text-[10px] text-muted font-mono">ID: {profile?.user_code || "7878-2609"}</div>
+                      <div className="text-sm font-bold text-white">{profile?.full_name || "User"}</div>
+                      <div className="text-[10px] text-muted font-mono">ID: {profile?.user_code || "XXXX-XXXX"}</div>
                    </div>
                   <img 
-                     src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
-                     alt="Arjun" 
+                     src={`https://ui-avatars.com/api/?name=${profile?.full_name || 'User'}&background=random`} 
+                     alt="Profile" 
                      className="w-14 h-14 rounded-[1.2rem] border-2 border-primary/50 object-cover shadow-lg" 
                   />
                </div>

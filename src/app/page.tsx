@@ -23,7 +23,7 @@ const stats = [
 ];
 
 const workflows = [
-  { title: 'School command', body: 'Attendance, staff, academics, billing, and compliance in one operating view.', icon: ClipboardCheck },
+  { title: 'School command', body: 'Attendance, staff, academics, and compliance in one operating view.', icon: ClipboardCheck },
   { title: 'Student desk', body: 'Assignments, study material, live tests, and holistic progress cards for learners.', icon: GraduationCap },
   { title: 'Teacher tools', body: 'AI paper generation, worksheet grading, class analytics, and content publishing.', icon: BookOpen },
   { title: 'Edge ready', body: 'Kiosk-friendly student surfaces and device health visibility for connected campuses.', icon: MonitorSmartphone },

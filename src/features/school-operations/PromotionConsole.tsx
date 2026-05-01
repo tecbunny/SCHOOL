@@ -79,7 +79,7 @@ export default function PromotionConsole() {
         <div className="flex flex-col gap-4">
            <div className="flex items-center justify-between px-2">
               <h4 className="text-xs font-bold text-muted uppercase tracking-widest">Available for Promotion</h4>
-              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">AY 2025-26</span>
+              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">AY {new Date().getFullYear()}-{ (new Date().getFullYear() + 1).toString().slice(-2) }</span>
            </div>
            
            <div className="flex flex-col gap-3">

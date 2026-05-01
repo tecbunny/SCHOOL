@@ -16,7 +16,7 @@ import { analyticsService } from '@/services/analytics.service';
 import { createClient } from '@/lib/supabase';
 
 export default function TeacherDashboard() {
-  const [stats, setStats] = useState<any>({ totalCpdHours: 0, connectedStudents: 0, pendingGrading: 0 });
+  const [stats, setStats] = useState<any>({ totalCpdHours: 0, connectedStudents: 0, pendingGrading: 0, schoolId: null });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<GeneratedQuestion[] | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export default function TeacherDashboard() {
 
         if (profile) {
           const data = await analyticsService.getTeacherStats(user.id, profile.school_id);
-          setStats(data);
+          setStats({ ...data, schoolId: profile.school_id });
         }
       } catch (err) {
         console.error("Fetch Teacher Stats Error:", err);
@@ -182,7 +182,7 @@ export default function TeacherDashboard() {
 
         {/* Live Monitoring Section (SSPH-01 Hardware Management) */}
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8">
-          <LiveMonitorGrid schoolId="current-school" />
+          {stats.schoolId && <LiveMonitorGrid schoolId={stats.schoolId} />}
         </div>
 
         {/* AI Performance Insights */}
@@ -199,7 +199,7 @@ export default function TeacherDashboard() {
                 <h3 className="font-bold text-lg">NEP HPC Grade Entry</h3>
                 <p className="text-[10px] text-primary font-bold uppercase tracking-widest">Foundational Stage Mode</p>
               </div>
-              <span className="badge badge-neutral">Class 2-A (EVS)</span>
+              <span className="badge badge-neutral">Class 10-A (Math)</span>
             </div>
             
             <div className="bg-card border rounded-lg p-6">
@@ -213,39 +213,11 @@ export default function TeacherDashboard() {
               </div>
 
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between bg-[var(--bg-dark)] border p-3 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-xs font-bold border">01</div>
-                    <span className="font-semibold text-sm">Aditya Verma</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <select className="bg-card border rounded px-2 py-1 text-white text-[10px] outline-none">
-                      <option>Beginning</option>
-                      <option>Approaching</option>
-                      <option selected>Meeting</option>
-                      <option>Exceeding</option>
-                    </select>
-                    <span className="badge badge-success w-10 text-[10px] text-center">MT</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between bg-[var(--bg-dark)] border p-3 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-xs font-bold border">02</div>
-                    <span className="font-semibold text-sm">Riya Singh</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <select className="bg-card border rounded px-2 py-1 text-white text-[10px] outline-none">
-                      <option>Beginning</option>
-                      <option selected>Approaching</option>
-                      <option>Meeting</option>
-                      <option>Exceeding</option>
-                    </select>
-                    <span className="badge badge-warning w-10 text-[10px] text-center">AP</span>
-                  </div>
+                <div className="flex items-center justify-between bg-[var(--bg-dark)] border p-3 rounded-md italic text-muted text-xs">
+                  Select a student from the Live Monitor to begin assessment...
                 </div>
               </div>
-              <button className="btn btn-primary w-full mt-6 justify-center">Sync to Student HPC Cloud</button>
+              <button disabled className="btn btn-primary w-full mt-6 justify-center opacity-50">Sync to Student HPC Cloud</button>
             </div>
           </div>
 

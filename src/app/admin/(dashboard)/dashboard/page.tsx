@@ -11,7 +11,6 @@ import {
   TrendingUp, 
   AlertCircle, 
   CheckCircle, 
-  CreditCard, 
   BarChart2, 
   FolderUp, 
   Settings, 
@@ -30,13 +29,18 @@ import { analyticsService } from '@/services/analytics.service';
 export default function AdminDashboard() {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const [stats, setStats] = useState<any>({ totalSchools: 0, totalStudents: 0, totalPapers: 0, totalRequests: 0 });
+  const [fleet, setFleet] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await analyticsService.getGlobalStats();
-        setStats(data);
+        const [statsData, fleetData] = await Promise.all([
+          analyticsService.getGlobalStats(),
+          analyticsService.getHardwareFleetStatus()
+        ]);
+        setStats(statsData);
+        setFleet(fleetData);
       } catch (err) {
         console.error("Fetch Stats Error:", err);
       } finally {
@@ -112,16 +116,28 @@ export default function AdminDashboard() {
         <div className="max-w-[1600px] mx-auto flex flex-col gap-10">
           
           {/* Critical Alerts Banner */}
-          <div className="bg-danger/10 border border-danger/20 p-5 rounded-[2rem] flex items-center gap-5 animate-fade-in-up">
-            <div className="bg-danger/20 p-3 rounded-2xl">
-              <AlertCircle className="w-6 h-6 text-danger" />
+          {fleet.filter(f => f.status === 'offline').length > 0 ? (
+            <div className="bg-danger/10 border border-danger/20 p-5 rounded-[2rem] flex items-center gap-5 animate-fade-in-up">
+              <div className="bg-danger/20 p-3 rounded-2xl">
+                <AlertCircle className="w-6 h-6 text-danger" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">Infrastructure Alert</h4>
+                <p className="text-xs text-muted font-bold">Node {fleet.find(f => f.status === 'offline')?.node_name} is currently offline.</p>
+              </div>
+              <button className="btn btn-outline text-[10px] ml-auto border-danger/30 hover:bg-danger/10">Optimize Now</button>
             </div>
-            <div>
-              <h4 className="text-sm font-black text-white uppercase tracking-wider">Infrastructure Alert</h4>
-              <p className="text-xs text-muted font-bold">Node Mumbai-B is experiencing high synchronization latency (120ms+).</p>
+          ) : (
+            <div className="bg-success/10 border border-success/20 p-5 rounded-[2rem] flex items-center gap-5 animate-fade-in-up">
+              <div className="bg-success/20 p-3 rounded-2xl">
+                <CheckCircle className="w-6 h-6 text-success" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">Systems Nominal</h4>
+                <p className="text-xs text-muted font-bold">All {fleet.length} global edge nodes are synchronized and healthy.</p>
+              </div>
             </div>
-            <button className="btn btn-outline text-[10px] ml-auto border-danger/30 hover:bg-danger/10">Optimize Now</button>
-          </div>
+          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-4 gap-8">
@@ -156,7 +172,6 @@ export default function AdminDashboard() {
                     { label: 'MDM Fleet', icon: Monitor, desc: 'Manage hardware kiosk' },
                     { label: 'Edge Nodes', icon: Cpu, desc: 'Orchestrate compute' },
                     { label: 'Vault Backups', icon: ShieldCheck, desc: 'Postgres maintenance' },
-                    { label: 'Billing', icon: CreditCard, desc: 'Stripe integration' },
                     { label: 'Announce', icon: Megaphone, desc: 'Platform broadcast' },
                   ].map((cmd, i) => (
                     <button key={i} className="glass-card p-8 rounded-[2rem] text-left hover:scale-[1.02] transition-all hover:bg-primary/5 group">

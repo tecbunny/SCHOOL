@@ -7,17 +7,29 @@ import {
   Clock, 
   CheckCircle2, 
   AlertCircle,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
 
 export default function SupportTicketSystem() {
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const supabase = createClient();
 
-  const tickets = [
-    { id: 'TKT-7878-1', subject: 'Kiosk Sync Error', status: 'resolved', priority: 'high', date: '2 days ago' },
-    { id: 'TKT-7878-2', subject: 'Feature Request: Bulk Student Import', status: 'pending', priority: 'medium', date: '5 hours ago' },
-  ];
+  useEffect(() => {
+    const fetchTickets = async () => {
+      const { data } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) setTickets(data);
+      setLoading(false);
+    };
+    fetchTickets();
+  }, []);
 
   return (
     <div className="bg-card border border-white/5 rounded-[2.5rem] p-8 flex flex-col gap-6 shadow-2xl">
@@ -38,10 +50,14 @@ export default function SupportTicketSystem() {
       </div>
 
       <div className="flex flex-col gap-3">
-         {tickets.map((ticket) => (
+         {loading ? (
+           <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+         ) : tickets.length === 0 ? (
+           <div className="text-center py-6 text-xs text-muted font-bold uppercase">No Active Tickets</div>
+         ) : tickets.map((ticket) => (
             <div key={ticket.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-primary/20 transition-all cursor-pointer group">
                <div className="flex justify-between items-start mb-2">
-                  <span className="text-[10px] font-mono text-muted">{ticket.id}</span>
+                  <span className="text-[10px] font-mono text-muted">#{ticket.id.slice(0, 8)}</span>
                   <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
                      ticket.status === 'resolved' ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'
                   }`}>
@@ -52,7 +68,7 @@ export default function SupportTicketSystem() {
                <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center gap-2 text-[10px] text-muted">
                      <Clock className="w-3 h-3" />
-                     {ticket.date}
+                     {new Date(ticket.created_at).toLocaleDateString()}
                   </div>
                   <div className={`w-2 h-2 rounded-full ${
                      ticket.priority === 'high' ? 'bg-danger shadow-[0_0_8px_rgba(var(--danger-rgb),0.5)]' : 'bg-secondary'

@@ -8,23 +8,15 @@ import {
   Book, 
   BarChart, 
   Users, 
-  BookOpen, 
-  PenTool, 
-  FilePlus, 
-  Award, 
-  ShieldCheck, 
-  FolderUp, 
-  Megaphone, 
   LogOut, 
   ChevronLeft, 
   ChevronRight, 
   Inbox, 
-  CreditCard, 
   BarChart2, 
-  Settings, 
+  ShieldCheck, 
   Cpu, 
-  Monitor, 
-  Globe 
+  Monitor,
+  Award
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -39,10 +31,9 @@ interface SchoolSidebarProps {
 
 export default function SchoolSidebar({ role }: SchoolSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [notifications, setNotifications] = useState({ assignments: 1, materials: 3 });
+  const [notifications] = useState({ assignments: 1, materials: 3 });
   const pathname = usePathname();
 
-  // Update global CSS variable for layout transition
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '90px' : '280px');
   }, [isCollapsed]);
@@ -52,15 +43,15 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
     const inactiveClass = "text-muted hover:bg-primary/5 hover:text-primary border-transparent";
     const itemBase = "nav-item flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 font-bold text-sm mb-1 group";
 
-    const renderLink = (href: string, label: string, Icon: any, badge?: number, colorClass?: string) => (
+    const renderLink = (href: string, label: string, Icon: any, badge?: number) => (
       <Link href={href} className={`${itemBase} ${href !== '#' && pathname.startsWith(href) ? activeClass : inactiveClass}`}>
-        <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${colorClass || ''}`} />
+        <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
         {!isCollapsed && <span className="flex-1 truncate">{label}</span>}
-        {!isCollapsed && badge && (
+        {!isCollapsed && badge ? (
           <span className="bg-danger/20 text-danger text-[10px] px-2 py-0.5 rounded-full border border-danger/20 animate-pulse">
             {badge}
           </span>
-        )}
+        ) : null}
       </Link>
     );
 
@@ -74,7 +65,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
       case 'student':
         return (
           <>
-            {renderLink('/school/dashboard/student', 'My Dashboard', LayoutDashboard, 0)}
+            {renderLink('/school/dashboard/student', 'My Dashboard', LayoutDashboard)}
             {renderLink('#', 'Assignments', FileText, notifications.assignments)}
             {renderLink('#', 'Class Timetable', Calendar)}
             {renderLink('#', 'Study Hub', Book)}
@@ -89,7 +80,6 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             {renderLink('/admin/dashboard', 'Control Center', LayoutDashboard)}
             {renderLink('/admin/schools', 'Institutions', Building)}
             {renderLink('/admin/requests', 'Inbound Requests', Inbox, 3)}
-            {renderLink('/admin/subscriptions', 'Billing & Plans', CreditCard)}
             {renderLink('/admin/analytics', 'Global Metrics', BarChart2)}
             {renderSection('INFRASTRUCTURE')}
             {renderLink('/admin/nodes', 'Edge Nodes', Cpu)}
@@ -108,16 +98,16 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
           </>
         );
       default:
-        return null; // Simplified for brevity in this overhaul
+        return null;
     }
   };
 
   const getProfile = () => {
     switch (role) {
-      case 'student': return { name: 'Arjun Sharma', code: '78782609341', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', color: 'primary' };
-      case 'admin': return { name: 'Super Admin', code: 'ADM-001', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026305d', color: 'sky-500' };
-      case 'auditor': return { name: 'Regional Auditor', code: 'AUD-772', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026308d', color: 'success' };
-      default: return { name: 'System User', code: 'USR-000', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026302d', color: 'muted' };
+      case 'student': return { name: 'Arjun Sharma', code: '78782609341', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' };
+      case 'admin': return { name: 'Super Admin', code: 'ADM-001', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026305d' };
+      case 'auditor': return { name: 'Regional Auditor', code: 'AUD-772', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026308d' };
+      default: return { name: 'System User', code: 'USR-000', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026302d' };
     }
   };
 
@@ -125,8 +115,6 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
 
   return (
     <aside className="h-screen border-r flex flex-col p-4 relative transition-all duration-500 ease-in-out sidebar-glass overflow-hidden">
-      
-      {/* Collapse Toggle */}
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute -right-3 top-12 bg-primary text-white p-2 rounded-full border shadow-xl z-50 hover:scale-110 transition-transform active:scale-95"
@@ -134,7 +122,6 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
       </button>
 
-      {/* Brand Header */}
       <div className={`flex items-center gap-4 mb-12 mt-4 px-2 ${isCollapsed ? 'justify-center' : ''}`}>
         <BrandIcon className={isCollapsed ? "w-8 h-8" : "w-10 h-10"} />
         {!isCollapsed && (
@@ -147,39 +134,28 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         )}
       </div>
 
-      {/* Navigation Scroll Area */}
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
         {getNavItems()}
       </nav>
 
-      {/* Profile Section */}
       <div className={`mt-8 bg-primary/5 rounded-2xl p-4 flex items-center gap-4 border border-primary/20 ${isCollapsed ? 'justify-center flex-col p-2 gap-6' : ''}`}>
         <div className="relative flex-shrink-0">
-          <img 
-            src={profile.avatar} 
-            alt={profile.name} 
-            className={`w-10 h-10 rounded-2xl border-2 border-primary/50 object-cover shadow-lg`} 
-          />
+          <img src={profile.avatar} alt={profile.name} className="w-10 h-10 rounded-2xl border-2 border-primary/50 object-cover shadow-lg" />
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success border-4 rounded-full"></div>
         </div>
         {!isCollapsed && (
-          <div className="flex-1 overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex-1 overflow-hidden">
             <p className="text-sm font-black truncate leading-none mb-1">{profile.name}</p>
             <p className="text-[10px] text-muted truncate font-mono font-bold uppercase tracking-widest">{profile.code}</p>
           </div>
         )}
         <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
           <ThemeToggle />
-          <button 
-            onClick={() => signOut()} 
-            className={`text-muted hover:text-danger transition-all bg-white/5 p-2.5 rounded-xl hover:bg-danger/10 border border-transparent hover:border-danger/20`} 
-            title="Sign Out"
-          >
+          <button onClick={() => signOut()} className="text-muted hover:text-danger transition-all bg-white/5 p-2.5 rounded-xl hover:bg-danger/10 border border-transparent hover:border-danger/20">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
-
     </aside>
   );
 }

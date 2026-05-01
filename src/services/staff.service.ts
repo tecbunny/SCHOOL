@@ -13,13 +13,13 @@ export const staffService = {
     if (error) throw error;
 
     const { error: dbError } = await supabase
-      .from('study_materials')
+      .from('materials')
       .insert({
-        file_path: data.path,
-        title: metadata.title,
+        file_url: data.path,
+        file_name: metadata.title,
         subject: metadata.subject,
-        class_name: metadata.class,
-        material_type: metadata.type
+        material_type: metadata.type,
+        school_id: (await supabase.auth.getUser()).data.user?.user_metadata.school_id
       });
 
     if (dbError) throw dbError;
@@ -79,9 +79,10 @@ export const staffService = {
   },
 
   async postAnnouncement(announcement: { title: string; content: string; priority: string; audience: string }) {
+    const { data: profile } = await supabase.from('profiles').select('school_id').single();
     const { data, error } = await supabase
       .from('announcements')
-      .insert(announcement)
+      .insert({ ...announcement, school_id: profile?.school_id })
       .select()
       .single();
     

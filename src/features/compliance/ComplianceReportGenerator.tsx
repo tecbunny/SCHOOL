@@ -10,17 +10,42 @@ import {
   AlertTriangle,
   Loader2
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
+import { analyticsService } from '@/services/analytics.service';
 
 export default function ComplianceReportGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [stats, setStats] = useState<any[]>([]);
+  const supabase = createClient();
 
-  const stats = [
-    { label: 'Attendance Compliance', value: '98.4%', status: 'compliant' },
-    { label: 'Syllabus Coverage', value: '72%', status: 'warning' },
-    { label: 'Teacher CPD Hours', value: '412h', status: 'compliant' },
-    { label: 'Safety Audit', value: 'Verified', status: 'compliant' },
-  ];
+  useEffect(() => {
+    const fetchCompliance = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          const data = await analyticsService.getSchoolStats(profile.school_id);
+          setStats([
+            { label: 'Attendance Compliance', value: `${data.avgAttendance}%`, status: Number(data.avgAttendance) > 90 ? 'compliant' : 'warning' },
+            { label: 'Syllabus Coverage', value: 'Live Feed', status: 'compliant' },
+            { label: 'Teacher CPD Hours', value: `${data.avgCpd}h (Avg)`, status: Number(data.avgCpd) > 40 ? 'compliant' : 'warning' },
+            { label: 'Safety Audit', value: 'Verified', status: 'compliant' },
+          ]);
+        }
+      } catch (err) {
+        console.error("Fetch Compliance Error:", err);
+      }
+    };
+    fetchCompliance();
+  }, []);
 
   const handleGenerate = async () => {
     setIsGenerating(true);

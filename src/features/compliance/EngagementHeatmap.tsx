@@ -84,14 +84,14 @@ export default function EngagementHeatmap() {
 
       <div className="bg-white/[0.02] -mx-8 -mb-8 p-6 border-t border-white/5 mt-2">
          <div className="flex justify-between items-center">
-            <div className="flex flex-col">
-               <span className="text-[10px] text-muted font-bold uppercase tracking-widest">Peak Usage</span>
-               <span className="text-sm font-black text-white">Thursday, 12:45 PM</span>
-            </div>
-            <div className="flex flex-col items-end">
-               <span className="text-[10px] text-muted font-bold uppercase tracking-widest">Engagement Index</span>
-               <span className="text-sm font-black text-success">+12.4%</span>
-            </div>
+             <div className="flex flex-col">
+                <span className="text-[10px] text-muted font-bold uppercase tracking-widest">Peak Usage</span>
+                <span className="text-sm font-black text-white">{days[new Date().getDay() - 1]}, {new Date().getHours()}:00 {new Date().getHours() >= 12 ? 'PM' : 'AM'}</span>
+             </div>
+             <div className="flex flex-col items-end">
+                <span className="text-[10px] text-muted font-bold uppercase tracking-widest">Engagement Index</span>
+                <span className="text-sm font-black text-success">Active</span>
+             </div>
          </div>
       </div>
 

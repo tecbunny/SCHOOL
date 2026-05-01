@@ -130,7 +130,81 @@ export const analyticsService = {
     return {
       totalCpdHours: totalCpd,
       connectedStudents: students.count || 0,
-      pendingGrading: 12 // Hard to define "pending" without more schema, but we can count recent submissions
+      pendingGrading: grading.count || 0
+    };
+  },
+
+  async getAnnouncements(schoolId: string) {
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('school_id', schoolId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getTimetable(classId: string, schoolId: string) {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = days[new Date().getDay()];
+    
+    const { data, error } = await supabase
+      .from('timetable')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('school_id', schoolId)
+      .eq('day_of_week', today)
+      .order('start_time', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getMaterials(schoolId: string, subject?: string) {
+    let query = supabase
+      .from('materials')
+      .select('*')
+      .eq('school_id', schoolId);
+    
+    if (subject && subject !== 'All') {
+      query = query.eq('subject', subject);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getStudentStats(studentId: string) {
+    const [attendance, grades, competencies] = await Promise.all([
+      supabase.from('attendance').select('*').eq('student_id', studentId),
+      supabase.from('hpc_grades').select('*').eq('student_id', studentId),
+      supabase.from('hpc_competencies').select('*').eq('student_id', studentId)
+    ]);
+
+    const presentCount = attendance.data?.filter(a => a.status === 'present').length || 0;
+    const totalDays = attendance.data?.length || 1;
+
+    // Aggregate competencies by category
+    const categories = { academic: 0, socio_emotional: 0, physical: 0 };
+    competencies.data?.forEach(c => {
+      if (c.category in categories) {
+        categories[c.category as keyof typeof categories] += Number(c.score);
+      }
+    });
+
+    const compCount = competencies.data?.length || 1;
+
+    return {
+      attendanceRate: ((presentCount / totalDays) * 100).toFixed(1),
+      averageGrade: grades.data?.length ? (grades.data.reduce((acc, curr) => acc + Number(curr.marks_obtained), 0) / grades.data.length).toFixed(1) : '0',
+      mastery: {
+        academic: Math.round(categories.academic / compCount),
+        socio_emotional: Math.round(categories.socio_emotional / compCount),
+        physical: Math.round(categories.physical / compCount)
+      }
     };
   }
 };

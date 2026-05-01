@@ -80,23 +80,23 @@ export default function ClassAnalytics({ classId = 'grade_10_a' }: { classId?: s
           <div className="glass-panel p-5 border-l-4 border-danger bg-danger/5">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-danger" />
-              <h4 className="text-xs font-bold text-danger uppercase">Critical Gap Detected</h4>
+              <h4 className="text-xs font-bold text-danger uppercase">Gap Detected</h4>
             </div>
             <p className="text-xs text-white leading-relaxed">
-              65% of the class struggled with <span className="font-bold underline">Standard Deviation</span> in today's quiz. 
+              Subject proficiency in <span className="font-bold underline">{analytics?.averageMastery.physical < 50 ? 'Vocational Skills' : 'Core Academics'}</span> is below target threshold.
             </p>
-            <button className="mt-3 text-[10px] font-bold text-danger hover:underline">Push Remedial PDF to Hubs →</button>
+            <button className="mt-3 text-[10px] font-bold text-danger hover:underline">Push Remedial Plan →</button>
           </div>
 
           <div className="glass-panel p-5 border-l-4 border-success bg-success/5">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle2 className="w-4 h-4 text-success" />
-              <h4 className="text-xs font-bold text-success uppercase">Concept Mastered</h4>
+              <h4 className="text-xs font-bold text-success uppercase">Milestone Reached</h4>
             </div>
             <p className="text-xs text-white leading-relaxed">
-              92% proficiency in <span className="font-bold">Calculus Fundamentals</span>. AI recommends moving to Derivative Applications.
+              Overall <span className="font-bold">NEP 2020 Compliance</span> for this class is currently at {analytics?.averageMastery.academic}%.
             </p>
-            <button className="mt-3 text-[10px] font-bold text-success hover:underline">Generate Harder Quiz →</button>
+            <button className="mt-3 text-[10px] font-bold text-success hover:underline">Generate Certificate →</button>
           </div>
 
           <div className="glass-panel p-5 flex flex-col items-center justify-center text-center gap-2">

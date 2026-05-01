@@ -10,17 +10,45 @@ import {
   CloudOff,
   ExternalLink
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { analyticsService } from '@/services/analytics.service';
+import { createClient } from '@/lib/supabase';
 
 export default function StudyHub() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('All');
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-  const materials = [
-    { id: 1, title: 'Calculus Basics', type: 'pdf', subject: 'Math', cached: true, size: '2.4 MB' },
-    { id: 2, title: 'Introduction to Mechanics', type: 'video', subject: 'Physics', cached: false, size: '45 MB' },
-    { id: 3, title: 'Organic Chemistry Vol 1', type: 'pdf', subject: 'Chemistry', cached: true, size: '12 MB' },
-    { id: 4, title: 'Cell Theory Presentation', type: 'pdf', subject: 'Biology', cached: false, size: '5.1 MB' },
-  ];
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          const data = await analyticsService.getMaterials(profile.school_id, selectedSubject);
+          setMaterials(data);
+        }
+      } catch (err) {
+        console.error("Fetch Materials Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMaterials();
+  }, [selectedSubject]);
+
+  const filteredMaterials = materials.filter(m => 
+    m.file_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col gap-8 h-full">
@@ -41,7 +69,7 @@ export default function StudyHub() {
             <CloudOff className="w-5 h-5 text-warning" />
             <div>
                <div className="text-[10px] font-bold text-muted uppercase">Offline Mode</div>
-               <div className="text-sm font-bold text-white">12 Files Ready</div>
+               <div className="text-sm font-bold text-white">{materials.filter(m => m.is_ai_indexed).length} Files Ready</div>
             </div>
          </div>
       </div>
@@ -51,7 +79,8 @@ export default function StudyHub() {
          {['All', 'Math', 'Physics', 'Chemistry', 'Biology', 'English', 'History'].map((cat) => (
             <button 
                key={cat} 
-               className={`px-8 py-3 rounded-2xl font-bold text-sm whitespace-nowrap border transition-all ${cat === 'All' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-muted hover:bg-white/10'}`}
+               onClick={() => setSelectedSubject(cat)}
+               className={`px-8 py-3 rounded-2xl font-bold text-sm whitespace-nowrap border transition-all ${selectedSubject === cat ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-muted hover:bg-white/10'}`}
             >
                {cat}
             </button>
@@ -60,44 +89,46 @@ export default function StudyHub() {
 
       {/* Materials Grid */}
       <div className="grid grid-cols-2 gap-6 overflow-y-auto custom-scrollbar p-2">
-         {materials.map((m) => (
+         {filteredMaterials.length > 0 ? filteredMaterials.map((m) => (
             <div key={m.id} className="bg-card border border-white/10 rounded-[2.5rem] p-6 flex items-center gap-6 group hover:border-primary/30 transition-all cursor-pointer shadow-xl relative overflow-hidden">
                
                {/* Decorative Background */}
                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-all">
-                  {m.type === 'pdf' ? <FileText className="w-24 h-24" /> : <Video className="w-24 h-24" />}
+                  {m.material_type === 'pdf' ? <FileText className="w-24 h-24" /> : <Video className="w-24 h-24" />}
                </div>
 
-               <div className={`p-5 rounded-3xl ${m.type === 'pdf' ? 'bg-danger/10 text-danger' : 'bg-secondary/10 text-secondary'}`}>
-                  {m.type === 'pdf' ? <FileText className="w-8 h-8" /> : <Video className="w-8 h-8" />}
+               <div className={`p-5 rounded-3xl ${m.material_type === 'pdf' ? 'bg-danger/10 text-danger' : 'bg-secondary/10 text-secondary'}`}>
+                  {m.material_type === 'pdf' ? <FileText className="w-8 h-8" /> : <Video className="w-8 h-8" />}
                </div>
 
                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-xl text-white truncate mb-1">{m.title}</h4>
+                  <h4 className="font-bold text-xl text-white truncate mb-1">{m.file_name}</h4>
                   <div className="flex items-center gap-3 text-xs text-muted font-bold uppercase tracking-widest">
                      <span>{m.subject}</span>
                      <span>•</span>
-                     <span>{m.size}</span>
+                     <span>{m.material_type}</span>
                   </div>
                </div>
 
                <div className="flex items-center gap-3">
-                  {m.cached ? (
+                  {m.is_ai_indexed ? (
                      <div className="flex items-center gap-1.5 text-success font-bold text-xs bg-success/10 px-4 py-2 rounded-xl">
                         <CheckCircle className="w-3.5 h-3.5" />
-                        Downloaded
+                        Cached
                      </div>
                   ) : (
                      <button className="p-3 bg-white/5 hover:bg-primary/20 hover:text-primary rounded-2xl transition-all">
                         <Download className="w-6 h-6" />
                      </button>
                   )}
-                  <button className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all">
-                     <ExternalLink className="w-6 h-6 text-muted" />
-                  </button>
                </div>
             </div>
-         ))}
+         )) : (
+            <div className="col-span-2 flex flex-col items-center justify-center text-muted py-20 gap-4">
+               <BookOpen className="w-16 h-16 opacity-10" />
+               <p className="font-bold uppercase tracking-[0.2em]">No Materials Found</p>
+            </div>
+         )}
       </div>
 
     </div>

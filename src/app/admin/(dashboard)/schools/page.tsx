@@ -9,7 +9,6 @@ interface School {
   name: string;
   code: string;
   city: string;
-  plan: string;
   status: string;
   students: number;
 }
@@ -166,7 +165,6 @@ export default function SchoolsPage() {
                   </th>
                   <th>School Details</th>
                   <th>Location</th>
-                  <th>Plan</th>
                   <th>Students</th>
                   <th>Status</th>
                   <th className="text-right">Actions</th>
@@ -188,14 +186,6 @@ export default function SchoolsPage() {
                       <div className="text-xs text-muted font-mono mt-1">{school.code}</div>
                     </td>
                     <td>{school.city || 'N/A'}</td>
-                    <td>
-                      <span className={`text-xs font-medium px-2 py-1 rounded-md ${
-                        school.plan === 'premium' ? 'bg-primary/10 text-primary' : 
-                        school.plan === 'standard' ? 'bg-secondary/10 text-secondary' : 'bg-muted/10 text-muted'
-                      }`}>
-                        {school.plan}
-                      </span>
-                    </td>
                     <td>{school.students}</td>
                     <td>
                       <span className={`badge ${
