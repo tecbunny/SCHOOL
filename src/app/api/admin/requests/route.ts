@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import { errorMessage, requireUser } from "@/lib/api-auth";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export async function GET() {
   try {
@@ -27,6 +28,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    if (isRateLimited(req, "registration-request", { limit: 5, windowMs: 60_000 })) {
+      return NextResponse.json({ error: "Too many registration attempts." }, { status: 429 });
+    }
+
     const supabase = await createClient();
     const { school_name, udise_code, applicant_name, applicant_email } = await req.json();
 

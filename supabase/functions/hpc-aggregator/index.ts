@@ -12,14 +12,49 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    // @ts-ignore
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    // @ts-ignore
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    // @ts-ignore
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const jwt = authHeader.replace(/^Bearer\s+/i, '')
+
+    if (!supabaseUrl || !serviceRoleKey || !anonKey || !jwt) {
+      throw new Error("Unauthorized")
+    }
+
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+    })
+
+    const { data: authData, error: authError } = await authClient.auth.getUser(jwt)
+    if (authError || !authData?.user) throw new Error("Unauthorized")
+
     const supabase = createClient(
       // @ts-ignore
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       // @ts-ignore
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      serviceRoleKey
     )
 
     const { schoolId, academicYear } = await req.json()
+    if (!schoolId || !academicYear) throw new Error("School and academic year are required")
+
+    const { data: requester } = await supabase
+      .from('profiles')
+      .select('id, role, school_id')
+      .eq('id', authData.user.id)
+      .single()
+
+    if (
+      !requester ||
+      !['admin', 'principal', 'auditor'].includes(requester.role) ||
+      (requester.role !== 'admin' && requester.school_id !== schoolId)
+    ) {
+      throw new Error("Forbidden")
+    }
 
     // 1. Fetch all student profiles for the school
     const { data: students } = await supabase
@@ -82,9 +117,14 @@ serve(async (req: Request) => {
     })
 
   } catch (error: any) {
+    const status =
+      error.message === "Unauthorized" ? 401 :
+      error.message === "Forbidden" ? 403 :
+      400
+
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status,
     })
   }
 })

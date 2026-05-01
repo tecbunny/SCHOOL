@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { getSupabasePublishableKey, getSupabaseUrl } from '@/lib/supabase-env';
 import { type UserRole } from '@/lib/constants';
+import { isRateLimited } from '@/lib/rate-limit';
 
 type LoginBody = {
   code?: string;
@@ -15,6 +16,10 @@ type LoginBody = {
 const normalizeCode = (code: string) => code.trim().toUpperCase();
 
 export async function POST(req: Request) {
+  if (isRateLimited(req, "code-login", { limit: 10, windowMs: 60_000 })) {
+    return NextResponse.json({ error: 'Too many login attempts. Please wait and try again.' }, { status: 429 });
+  }
+
   const supabaseUrl = getSupabaseUrl();
   const publishableKey = getSupabasePublishableKey();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

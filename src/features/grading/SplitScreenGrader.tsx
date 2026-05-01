@@ -32,7 +32,10 @@ export default function SplitScreenGrader() {
     try {
       const response = await fetch('/api/ai/vision-grade', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-class-station': 'true'
+        },
         body: JSON.stringify({
           image: capturedImage,
           rubric: {
@@ -45,6 +48,7 @@ export default function SplitScreenGrader() {
       });
 
       const aiResult = await response.json();
+      if (!response.ok) throw new Error(aiResult.error || 'AI grading failed.');
       
       // Update UI with AI suggestions
       setFeedback(`[EXTRACTED TEXT]:\n${aiResult.extractedText}\n\n[GEMINI FEEDBACK]: ${aiResult.evaluations.map((e: any) => e.feedback).join(' ')}`);

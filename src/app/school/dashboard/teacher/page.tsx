@@ -58,7 +58,10 @@ export default function TeacherDashboard() {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-class-station': 'true'
+        },
         body: JSON.stringify({
           type: 'quiz',
           topics: ['Quadratic Equations'],

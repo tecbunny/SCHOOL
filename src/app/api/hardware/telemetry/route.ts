@@ -9,6 +9,17 @@ export async function POST(req: Request) {
     if (!nodeId || typeof temp !== "number") {
       return NextResponse.json({ error: "Node id and temperature are required." }, { status: 400 });
     }
+    if (temp < -20 || temp > 125) {
+      return NextResponse.json({ error: "Temperature is outside the accepted telemetry range." }, { status: 400 });
+    }
+    for (const [field, value] of Object.entries({ disk_usage, memory_usage })) {
+      if (value !== undefined && (typeof value !== "number" || value < 0 || value > 100)) {
+        return NextResponse.json({ error: `${field} must be a percentage from 0 to 100.` }, { status: 400 });
+      }
+    }
+    if (uptime !== undefined && (typeof uptime !== "number" || uptime < 0)) {
+      return NextResponse.json({ error: "Uptime must be a positive number." }, { status: 400 });
+    }
 
     const service = getServiceClient();
     const supabase = createClient(service.url, service.key, {

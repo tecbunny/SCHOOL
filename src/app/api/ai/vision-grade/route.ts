@@ -2,12 +2,48 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { requireClassStation } from "@/lib/device-context";
+import { isRateLimited } from "@/lib/rate-limit";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MAX_IMAGE_CHARS = 5_000_000;
 
+type GradeEvaluation = {
+  criteria: string;
+  suggestedScore: number;
+  feedback: string;
+};
+
+function isGradeResult(value: unknown): value is {
+  extractedText: string;
+  evaluations: GradeEvaluation[];
+  overallConfidence: number;
+} {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Record<string, unknown>;
+  return (
+    typeof result.extractedText === "string" &&
+    typeof result.overallConfidence === "number" &&
+    result.overallConfidence >= 0 &&
+    result.overallConfidence <= 100 &&
+    Array.isArray(result.evaluations) &&
+    result.evaluations.every((item) => {
+      if (!item || typeof item !== "object") return false;
+      const evaluation = item as Record<string, unknown>;
+      return (
+        typeof evaluation.criteria === "string" &&
+        typeof evaluation.feedback === "string" &&
+        typeof evaluation.suggestedScore === "number"
+      );
+    })
+  );
+}
+
 export async function POST(req: Request) {
   try {
+    if (isRateLimited(req, "ai-vision-grade", { limit: 20, windowMs: 60_000 })) {
+      return NextResponse.json({ error: "Too many grading requests." }, { status: 429 });
+    }
+
     const auth = await requireUser(["teacher", "principal", "moderator", "admin"]);
     if (!auth.ok) return auth.response;
     const stationError = requireClassStation(req);
@@ -74,6 +110,9 @@ export async function POST(req: Request) {
     const jsonString = text.replace(/```json|```/g, "").trim();
     
     const parsedResult = JSON.parse(jsonString);
+    if (!isGradeResult(parsedResult)) {
+      return NextResponse.json({ error: "AI response did not match the grading schema." }, { status: 502 });
+    }
 
     // 5. Log the AI Event for Accountability
     const { logger } = await import("@/services/logger.service");

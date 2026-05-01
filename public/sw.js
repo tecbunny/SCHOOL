@@ -20,15 +20,21 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    }).then(() => clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Specific handling for Study Materials (PDFs from Supabase Storage)
-  const isStorageAsset = url.pathname.includes('/storage/v1/object/public/');
   const isPdf = url.pathname.endsWith('.pdf');
+
+  if (event.request.method !== 'GET') return;
 
   if (isPdf || ASSET_EXTENSIONS.some(ext => url.pathname.endsWith(ext))) {
     event.respondWith(
@@ -54,9 +60,11 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
-        });
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, networkResponse.clone());
+          });
+        }
         return networkResponse;
       }).catch(() => {
         // Fallback to student dashboard if completely offline

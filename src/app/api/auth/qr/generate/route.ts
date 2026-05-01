@@ -2,9 +2,18 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { errorMessage, getServiceClient } from "@/lib/api-auth";
+import { requireStudentHub } from "@/lib/device-context";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
+    if (isRateLimited(req, "qr-generate", { limit: 20, windowMs: 60_000 })) {
+      return NextResponse.json({ error: "Too many QR session requests." }, { status: 429 });
+    }
+
+    const deviceError = requireStudentHub(req);
+    if (deviceError) return deviceError;
+
     const { deviceId } = await req.json();
 
     if (typeof deviceId !== "string" || deviceId.length < 6 || deviceId.length > 128) {

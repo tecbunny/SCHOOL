@@ -6,6 +6,15 @@ export const staffService = {
   // Content Management
   async uploadMaterial(file: File, metadata: { title: string; subject: string; class: string; type: string }) {
     const fileName = `${Date.now()}_${file.name}`;
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('school_id')
+      .eq('id', user?.id)
+      .single();
+
+    if (!profile?.school_id) throw new Error('School context not found.');
+
     const { data, error } = await supabase.storage
       .from('study_materials')
       .upload(fileName, file);
@@ -19,7 +28,7 @@ export const staffService = {
         file_name: metadata.title,
         subject: metadata.subject,
         material_type: metadata.type,
-        school_id: (await supabase.auth.getUser()).data.user?.user_metadata.school_id
+        school_id: profile.school_id
       });
 
     if (dbError) throw dbError;
@@ -38,9 +47,19 @@ export const staffService = {
 
   // School Settings (HOD)
   async getAttendanceMode() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('school_id')
+      .eq('id', user?.id)
+      .single();
+
+    if (!profile?.school_id) return 'morning';
+
     const { data, error } = await supabase
-      .from('school_profiles')
+      .from('schools')
       .select('attendance_mode')
+      .eq('id', profile.school_id)
       .single();
     
     if (error) throw error;
@@ -48,10 +67,19 @@ export const staffService = {
   },
 
   async updateAttendanceMode(mode: 'morning' | 'subject') {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('school_id')
+      .eq('id', user?.id)
+      .single();
+
+    if (!profile?.school_id) throw new Error('School context not found.');
+
     const { error } = await supabase
-      .from('school_profiles')
+      .from('schools')
       .update({ attendance_mode: mode })
-      .eq('id', (await supabase.auth.getUser()).data.user?.id); // Assuming one profile per school user
+      .eq('id', profile.school_id);
     
     if (error) throw error;
   },
@@ -92,13 +120,22 @@ export const staffService = {
 
   // Phase 7: Biometric Hardware Sync
   async syncBiometricAttendance(logs: { student_id: string; timestamp: string; device_id: string }[]) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('school_id')
+      .eq('id', user?.id)
+      .single();
+
+    if (!profile?.school_id) throw new Error('School context not found.');
+
     const { data, error } = await supabase
       .from('attendance')
       .upsert(logs.map(log => ({
         student_id: log.student_id,
         date: log.timestamp.split('T')[0],
         status: 'present',
-        school_id: 'pending_context_fetch' // Should be fetched from session
+        school_id: profile.school_id
       })));
     
     if (error) throw error;
@@ -107,10 +144,13 @@ export const staffService = {
 
   // Phase 8: AI Grading Bridge
   async getAiGradingSuggestion(worksheetImage: string, rubric: any) {
-    // This will call the /api/ai/grade endpoint
-    const res = await fetch('/api/ai/grade', {
+    const res = await fetch('/api/ai/vision-grade', {
       method: 'POST',
-      body: JSON.stringify({ worksheetImage, rubric })
+      headers: {
+        'Content-Type': 'application/json',
+        'x-class-station': 'true'
+      },
+      body: JSON.stringify({ image: worksheetImage, rubric })
     });
     return res.json();
   }

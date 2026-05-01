@@ -1,9 +1,21 @@
-import { createClient } from "@/lib/supabase";
-
-const supabase = createClient();
-
 export type LogSeverity = 'info' | 'warning' | 'error' | 'critical';
 export type LogEventType = 'AUTH' | 'HARDWARE' | 'AI_GRADING' | 'PROMOTION' | 'SYSTEM' | 'COMPLIANCE';
+
+type LogClient = {
+  from: (table: string) => {
+    insert: (value: Record<string, unknown>) => PromiseLike<{ error: unknown }>;
+  };
+};
+
+async function getLogClient(): Promise<LogClient> {
+  if (typeof window === 'undefined') {
+    const { createClient } = await import('@/lib/supabase-server');
+    return await createClient() as unknown as LogClient;
+  }
+
+  const { createClient } = await import('@/lib/supabase');
+  return createClient() as unknown as LogClient;
+}
 
 export const logger = {
   async log(params: {
@@ -15,6 +27,7 @@ export const logger = {
     metadata?: any;
   }) {
     try {
+      const supabase = await getLogClient();
       const { error } = await supabase
         .from('system_logs')
         .insert({

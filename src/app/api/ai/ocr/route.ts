@@ -2,12 +2,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { errorMessage, requireUser } from "@/lib/api-auth";
 import { requireClassStation } from "@/lib/device-context";
+import { isRateLimited } from "@/lib/rate-limit";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const MAX_IMAGE_CHARS = 5_000_000;
 
 export async function POST(req: Request) {
   try {
+    if (isRateLimited(req, "ai-ocr", { limit: 20, windowMs: 60_000 })) {
+      return NextResponse.json({ error: "Too many OCR requests." }, { status: 429 });
+    }
+
     const auth = await requireUser(["teacher", "principal", "moderator", "admin"]);
     if (!auth.ok) return auth.response;
     const stationError = requireClassStation(req);

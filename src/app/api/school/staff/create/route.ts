@@ -61,7 +61,10 @@ export async function POST(req: Request) {
         is_teaching_staff: role === 'teacher'
       });
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      throw profileError;
+    }
 
     // 7. Return credentials for the Principal to hand over
     return NextResponse.json({

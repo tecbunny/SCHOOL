@@ -8,7 +8,7 @@
 -- ============================================================
 
 DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('admin', 'auditor', 'principal', 'teacher', 'moderator', 'student');
+    CREATE TYPE user_role AS ENUM ('admin', 'auditor', 'principal', 'teacher', 'moderator', 'student', 'alumni');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS public.schools (
     school_code TEXT UNIQUE NOT NULL,
     school_name TEXT NOT NULL,
     status TEXT DEFAULT 'active',
+    plan_type TEXT DEFAULT 'standard',
+    attendance_mode TEXT DEFAULT 'morning' CHECK (attendance_mode IN ('morning', 'subject')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 

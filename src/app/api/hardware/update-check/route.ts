@@ -3,6 +3,19 @@ import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/api-auth";
 import { verifyHardwareNode } from "@/lib/hardware-auth";
 
+function compareVersion(left: string, right: string) {
+  const leftParts = left.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const rightParts = right.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const maxLength = Math.max(leftParts.length, rightParts.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const diff = (leftParts[index] || 0) - (rightParts[index] || 0);
+    if (diff !== 0) return diff;
+  }
+
+  return 0;
+}
+
 export async function POST(req: Request) {
   try {
     const { nodeId, currentVersion, releaseType } = await req.json();
@@ -34,8 +47,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ update_available: false });
     }
 
-    // 2. Compare versions (simple string comparison for now)
-    const isNewer = latestRelease.version_code !== currentVersion;
+    // 2. Compare semantic versions where possible.
+    const isNewer = compareVersion(String(latestRelease.version_code), String(currentVersion)) > 0;
 
     // 3. Log the check-in from the node
     await supabase.from('fleet_deployments').upsert({

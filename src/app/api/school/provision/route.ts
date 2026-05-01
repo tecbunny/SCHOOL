@@ -57,7 +57,10 @@ export async function POST(req: Request) {
       email_confirm: true,
     });
 
-    if (authError) throw authError;
+    if (authError) {
+      await supabase.from('schools').delete().eq('id', school.id);
+      throw authError;
+    }
 
     // 4. Create Principal Profile
     const { error: profileError } = await supabase
@@ -70,7 +73,11 @@ export async function POST(req: Request) {
         school_id: school.id
       });
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      await supabase.auth.admin.deleteUser(authUser.user.id);
+      await supabase.from('schools').delete().eq('id', school.id);
+      throw profileError;
+    }
 
     return NextResponse.json({ 
       success: true, 
