@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { navigateByRole, type UserRole } from './constants';
+import { DEVICE_COOKIE } from './device-context';
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -83,9 +84,13 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    // FIX: Apply EduOS cookie to whatever response object we finalized above
+    // Device trust markers are set by kiosk/station launchers through request headers.
     if (request.headers.get('x-eduos') === 'true') {
-      response.cookies.set('is-eduos', 'true');
+      response.cookies.set(DEVICE_COOKIE.studentHub, 'true', { path: '/', sameSite: 'lax' });
+    }
+
+    if (request.headers.get('x-class-station') === 'true') {
+      response.cookies.set(DEVICE_COOKIE.classStation, 'true', { path: '/', sameSite: 'lax' });
     }
     
     return response;

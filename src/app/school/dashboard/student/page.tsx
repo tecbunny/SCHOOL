@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState } from 'react';
 import StudentDesk from '@/features/student-portal/StudentDesk';
 import HPCViewer from '@/features/student-portal/HPCViewer';
 import LiveTestEngine from '@/features/student-portal/LiveTestEngine';
 import StudyHub from '@/features/student-portal/StudyHub';
+import { isStudentHubDevice } from '@/lib/device.client';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -15,8 +16,11 @@ import {
   Bell
 } from 'lucide-react';
 
+type StudentTab = 'desk' | 'hub' | 'test' | 'hpc';
+
 export default function StudentDashboard() {
-  const [activeTab, setActiveTab] = useState<'desk' | 'hub' | 'test' | 'hpc'>('desk');
+  const [activeTab, setActiveTab] = useState<StudentTab>('desk');
+  const [isStudentHub] = useState(() => isStudentHubDevice());
 
   const navItems = [
     { id: 'desk', label: 'My Desk', icon: LayoutDashboard, color: 'text-primary' },
@@ -38,7 +42,7 @@ export default function StudentDashboard() {
             {navItems.map((item) => (
                <button 
                   key={item.id}
-                  onClick={() => setActiveTab(item.id as any)}
+                  onClick={() => setActiveTab(item.id as StudentTab)}
                   className={`w-20 h-20 rounded-[2rem] flex flex-col items-center justify-center gap-2 transition-all active:scale-90 ${activeTab === item.id ? `bg-white/10 ${item.color} border border-white/10` : 'text-muted hover:bg-white/5'}`}
                >
                   <item.icon className="w-8 h-8" />
@@ -66,7 +70,7 @@ export default function StudentDashboard() {
                <h1 className="text-3xl font-black text-white">
                   {navItems.find(n => n.id === activeTab)?.label}
                </h1>
-               <p className="text-xs text-muted font-bold uppercase tracking-widest mt-1">St. Mary's Convent • Grade 10-A</p>
+               <p className="text-xs text-muted font-bold uppercase tracking-widest mt-1">St. Mary&apos;s Convent - Grade 10-A</p>
             </div>
             
             <div className="flex items-center gap-6">
@@ -93,7 +97,21 @@ export default function StudentDashboard() {
             <div className="w-full h-full max-w-[1400px] mx-auto animate-in fade-in duration-500">
                {activeTab === 'desk' && <StudentDesk />}
                {activeTab === 'hub' && <StudyHub />}
-               {activeTab === 'test' && <LiveTestEngine classId="grade_10_a" />}
+               {activeTab === 'test' && (
+                 isStudentHub ? <LiveTestEngine classId="grade_10_a" /> : (
+                   <div className="h-full flex flex-col items-center justify-center text-center gap-5">
+                     <div className="bg-warning/10 border border-warning/20 rounded-[2rem] p-6">
+                       <Zap className="w-16 h-16 text-warning" />
+                     </div>
+                     <div>
+                       <h2 className="text-3xl font-black text-white">Student Hub Required</h2>
+                       <p className="text-muted max-w-md mt-3">
+                         You can study and view progress on web, but exams, tests, and quizzes must be answered only on the assigned Student Hub device.
+                       </p>
+                     </div>
+                   </div>
+                 )
+               )}
                {activeTab === 'hpc' && <HPCViewer />}
             </div>
          </main>
@@ -102,7 +120,7 @@ export default function StudentDashboard() {
          <div className="absolute bottom-8 right-8 bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-[2rem] flex items-center gap-4 shadow-2xl z-50 pointer-events-none">
             <div className="flex items-center gap-2">
                <div className="w-2 h-2 bg-success rounded-full"></div>
-               <span className="text-[10px] font-bold text-white uppercase tracking-widest">EduOS Core Online</span>
+               <span className="text-[10px] font-bold text-white uppercase tracking-widest">{isStudentHub ? 'Student Hub Online' : 'Web Study Mode'}</span>
             </div>
             <div className="w-px h-4 bg-white/10"></div>
             <div className="flex items-center gap-2">
@@ -114,3 +132,4 @@ export default function StudentDashboard() {
     </div>
   );
 }
+
