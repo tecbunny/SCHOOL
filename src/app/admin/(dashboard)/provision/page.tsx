@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Building2, Loader2, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Building2, Loader2, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Copy } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProvisionPage() {
@@ -10,6 +10,10 @@ export default function ProvisionPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [principalCode, setPrincipalCode] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetResult, setResetResult] = useState<any>(null);
+  const [resetError, setResetError] = useState('');
 
   const handleProvision = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +39,32 @@ export default function ProvisionPage() {
     }
   };
 
+  const handleResetPrincipalPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetError('');
+    setResetResult(null);
+
+    try {
+      const res = await fetch('/api/admin/principal/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ principalCode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Password reset failed');
+      setResetResult(data);
+    } catch (err: any) {
+      setResetError(err.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const copyLoginDetails = (code: string, password: string) => {
+    navigator.clipboard.writeText(`Principal Login\nPR Code: ${code}\nTemporary Password: ${password}`);
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-dark)] flex items-center justify-center p-6">
       <div className="glass-panel w-full max-w-md p-8">
@@ -57,7 +87,16 @@ export default function ProvisionPage() {
             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-left mb-8">
               <p className="text-[10px] text-muted uppercase tracking-widest mb-1">Principal Login Code</p>
               <p className="text-xl font-mono text-primary font-bold">{result.principalCode}</p>
-              <p className="text-[10px] text-muted mt-4">Initial access is queued for secure delivery. No temporary password is shown in this portal.</p>
+              <p className="text-[10px] text-muted uppercase tracking-widest mt-5 mb-1">Temporary Password</p>
+              <p className="text-lg font-mono text-secondary font-bold break-all">{result.temporaryPassword}</p>
+              <button
+                type="button"
+                onClick={() => copyLoginDetails(result.principalCode, result.temporaryPassword)}
+                className="btn btn-outline w-full mt-5 justify-center"
+              >
+                <Copy className="w-4 h-4" /> Copy Login Details
+              </button>
+              <p className="text-[10px] text-muted mt-4">Show this once to the principal and ask them to change it after first login.</p>
             </div>
 
             <Link href="/admin/dashboard" className="btn btn-primary w-full py-4 justify-center">
@@ -65,42 +104,79 @@ export default function ProvisionPage() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleProvision} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-muted">11-Digit U-DISE Code</label>
-              <input 
-                type="text" 
-                placeholder="e.g. 27240816201" 
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors"
-                value={udiseCode}
-                onChange={(e) => setUdiseCode(e.target.value)}
-                pattern="[0-9]{11}"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-muted">Admin Full Name</label>
-              <input 
-                type="text" 
-                placeholder="Full Name of Principal/HOD" 
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors"
-                value={adminName}
-                onChange={(e) => setAdminName(e.target.value)}
-                required
-              />
-            </div>
-
-            {status === 'error' && (
-              <div className="bg-danger/10 border border-danger text-danger text-xs p-3 rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> {error}
+          <div className="flex flex-col gap-8">
+            <form onSubmit={handleProvision} className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-muted">11-Digit U-DISE Code</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. 27240816201" 
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors"
+                  value={udiseCode}
+                  onChange={(e) => setUdiseCode(e.target.value)}
+                  pattern="[0-9]{11}"
+                  required
+                />
               </div>
-            )}
 
-            <button type="submit" className="btn btn-primary w-full py-4 mt-4 justify-center text-lg disabled:opacity-50" disabled={status === 'loading'}>
-              {status === 'loading' ? <Loader2 className="animate-spin" /> : <>Provision School <ArrowRight /></>}
-            </button>
-          </form>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-muted">Admin Full Name</label>
+                <input 
+                  type="text" 
+                  placeholder="Full Name of Principal/HOD" 
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  required
+                />
+              </div>
+
+              {status === 'error' && (
+                <div className="bg-danger/10 border border-danger text-danger text-xs p-3 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> {error}
+                </div>
+              )}
+
+              <button type="submit" className="btn btn-primary w-full py-4 mt-4 justify-center text-lg disabled:opacity-50" disabled={status === 'loading'}>
+                {status === 'loading' ? <Loader2 className="animate-spin" /> : <>Provision School <ArrowRight /></>}
+              </button>
+            </form>
+
+            <form onSubmit={handleResetPrincipalPassword} className="border-t border-white/10 pt-6 flex flex-col gap-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-secondary">
+                <KeyRound className="w-4 h-4" /> Existing Principal First Login
+              </div>
+              <input
+                type="text"
+                placeholder="Enter PR code, e.g. PR620101"
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-secondary transition-colors font-mono"
+                value={principalCode}
+                onChange={(e) => setPrincipalCode(e.target.value.toUpperCase())}
+                required
+              />
+              {resetError && (
+                <div className="bg-danger/10 border border-danger text-danger text-xs p-3 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> {resetError}
+                </div>
+              )}
+              {resetResult && (
+                <div className="bg-secondary/10 border border-secondary/20 p-4 rounded-xl">
+                  <p className="text-[10px] text-muted uppercase tracking-widest">Temporary Password</p>
+                  <p className="text-secondary font-mono font-bold break-all mt-1">{resetResult.temporaryPassword}</p>
+                  <button
+                    type="button"
+                    onClick={() => copyLoginDetails(resetResult.principalCode, resetResult.temporaryPassword)}
+                    className="btn btn-outline w-full mt-4 justify-center"
+                  >
+                    <Copy className="w-4 h-4" /> Copy Login Details
+                  </button>
+                </div>
+              )}
+              <button type="submit" className="btn btn-outline w-full justify-center" disabled={resetLoading}>
+                {resetLoading ? <Loader2 className="animate-spin" /> : <>Generate Temporary Password</>}
+              </button>
+            </form>
+          </div>
         )}
       </div>
     </div>
