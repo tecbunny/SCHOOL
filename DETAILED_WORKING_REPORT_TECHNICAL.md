@@ -1,4 +1,4 @@
-# EduPortal Detailed Working Report
+# EduPortal Detailed Working Report (Technical)
 
 Date: 2026-05-02  
 Project: EduPortal Ecosystem  
@@ -7,1146 +7,433 @@ Project handled by: Co-founder Shubham Bhisaji
 Email: shubham@tecbunny.com  
 Mobile: +91 7387375651  
 
-## 1. Purpose of This Report
+## 1. Current System Summary
 
-This document explains the end-to-end working of the EduPortal ecosystem from account creation to login, daily school operation, live test deployment, student test submission, grading, progress cards, and reports for every major user role.
+EduPortal is a multi-tenant school operating system built with Next.js, React, TypeScript, Supabase, Gemini AI, and EduOS classroom hardware. The current implementation connects cloud administration, school staff workflows, student learning surfaces, assessment workflows, AI-assisted grading, audit reporting, and classroom edge devices.
 
-The report is written as an operational flow document. It covers how each user enters the system, what data they create, how that data moves across the platform, and which reports become available after test completion and school activity.
+The latest codebase includes major hardening for credential delivery, offline test continuity, local classroom QR authority, signed hardware requests, APAAR/ABC-linked student identity, grade versioning, hub distribution, and realtime authorization.
 
-## 2. Ecosystem Summary
+## 2. Runtime Stack
 
-EduPortal is a multi-tenant school operating system. It connects central administration, school leadership, teachers, students, auditors, AI assessment tools, and EduOS hardware devices into one connected workflow.
+| Area | Current Implementation |
+|---|---|
+| Frontend | Next.js 16.2.4 App Router, React 19.2.5, TypeScript 6 |
+| Backend | Next.js route handlers under `src/app/api` |
+| Database/Auth | Supabase Auth, Postgres, RLS policies, Edge Function |
+| AI | Google Gemini through `@google/generative-ai` |
+| Charts/UI | Recharts, Chart.js, lucide-react |
+| QR/device flows | `qrcode.react`, `html5-qrcode`, EduOS local station routes |
+| Hardware image | `eduos` image payload, edge server, kiosk scripts |
 
-The system has three major layers:
+## 3. Architecture Layers
 
-| Layer | Surface | Purpose |
+| Layer | Main Surfaces | Responsibility |
 |---|---|---|
-| Central Cloud Layer | Admin dashboard | Tenant onboarding, school lifecycle, subscriptions, fleet, analytics, logs, support, and global settings. |
-| School Operations Layer | Staff Station | Principal/HOD, teacher, moderator, alumni, and school operations workflows. |
-| Classroom Edge Layer | Student Hub and Class Station | Student learning desk, QR identity, face verification, live tests, offline material cache, and classroom telemetry. |
+| Central Cloud Layer | Admin dashboard, admin APIs, Supabase | Tenant creation, school lifecycle, analytics, requests, subscriptions, fleet, settings |
+| School Operations Layer | Staff portal, HOD/principal/teacher/moderator dashboards | Staff management, attendance rules, timetable, material, grading, reports, promotions |
+| Student Layer | Student portal, Student Desk, Study Hub, Live Test Engine, HPC viewer | Learning, test taking, offline recovery, progress viewing |
+| Classroom Edge Layer | Student Hub, Class Station, EduOS local APIs | QR authority, face verification, local cache, telemetry, update checks, hub checkout |
+| Audit/Compliance Layer | Auditor dashboard, compliance features, migrations | Compliance health, engagement analytics, report generation, immutable audit direction |
 
-## 3. User Roles Covered
+## 4. User Roles and Entry Points
 
-| User Role | Main Entry | Core Responsibility |
+| Role | Entry Point | Current Capability |
 |---|---|---|
-| Admin | `/admin` | Creates and manages schools, monitors platform health, controls global settings, reviews requests and analytics. |
-| Principal / HOD | `/school/staff` then dashboard | Manages school operations, staff accounts, attendance policy, compliance, timetable, promotions, announcements, and reports. |
-| Teacher | `/school/staff` then dashboard | Runs classroom activity, deploys tests, scans worksheets, grades submissions, views class analytics, and updates HPC data. |
-| Moderator | `/school/staff` then dashboard | Uploads syllabus, manages learning material, prepares AI context, and controls content quality. |
-| Student | `/school/student` or Student Hub | Uses Student Desk, views timetable/materials, receives live tests, submits answers, and views HPC progress. |
-| Auditor | `/auditor` | Views compliance health, engagement reports, institutional analytics, and signed reports. |
-| Alumni | `/school/dashboard/alumni` | Accesses alumni-facing school workspace where enabled. |
-| Hardware Node | API + EduOS | Sends heartbeat, receives updates, binds to tenant, supports Student Hub and Class Station workflows. |
+| Admin | `/admin` and `/admin/dashboard` | Provision schools, manage requests, view schools, subscriptions, analytics, logs, fleet, nodes, settings |
+| Principal/HOD | `/school/staff`, `/school/dashboard/hod` | Create staff, manage attendance policy, timetable, announcements, promotions, snapshots, compliance |
+| Teacher | `/school/dashboard/teacher` | Classroom tools, worksheet scanning, split-screen grading, live monitor, class analytics |
+| Moderator | `/school/dashboard/moderator` | Syllabus and learning material management |
+| Student | `/school/student`, `/school/dashboard/student` | Student Desk, Study Hub, live tests, HPC viewer, EduOS hub flow |
+| Auditor | `/auditor`, `/auditor/dashboard` | Compliance health map and report generation |
+| Alumni | `/school/dashboard/alumni` | Alumni-facing school workspace |
+| Hardware Node | `/api/hardware/*`, `/api/local/qr/*` | Handshake, signed telemetry, signed updates, face verification, local QR sessions |
 
-## 4. High-Level End-to-End Flow
+## 5. End-to-End Flow
 
 ```mermaid
 flowchart TD
-  A[Admin creates school tenant] --> B[Principal account generated]
-  B --> C[Principal logs in with school code and password]
-  C --> D[Principal creates teacher and moderator accounts]
-  D --> E[Moderator uploads syllabus and material]
-  E --> F[Teacher prepares class workflow and test]
-  F --> G[Student Hub displays QR session]
-  G --> H[Class Station scans student face]
-  H --> I[Class Station scans Student Hub QR]
-  I --> J[Student session is verified]
-  J --> K[Teacher deploys live test]
-  K --> L[Student submits test from Student Hub]
-  L --> M[Teacher grades manually or with AI assistance]
-  M --> N[Marks and competencies update HPC]
-  N --> O[Principal, teacher, student, auditor and admin reports update]
+  A["Admin receives/approves school request"] --> B["Admin provisions school by U-DISE"]
+  B --> C["Principal Auth user and profile created"]
+  C --> D["Credential delivery job created"]
+  D --> E["Principal logs in through staff portal"]
+  E --> F["Principal creates teachers and moderators"]
+  F --> G["Moderator uploads syllabus and material"]
+  G --> H["Teacher prepares class/test workflow"]
+  H --> I["Class Station issues signed local QR session"]
+  I --> J["Student Hub displays QR payload"]
+  J --> K["Class Station verifies face and QR"]
+  K --> L["Student Hub receives signed unlock receipt"]
+  L --> M["Teacher deploys live test"]
+  M --> N["Student answers autosave to localStorage and IndexedDB"]
+  N --> O["Submission syncs as append-only event"]
+  O --> P["Grades version and HPC/compliance records update"]
 ```
 
-## 5. Account Creation Lifecycle
+## 6. School Provisioning
 
-### 5.1 Admin Account
+School creation is handled by `POST /api/school/provision`.
 
-The Admin is the platform-level user. Admin access is used to manage the overall EduPortal ecosystem. Admin login happens through the central admin portal.
+Current behavior:
 
-Admin responsibilities:
+- Validates the U-DISE code as 11 digits.
+- Rejects duplicate provisioned schools.
+- Creates a school record.
+- Generates a principal login code.
+- Creates the principal in Supabase Auth with a backend-generated temporary credential.
+- Creates a principal profile bound to the school tenant.
+- Inserts a `credential_delivery_jobs` record.
+- Returns only non-secret provisioning metadata: school details, principal code, and credential delivery status.
 
-- Login to the Central Intelligence dashboard.
-- Review school registration requests.
-- Provision new schools.
-- Configure global platform settings.
-- Monitor subscriptions and tenant status.
-- Review global analytics.
-- Monitor hardware fleet, logs, nodes, and releases.
-- Control global promotion window and platform-level policies.
+Important security behavior:
 
-Admin authentication:
+- Plaintext passwords are not returned to the browser.
+- Human-entered initial passwords are not accepted for principal provisioning.
+- The first credential is backend-generated and must be delivered through a secure channel or reset-link process.
+- Supabase Auth creation and database writes are treated as separate operations that require idempotent jobs and compensating cleanup if production delivery fails mid-flow.
 
-| Field | Description |
+## 7. Staff Account Creation
+
+Teacher and moderator accounts are created through `POST /api/school/staff/create`.
+
+Current behavior:
+
+- Only a principal can create staff.
+- Allowed roles are teacher and moderator.
+- Created accounts are bound to the principal's `school_id`.
+- Temporary credentials are generated server-side.
+- The Add Staff UI exposes only non-secret login metadata.
+- Temporary credentials are not returned to the browser and should be delivered through secure SMS/email/reset-link infrastructure.
+
+This closes the earlier credential leakage risk where temporary passwords could be copied from the browser response.
+
+## 8. Authentication and Access Control
+
+Primary login route:
+
+- `POST /api/auth/code-login`
+
+Current controls:
+
+- Rate-limits login attempts.
+- Requires system identifier and security key.
+- Enforces portal-specific role access.
+- Enforces school binding for school-scoped logins.
+- Rejects invalid credentials with generic messaging.
+
+Deprecated cloud QR routes:
+
+- `/api/auth/qr/generate`
+- `/api/auth/qr/verify`
+
+These endpoints now return `410 Gone` because classroom unlock must not depend on cloud QR verification during an internet outage. The active QR flow is the local Class Station authority.
+
+## 9. Local Classroom QR Authority
+
+Active routes:
+
+- `POST /api/local/qr/session`
+- `POST /api/local/qr/verify`
+
+Core library:
+
+- `src/lib/local-station-qr.ts`
+
+Current behavior:
+
+- Class Station creates a signed QR envelope containing session ID, device ID, nonce, station ID, issue time, and expiry time.
+- Sessions are stored in local station state under `.eduos-local/qr-sessions.json` unless overridden by `EDUOS_LOCAL_STATE_DIR`.
+- QR payloads are HMAC-signed using `EDUOS_STATION_SIGNING_SECRET`.
+- Verification requires a successful face verification signal before unlock.
+- Replay is rejected because verified/expired sessions cannot be reused.
+- Successful verification returns a signed unlock receipt.
+- Supabase is treated as deferred audit/sync storage, not as the runtime dependency for classroom unlock.
+
+Production requirements:
+
+- Each Class Station should have a unique signing secret or hardware-backed key.
+- Student Hubs should trust enrolled station public keys or pinned station credentials.
+- Local session state should be persisted on durable storage with safe file permissions.
+- Unlock receipts should be synchronized into cloud audit logs when connectivity returns.
+
+## 10. Live Test Engine
+
+Main files:
+
+- `src/features/student-portal/LiveTestEngine.tsx`
+- `src/lib/live-test-vault.ts`
+- `src/app/api/sync/events/route.ts`
+
+Current behavior:
+
+- Answers are autosaved immediately.
+- State is mirrored in `localStorage` for fast recovery.
+- State is also written to IndexedDB through `eduportal-live-test-vault`, making recovery stronger after tab refresh, PWA suspend, process kill, or low-memory device pressure.
+- Question and option ordering can be randomized per student.
+- Final submit retries in the background with jitter to reduce synchronized classroom load.
+- Test payloads carry server-issued `startsAt` and `endsAt` deadlines.
+- Submissions include timing metadata such as `submitted_at`, `ends_at`, timer status, and late seconds.
+- Sync validation requires exam submissions to include a server-issued `ends_at` timestamp.
+
+Design rule:
+
+The Student Hub timer is a user interface convenience. The authoritative deadline must be enforced by the backend or Class Station using server/station-issued timing data.
+
+## 11. Offline-First Event Sync
+
+Main route:
+
+- `POST /api/sync/events`
+
+Migration:
+
+- `supabase/migrations/20260502_append_only_events.sql`
+
+Current behavior:
+
+- Accepts event batches with a batch size limit.
+- Requires at least one event.
+- Ensures events are synced only for the authenticated actor.
+- Ensures school-scoped events match the actor's school.
+- Validates exam submission timing metadata.
+- Stores ordered append-only events instead of relying only on direct state updates.
+
+Purpose:
+
+- Preserve student/exam/attendance/grade/device actions during offline or unstable connectivity.
+- Reduce overwrite conflicts by syncing facts/events.
+- Support later projections into reports, submissions, answers, HPC, and audit tables.
+
+## 12. Realtime Test Broadcast Hardening
+
+Migration:
+
+- `supabase/migrations/20260502_credential_delivery_and_realtime_rls.sql`
+
+Current direction:
+
+- Live test delivery must avoid predictable public topics like class-wide room names.
+- Student Hubs subscribe to private per-school, per-class, per-student topics.
+- Supabase Realtime policies should allow only the intended authenticated student to receive the relevant broadcast.
+
+This reduces the risk of students guessing channel names and receiving another class or student's test payload.
+
+## 13. APAAR / ABC Student Identity
+
+Route:
+
+- `POST /api/students/apaar-link`
+
+Migration:
+
+- `supabase/migrations/20260502_abc_apaar_enrollments.sql`
+
+Current behavior:
+
+- Links an existing student profile to an APAAR/ABC identity.
+- Uses the `link_student_profile_to_apaar` database function.
+- Separates long-lived student identity from school enrollment.
+
+Why it matters:
+
+- Student transfer history can be represented cleanly.
+- Alumni state can preserve earlier school membership.
+- HPC/progress history can follow the learner rather than being trapped in one school's profile record.
+
+## 14. Grade Versioning
+
+Migration:
+
+- `supabase/migrations/20260502_grade_versioning.sql`
+
+Current behavior:
+
+- Grade writes use version counters.
+- Newer grade decisions win by logical version rather than device clock time.
+- This protects against Class Station clock drift, resets, or bad local timestamps.
+
+Design rule:
+
+Teacher/Class Station grade origin remains authoritative, but conflict resolution should use server-validated logical ordering and audit records.
+
+## 15. Hardware Trust and Telemetry
+
+Main routes:
+
+- `POST /api/hardware/register-key`
+- `POST /api/hardware/telemetry`
+- `POST /api/hardware/update-check`
+- `POST /api/hardware/face-verify`
+- `POST /api/hardware/handshake`
+
+Main library:
+
+- `src/lib/hardware-auth.ts`
+
+Migration:
+
+- `supabase/migrations/20260502_hardware_signatures_face_embeddings.sql`
+
+Current controls:
+
+- Hardware nodes can register Ed25519 public keys.
+- Sensitive hardware requests require signed headers: node ID, timestamp, nonce, and signature.
+- The signed canonical payload includes method, path, body hash, timestamp, and nonce.
+- Nonces are inserted into `hardware_request_nonces`; duplicate nonce inserts are treated as replay attempts.
+- Telemetry validates temperature, battery, network, storage, and uptime ranges.
+- Update checks are signed and respect maintenance-window behavior for routine updates.
+
+Remaining production hardening:
+
+- Enforce timestamp freshness in addition to nonce uniqueness.
+- Protect private keys in device secure storage where available.
+- Add fleet key rotation and revoke compromised nodes.
+- Move any development fallback secrets out of production images.
+
+## 16. Face Verification
+
+Route:
+
+- `POST /api/hardware/face-verify`
+
+Current behavior:
+
+- Requires signed hardware request authentication.
+- Accepts compact numeric face embeddings instead of video streams.
+- Requires student ID, embedding model, and numeric embedding.
+- Validates threshold range.
+- Ensures the node cannot verify a student outside its school.
+- Returns verification result and similarity.
+
+This keeps camera responsibility on the Class Station and reduces bandwidth compared with streaming raw video from Student Hubs.
+
+## 17. Hub Distribution Mode
+
+Main file:
+
+- `src/features/hardware/HubDistributionMode.tsx`
+
+Migration:
+
+- `supabase/migrations/20260502_hub_distribution_mode.sql`
+
+Current workflow:
+
+- Teacher/Class Station can pair a recognized student with a physical Student Hub.
+- The checkout records which student holds which hub.
+- End-of-class flow can lock checked-out hubs and return them to a signed-out state.
+
+This supports high-speed classroom distribution where devices are shared across periods.
+
+## 18. AI Workflows
+
+Routes:
+
+- `POST /api/ai/generate`
+- `POST /api/ai/ocr`
+- `POST /api/ai/vision-grade`
+
+Current controls:
+
+- AI routes are rate-limited.
+- Students cannot generate full exam papers.
+- OCR and grading validate image size and required input fields.
+- Vision grading requires a rubric.
+- Gemini configuration must exist before calls proceed.
+
+Recommended next step:
+
+AI generation should use RAG-style retrieval over vetted syllabus/material chunks rather than sending full PDFs or unbounded classroom content to the model.
+
+## 19. Admin and School Operations
+
+Admin API routes:
+
+- `GET /api/admin/analytics`
+- `GET/PATCH /api/admin/config`
+- `GET/POST/PATCH /api/admin/requests`
+- `GET/PATCH /api/admin/schools`
+- `GET/PATCH /api/admin/schools/[id]`
+- `POST /api/admin/schools/batch`
+
+School operations features:
+
+- Attendance configuration
+- Staff creation and teacher list
+- Timetable manager
+- Promotion console
+- Announcements
+- Support ticket system
+- Offline health dashboard
+- Compliance report generator
+
+The platform now has both high-level administrative control and daily school workflow surfaces.
+
+## 20. EduOS Hardware Architecture
+
+EduOS uses two device profiles:
+
+| Device | Recommended Board | Purpose |
+|---|---|---|
+| Student Hub | Luckfox Pico Ultra W | Student desk kiosk, no camera, locked PWA, tests, study material, QR display, offline shell |
+| Class Station | Luckfox Pico Ultra BW | Classroom station, camera workflows, QR authority, face verification, local cache, telemetry, orchestration |
+
+Shared platform:
+
+- Rockchip RV1106 family.
+- ARM Cortex-A7 class CPU.
+- Integrated NPU capability suitable for lightweight edge inference.
+- eMMC storage on Ultra series.
+- Display, USB, Ethernet, and camera interface support depending on board profile.
+
+Relevant files:
+
+- `eduos/build-eduos.ps1`
+- `eduos/scripts/kiosk-engine.sh`
+- `eduos/image_payload/app/server.js`
+- `eduos/image_payload/app/public/sw.js`
+- `eduos/edge-server/docker-compose.yml`
+- `eduos/installer/deploy-to-sd.ps1`
+
+## 21. Database and Migration Map
+
+| Migration | Purpose |
 |---|---|
-| System Identifier | Admin user code, such as `ADXXXXX`. |
-| Security Key | Admin password. |
-| Allowed Role | Only `admin`. |
-| Destination After Login | `/admin/dashboard`. |
+| `20260501_report_fixes.sql` | Report-related fixes |
+| `20260501_security_loophole_fixes.sql` | Earlier security and RLS fixes |
+| `20260502_abc_apaar_enrollments.sql` | APAAR/ABC student identity and enrollment model |
+| `20260502_append_only_events.sql` | Offline-first append-only event sync |
+| `20260502_credential_delivery_and_realtime_rls.sql` | Secure credential delivery jobs and Realtime policy hardening |
+| `20260502_grade_versioning.sql` | Logical grade versions |
+| `20260502_hardware_signatures_face_embeddings.sql` | Hardware signatures, request nonces, face embeddings |
+| `20260502_hub_distribution_mode.sql` | Hub checkout/distribution workflow |
 
-### 5.2 School / Tenant Creation
+## 22. Current Verification Status
 
-School creation is performed by the Admin through the provisioning workflow.
+Previously recorded verification in the workspace says:
 
-Technical route:
+- TypeScript passed with `npx tsc --noEmit`.
+- Lint passed with only existing warnings.
+- Production build passed with `npm run build`.
+- Smoke checks passed for `/admin/provision`, `/school/student`, and deprecated QR endpoint behavior.
+- Local QR authority accepted one signed session and rejected replay.
 
-`POST /api/school/provision`
+These checks should be rerun after any report-generation or code changes before a production demo.
 
-Required data:
+## 23. Current Risk Register
 
-| Field | Purpose |
-|---|---|
-| U-DISE code | 11-digit school identifier used to create a school tenant. |
-| Principal name | Name of the first school administrator. |
-| Principal contact channel | Verified phone or email where the temporary credential/reset link is delivered. |
-
-Provisioning steps:
-
-1. Admin submits U-DISE code, principal name, and a verified delivery channel for the principal.
-2. System validates that the U-DISE code is 11 digits.
-3. System checks whether the school is already provisioned.
-4. System creates a new record in the `schools` table.
-5. System creates a principal user in Supabase Auth using a generated internal email and a backend-only temporary credential.
-6. System creates a matching `profiles` record with role `principal`.
-7. System dispatches the temporary credential or reset link directly to the principal's verified contact.
-8. System returns only the generated principal login code and non-secret provisioning metadata.
-
-Generated principal example:
-
-| Item | Example Pattern |
-|---|---|
-| School code | `SCHXXXX` |
-| Principal code | `PRXXXX01` |
-| Role | `principal` |
-| School binding | Principal profile is linked to the school tenant ID. |
-
-Failure handling:
-
-- Supabase Auth and PostgreSQL writes are not treated as one atomic transaction.
-- Every provisioning step writes an idempotent `provisioning_jobs` or audit event record with status, correlation ID, and compensating action.
-- If Auth creation fails, the school record is marked `provisioning_failed` and the job can be retried safely.
-- If profile creation fails after Auth user creation, a compensating cleanup job must delete or disable the Auth user and verify completion before the tenant is activated.
-- A tenant is never marked active until school, Auth user, profile, delivery, and audit events have all succeeded.
-
-### 5.3 Principal / HOD Account
-
-The Principal/HOD account is created during school provisioning. It is the first school-level account and controls staff creation and school operations.
-
-Principal account data:
-
-| Field | Source |
-|---|---|
-| Full name | Provided by Admin during school provisioning. |
-| User code | Generated by provisioning API. |
-| Password | Backend-generated temporary credential delivered through verified SMS/email or first-login reset. It is never returned in an API response. |
-| Role | `principal`. |
-| School ID | Linked to the created school tenant. |
-
-Principal can:
-
-- Create teacher accounts.
-- Create moderator accounts.
-- Configure attendance mode.
-- View school analytics.
-- Manage announcements.
-- Manage support tickets.
-- Generate compliance reports.
-- Run promotion workflow when global window is open.
-- View HOD snapshots.
-
-### 5.4 Teacher and Moderator Account Creation
-
-Teacher and Moderator accounts are created by the Principal/HOD from the staff management interface.
-
-Technical route:
-
-`POST /api/school/staff/create`
-
-Allowed requester:
-
-Only a logged-in `principal`.
-
-Allowed created roles:
-
-| Role | Allowed |
-|---|---|
-| Teacher | Yes |
-| Moderator | Yes |
-| Student | No, not through this route |
-| Admin | No |
-| Auditor | No |
-
-Staff creation steps:
-
-1. Principal opens Add Staff.
-2. Principal enters staff full legal name.
-3. Principal selects role: Teacher or Moderator.
-4. System verifies principal session and school tenant.
-5. System generates a unique login ID.
-6. System generates a backend-only temporary password or reset token.
-7. System creates Auth user silently on the backend.
-8. System creates the staff profile.
-9. System binds the staff member to the principal's school.
-10. System sends the temporary credential or reset link directly to the staff member's verified contact.
-11. System returns only the login ID, role, and delivery status.
-
-Generated staff login pattern:
-
-| Role | Login ID Pattern |
-|---|---|
-| Teacher | `TCH-{school-prefix}-{random}` |
-| Moderator | `MOD-{school-prefix}-{random}` |
-
-Returned credential details:
-
-| Field | Description |
-|---|---|
-| Staff Member | Full name entered by principal. |
-| Login ID | Generated staff code. |
-| Role | Teacher or Moderator. |
-| Temporary Password | Not returned. Delivered only through the configured secure SMS/email channel or reset-link provider. |
-
-Security behavior:
-
-- Staff account creation uses the service role only on the server.
-- The principal never creates Auth users directly from the browser.
-- Staff accounts are bound to the same `school_id` as the principal.
-- Account creation uses a provisioning job and compensating cleanup because Auth and database writes cannot be wrapped in one database transaction.
-- If profile creation fails, the generated Auth user is disabled or deleted by a verified cleanup step before the account is usable.
-- API responses never include plaintext passwords, reset tokens, or recovery links.
-
-### 5.5 Student Account Creation
-
-Student accounts exist as `profiles` with role `student` and are bound to:
-
-- A school tenant.
-- A class.
-- Student identity information.
-- Attendance records.
-- HPC grades.
-- Competency metrics.
-- Student Hub sessions.
-
-The current application provides the Student Hub and student dashboard surfaces. In a full deployment, student accounts can be created through one of the following controlled flows:
-
-| Flow | Description |
-|---|---|
-| Bulk import | School uploads student roster and system creates student profiles. |
-| Admin / principal provisioning | School leadership creates students during onboarding. |
-| SIS migration | Student records migrate from an existing school ERP. |
-| Device-bound activation | Student profile is linked to Student Hub during first session. |
-
-Recommended production behavior:
-
-- Generate student login codes similar to staff codes.
-- Bind every student to `school_id`, `class_id`, and optionally `student_roll_no`.
-- Require principal-approved roster import.
-- Avoid open public self-registration for students.
-
-### 5.6 Auditor Account
-
-Auditor accounts are used for external or internal compliance review.
-
-Auditor can:
-
-- Access auditor dashboard.
-- View compliance health map.
-- Generate signed reports.
-- Review engagement, attendance, HPC, and institutional health summaries.
-
-Auditor should not:
-
-- Modify grades.
-- Create staff.
-- Change school settings.
-- Trigger promotions.
-- Change hardware configuration.
-
-## 6. Login and Access Control Flow
-
-### 6.1 Code-Based Login
-
-EduPortal uses a code-based login pattern for users.
-
-Technical route:
-
-`POST /api/auth/code-login`
-
-Login body:
-
-| Field | Description |
-|---|---|
-| `code` | User code such as admin code, principal code, teacher code, moderator code, or student code. |
-| `password` | Security key / password. |
-| `allowedRoles` | Optional role filter used by the portal. |
-| `schoolCode` | Optional school binding check for school users. |
-
-Login steps:
-
-1. User enters system identifier and security key.
-2. System normalizes the user code to uppercase.
-3. System checks rate limit for login attempts.
-4. Service client looks up the user profile by `user_code`.
-5. System validates role against the requested login portal.
-6. If school code is supplied, system verifies the user's school.
-7. System fetches the internal Auth email for the profile.
-8. System signs in with Supabase Auth.
-9. System returns session and user profile.
-10. UI redirects by role.
-
-Role routing:
-
-| Role | Dashboard Route |
-|---|---|
-| Admin | `/admin/dashboard` |
-| Auditor | `/auditor/dashboard` |
-| Principal | `/school/dashboard/hod` |
-| Teacher | `/school/dashboard/teacher` |
-| Moderator | `/school/dashboard/moderator` |
-| Student | `/school/dashboard/student` |
-| Alumni | `/school/dashboard/alumni` |
-
-### 6.2 School Gateway
-
-The school gateway lets the user choose the correct workspace.
-
-Available workspaces:
-
-| Workspace | Users |
-|---|---|
-| Staff Station | Principal, teacher, moderator, school staff. |
-| Student Hub | Students on browser/PWA or EduOS Student Hub. |
-
-If EduOS simulation or EduOS cookie is detected, the gateway redirects to the Student Hub surface.
-
-## 7. Device Architecture and Identity Flow
-
-EduPortal uses two separate classroom devices.
-
-| Device | Board | Camera | Main Purpose |
+| Priority | Risk | Current State | Required Next Step |
 |---|---|---|---|
-| Student Hub | Luckfox Pico Ultra W | No camera | Student desk, QR display, live test, study material, HPC. |
-| Class Station | Luckfox Pico Ultra BW | Has camera | Face scan, QR scan, teacher station, class cache, AI/OCR workflows. |
-
-### 7.1 Student Hub
-
-Student Hub is the learner-facing device. It does not include a camera. This improves privacy because the student desk does not continuously capture visual data.
-
-Student Hub responsibilities:
-
-- Show student dashboard.
-- Display QR session.
-- Receive live test broadcast.
-- Allow answer selection.
-- Submit answers.
-- Show study materials.
-- Show timetable and announcements.
-- Show HPC progress.
-- Send session heartbeat.
-
-### 7.2 Class Station
-
-Class Station is the classroom-facing trusted station. It has a camera and handles scanning flows.
-
-Class Station responsibilities:
-
-- Scan student face.
-- Scan QR shown on Student Hub.
-- Confirm student-device-session match.
-- Support teacher classroom workflows.
-- Support OCR and worksheet scanning.
-- Support AI grading from scanned work.
-- Cache classroom materials locally.
-- Trigger AI workflows from controlled station context.
-
-### 7.3 Face + QR Login Flow
-
-The production classroom identity flow must be local-first. During class, "API" means the Class Station's local edge service on the classroom LAN, not Supabase Cloud. Supabase is only an eventual sync destination for append-only session logs after connectivity returns.
-
-```mermaid
-sequenceDiagram
-  participant Student
-  participant Hub as Student Hub
-  participant Station as Class Station
-  participant Edge as Local Class Station API
-  participant LocalDB as Station Local DB
-  participant Cloud as Supabase Cloud
-
-  Student->>Hub: Opens Student Hub
-  Hub->>Edge: Requests QR session over classroom LAN
-  Edge->>LocalDB: Creates pending local QR session
-  Edge-->>Hub: Returns signed rotating QR payload
-  Hub-->>Student: Displays QR that rotates every 10 seconds
-  Student->>Station: Stands before Class Station
-  Station->>Station: Captures face
-  Station->>LocalDB: Verifies face against cached templates
-  Station->>Hub: Scans displayed QR
-  Station->>Edge: Sends QR nonce + verified face context
-  Edge->>LocalDB: Atomically verifies nonce and marks session verified
-  Edge-->>Station: Session accepted with signed local receipt
-  Edge-->>Hub: Student session unlocked
-  Edge-->>LocalDB: Queues append-only qr_session_verified event
-  Edge-->>Cloud: Syncs qr_sessions log when internet returns
-```
-
-Important privacy design:
-
-- Student Hub has no camera.
-- Camera is centralized on Class Station.
-- Face scan happens only at station-level verification.
-- QR binds the physical Student Hub session to the verified student identity.
-- QR payloads must contain a signed nonce that rotates every 10 seconds and expires immediately after verification.
-- Verification must reject stale nonces, replayed nonces, cross-school devices, and QR payloads not tied to the active Student Hub device session.
-
-Local authority requirements:
-
-- Class Station must keep a local encrypted cache of roster rows, device bindings, active timetable/session context, and active face templates required for the day's classes.
-- Student Hubs must request QR payloads from the Class Station LAN endpoint, such as `http://class-station.local/api/local/qr/session`, instead of calling the cloud QR API directly.
-- The Class Station must sign every QR payload and every unlock receipt with its station private key. Hubs trust only enrolled station public keys for their school.
-- QR verification must be an atomic local transaction against a one-time nonce table so a scanned QR cannot be replayed by another device.
-- `qr_sessions` in Supabase is a replicated audit table. It must not be required for class-time login.
-- If the internet is unavailable, verified sessions remain valid locally and sync later through the offline event queue.
-- If the Class Station lacks a fresh local roster/template cache for the class, it must fail closed for identity verification and offer the teacher a documented manual attendance fallback, not silently depend on the cloud.
-
-Current implementation correction:
-
-- The existing `/api/auth/qr/generate`, `/api/auth/qr/verify`, and `/api/hardware/face-verify` routes are acceptable for prototype/cloud simulation only.
-- For field deployment, those routes must be moved behind or mirrored by the Class Station local edge service. Cloud routes may accept only signed sync receipts from the station, not participate in the live classroom unlock path.
-
-## 8. Daily Working Flow by User
-
-### 8.1 Admin Daily Flow
-
-Admin workflow:
-
-1. Admin logs in from `/admin`.
-2. Admin reaches central dashboard.
-3. Admin reviews registration requests.
-4. Admin provisions schools when approved.
-5. Admin checks school list, school details, users, subscription status, analytics, logs, nodes, and fleet.
-6. Admin can update global configuration and global promotion window.
-7. Admin reviews platform-level support or operational requests.
-
-Admin report outputs:
-
-| Report / View | Purpose |
-|---|---|
-| Global analytics | Total schools, students, papers, pending requests. |
-| School list | Tenant status and lifecycle view. |
-| Subscription status | Tracks license or plan status. |
-| Fleet dashboard | Hardware node health and update readiness. |
-| System logs | Operational and error traceability. |
-| Snapshots | Platform-level snapshots for monitoring. |
-
-### 8.2 Principal / HOD Daily Flow
-
-Principal/HOD workflow:
-
-1. Principal logs in from Staff Station.
-2. Principal lands on HOD dashboard.
-3. Principal checks attendance compliance and school statistics.
-4. Principal creates teacher or moderator accounts if required.
-5. Principal configures attendance mode.
-6. Principal publishes announcements.
-7. Principal reviews CPD progress.
-8. Principal reviews compliance report card.
-9. Principal opens support ticket if platform support is needed.
-10. Principal runs promotion console when the admin global switch permits it.
-
-Principal reports:
-
-| Report | Data Source | Purpose |
-|---|---|---|
-| NEP 2020 Compliance Card | Attendance, CPD, safety, syllabus coverage | School compliance review. |
-| HOD Snapshots | School analytics and operational data | Leadership dashboard snapshot. |
-| Attendance Summary | Attendance table | Tracks daily and subject-wise compliance. |
-| Staff CPD Report | CPD logs | Tracks teacher development hours. |
-| Promotion Readiness | Promotion service and student records | Checks academic year rollover readiness. |
-
-### 8.3 Moderator Daily Flow
-
-Moderator workflow:
-
-1. Moderator logs in from Staff Station.
-2. Moderator opens content management dashboard.
-3. Moderator uploads or updates syllabus.
-4. Moderator structures curriculum into machine-readable form.
-5. Moderator uploads study materials.
-6. Moderator marks content for AI indexing where required.
-7. Student Hub and Class Station can cache materials for offline use.
-8. Teacher AI generation uses only retrieved, topic-relevant chunks from moderator-approved content as grounding context.
-
-Moderator outputs:
-
-| Output | Purpose |
-|---|---|
-| Syllabus records | AI and teacher context. |
-| Material library | Student study hub and offline resources. |
-| Indexed content | Enables better question generation and retrieval. |
-| Subject filters | Helps students and teachers find material by subject. |
-
-AI content indexing requirement:
-
-- Large PDFs are never sent wholesale to an LLM.
-- Uploaded material is parsed, chunked, embedded, and stored in a vector index such as Supabase `pgvector`.
-- Teacher generation retrieves only the smallest relevant chunk set for the selected class, subject, topic, and competency.
-- AI routes enforce school-level quota, token budget, model allowlist, and prompt/output audit metadata.
-
-### 8.4 Teacher Daily Flow
-
-Teacher workflow:
-
-1. Teacher logs in from Staff Station.
-2. Teacher opens teacher dashboard.
-3. Teacher checks connected students and class status.
-4. Teacher uses classroom tools to prepare lesson/test activity.
-5. Teacher can generate assessment content with AI.
-6. Teacher deploys live test to the class room realtime channel.
-7. Teacher monitors classroom participation.
-8. Teacher reviews submissions or scanned worksheets.
-9. Teacher uses Split-Screen Grader and AI suggestions if needed.
-10. Teacher finalizes marks and feedback.
-11. Final marks contribute to HPC grades and competency metrics.
-
-Teacher reports:
-
-| Report / View | Purpose |
-|---|---|
-| Class Analytics | Class-level performance and engagement. |
-| Live Monitor Grid | Student Hub connection/session status. |
-| Pending Grading | Work that still requires teacher action. |
-| Grading Panel | Manual and AI-assisted evaluation. |
-| HPC Contribution | Competency impact from graded work. |
-
-### 8.5 Student Daily Flow
-
-Student workflow:
-
-1. Student opens Student Hub.
-2. Student identity is verified through Class Station face scan + Student Hub QR.
-3. Student reaches Student Desk.
-4. Student views ongoing session, timetable, and announcements.
-5. Student opens study materials from Study Hub.
-6. Student waits for a live test broadcast when teacher starts an assessment.
-7. Student answers questions on Student Hub.
-8. Student submits final answers before timer ends.
-9. Student sees submission confirmation.
-10. Student later views marks, mastery, and HPC progress.
-
-Student reports:
-
-| Report / View | Purpose |
-|---|---|
-| Student Desk | Daily session, timetable, announcements. |
-| Study Hub | Subject material and offline cache status. |
-| Live Test Completion | Confirms assessment submission. |
-| Holistic Progress Card | Academic, socio-emotional, physical, and vocational progress. |
-| Attendance Rate | Attendance history summary. |
-| Average Grade | Performance from graded work. |
-
-### 8.6 Auditor Daily Flow
-
-Auditor workflow:
-
-1. Auditor logs in through auditor portal.
-2. Auditor opens compliance dashboard.
-3. Auditor views compliance health map.
-4. Auditor reviews institutional metrics.
-5. Auditor generates signed reports.
-6. Auditor checks monthly or yearly compliance status.
-
-Auditor reports:
-
-| Report | Purpose |
-|---|---|
-| Full Academic Year Audit | Complete annual institutional review. |
-| Monthly Compliance Snapshot | Month-level compliance and performance view. |
-| Staff Performance Report | Teaching staff and CPD overview. |
-| Secure Signed Report | Watermarked audit output for inspection. |
-
-## 9. Live Test Working Flow
-
-### 9.1 Test Preparation
-
-Test creation can be manual or AI-assisted.
-
-Teacher preparation sources:
-
-- Moderator-approved syllabus.
-- Uploaded material.
-- Teacher context prompt.
-- Class and subject.
-- Rubric or question pattern.
-
-AI generation route:
-
-`POST /api/ai/generate`
-
-AI controls:
-
-- Requires authenticated staff.
-- Uses rate limiting.
-- Validates input.
-- Intended to run from controlled classroom/staff context.
-
-### 9.2 Test Deployment
-
-Live test deployment must be treated as a server-authorized classroom session, not as a public client broadcast.
-
-Realtime authorization requirement:
-
-- Realtime topics must be tenant-scoped and session-scoped, for example `school:{schoolId}:test_session:{testSessionId}`.
-- Students may subscribe only when their authenticated profile, class membership, verified Student Hub device, and active test session match the topic.
-- Teachers may broadcast only through a server route that validates role, school, class ownership, and stored `test_sessions` state.
-- The public naming pattern `class_room_{classId}` is not sufficient for production because class IDs are guessable.
-
-Broadcast event:
-
-`DEPLOY_TEST`
-
-Live test payload:
-
-| Field | Description |
-|---|---|
-| `title` | Test title shown to student. |
-| `subject` | Subject name. |
-| `durationMinutes` | Timer duration. |
-| `serverStartAt` | Server or Class Station authoritative start timestamp. |
-| `serverEndAt` | Server or Class Station authoritative deadline. |
-| `questions` | List of objective questions. |
-| `question.id` | Question identifier. |
-| `question.question` | Question text. |
-| `question.options` | Options shown to student. |
-
-### 9.3 Student Receives Test
-
-When teacher deploys the test:
-
-1. Student Hub receives `DEPLOY_TEST`.
-2. Live Test Engine opens automatically.
-3. Timer starts.
-4. Questions and options render on Student Hub.
-5. Student selects answers.
-6. Student is warned not to close app or lock screen.
-
-Student Hub restriction:
-
-- The live test screen is only active on Student Hub.
-- If opened outside Student Hub, the UI shows "Student Hub Device Required".
-
-### 9.4 Student Submission
-
-Submission process:
-
-1. Student taps Submit Final Draft.
-2. System starts syncing state.
-3. Student answers are appended to the local offline queue with a Lamport version and device ID.
-4. Student Hub syncs queued events to the server or Class Station when connectivity is available.
-5. The backend validates the active session, device binding, tenant, deadline, and idempotency key.
-6. The backend persists a canonical submission record and answer rows.
-7. UI confirms assessment completion only after a durable receipt, or shows that the local offline vault is waiting for sync.
-
-Current implementation note:
-
-- The current `LiveTestEngine` has the complete student-side UX, timer, answer collection, realtime receive flow, and completion screen.
-- The current `LiveTestEngine` uses a local offline queue and `/api/sync/events` for exam events.
-- Pilot readiness still requires projection from accepted offline exam events into `test_submissions` and `test_answers`.
-- A pilot must not rely on UI-only confirmation; every final submission needs a durable server or Class Station receipt.
-
-Recommended production submission tables:
-
-| Table | Purpose |
-|---|---|
-| `tests` | Stores test header, subject, duration, class, teacher, school. |
-| `test_questions` | Stores question text, options, correct answer, marks, competency tag. |
-| `test_sessions` | Stores deployment instance, start time, end time, class, status. |
-| `test_submissions` | Stores student submission, submitted time, device ID, score status. |
-| `test_answers` | Stores each answer selected by the student. |
-
-Recommended submission record:
-
-| Field | Description |
-|---|---|
-| `id` | Submission ID. |
-| `school_id` | Tenant isolation. |
-| `test_session_id` | Live test deployment instance. |
-| `student_id` | Student profile. |
-| `student_hub_node_id` | Device used for submission. |
-| `class_station_node_id` | Station that verified session. |
-| `answers_json` | Student answers. |
-| `submitted_at` | Timestamp. |
-| `server_received_at` | Authoritative server or Class Station receipt timestamp. |
-| `auto_submitted` | True if timer expired. |
-| `status` | Submitted, graded, returned, disputed. |
-
-Submission acceptance rules:
-
-- Accept duplicate final-submit events idempotently by `event_id` or submission key.
-- Reject events for another school, class, student, or device.
-- Reject submissions received after `serverEndAt + 30 seconds`, except for a signed Class Station offline receipt created before the deadline.
-- Keep raw offline events append-only and update projection tables through a controlled server-side projector.
-
-### 9.5 Auto Submit on Timer End
-
-If timer reaches zero:
-
-1. Class Station or backend compares the authoritative current time with `serverEndAt`.
-2. Student Hub may call auto-submit when its local countdown reaches zero, but this is a convenience only.
-3. Backend accepts or rejects the payload using `serverStartAt`, `serverEndAt`, and a 30-second grace period.
-4. Student work is marked complete only after durable receipt or a signed station offline receipt.
-5. UI shows completion status based on receipt state.
-
-Recommended production behavior:
-
-- Save incremental draft answers every few seconds.
-- Save local offline draft if network drops.
-- On timer end, submit last synced draft.
-- Mark as `auto_submitted = true`.
-- Record device heartbeat and connectivity status.
-- Never trust browser time, paused JavaScript, or a client-controlled countdown as the assessment authority.
-
-## 10. Grading and Evaluation Flow
-
-### 10.1 Objective Test Grading
-
-For objective live tests:
-
-1. Teacher deploys MCQ or objective test.
-2. Student answers from Student Hub.
-3. System stores answers.
-4. System compares answers with answer key.
-5. System calculates score.
-6. Teacher can review exceptions or manually adjust.
-7. Final score goes to `hpc_grades`.
-8. Competency metrics update `hpc_competencies`.
-
-### 10.2 Worksheet / Subjective Grading
-
-Teacher uses Split-Screen Grader for scanned worksheets.
-
-Workflow:
-
-1. Teacher opens grading panel.
-2. Teacher scans worksheet using Class Station camera.
-3. Scanned image appears on the left panel.
-4. Teacher clicks AI suggestion or scanner triggers AI grading.
-5. Image is sent to `/api/ai/vision-grade`.
-6. Gemini extracts text and returns evaluation suggestions.
-7. Teacher reviews suggested score and feedback.
-8. Teacher adjusts scores manually if required.
-9. Teacher writes personalized feedback.
-10. Teacher submits and finalizes grade.
-
-Rubric example:
-
-| Criterion | Purpose |
-|---|---|
-| Conceptual clarity | Understanding of topic. |
-| Linguistic accuracy | Language and expression. |
-| Presentation and flow | Cleanliness and structure. |
-
-Important rule:
-
-AI can suggest. Teacher finalizes.
-
-### 10.3 HPC Integration
-
-After grades are finalized:
-
-| Data | Destination |
-|---|---|
-| Marks | `hpc_grades` |
-| Competency score | `hpc_competencies` |
-| Feedback | Grade feedback / report remarks |
-| Skill evidence | Skill or vocational metric where applicable |
-| Attendance relation | Attendance and engagement analytics |
-
-HPC categories:
-
-- Academic achievement.
-- Socio-emotional pulse.
-- Physical and vocational development.
-- Vocational skill map.
-- Attendance and participation indicators.
-
-## 11. Report Generation and Visibility
-
-### 11.1 Student Reports
-
-Student reports are visible from the Student Hub dashboard.
-
-Student report components:
-
-| Component | Details |
-|---|---|
-| Holistic Progress Card | Shows NEP 2020 aligned 360-degree evaluation. |
-| Academic Achievement | Competency-based academic mastery. |
-| Socio-Emotional Pulse | Collaboration, empathy, and peer interaction. |
-| Physical and Vocational | Health, sports, and skill acquisition. |
-| Vocational Skill Map | Bagless day / internship progress. |
-| Attendance Rate | Derived from attendance records. |
-| Average Grade | Derived from HPC grades. |
-| Material Status | Cached/offline-ready study files. |
-
-Student report data sources:
-
-- `attendance`
-- `hpc_grades`
-- `hpc_competencies`
-- `materials`
-- `timetable`
-- `announcements`
-- `skill metrics`
-
-### 11.2 Teacher Reports
-
-Teacher report components:
-
-| Component | Details |
-|---|---|
-| Connected students | Count of students linked to school/class. |
-| Pending grading | Count of grade records requiring completion. |
-| Class health snapshot | Academic, socio-emotional, and physical mastery aggregate. |
-| Live monitor | Student Hub heartbeat and activity view. |
-| AI grading result | Extracted text, feedback, suggested marks. |
-| Final grade sheet | Teacher-approved marks and comments. |
-
-Teacher report data sources:
-
-- `profiles`
-- `student_sessions`
-- `hpc_grades`
-- `hpc_competencies`
-- `cpd_logs`
-- `attendance`
-
-### 11.3 Principal / HOD Reports
-
-Principal/HOD report components:
-
-| Component | Details |
-|---|---|
-| Attendance Compliance | Current day or policy-based attendance health. |
-| Syllabus Coverage | Coverage status from moderator and teacher activity. |
-| Teacher CPD Hours | Average professional development hours. |
-| Safety Audit | School safety compliance status. |
-| Academic Performance Analytics | Competency distribution across grades. |
-| Institutional Health Pulse | Infrastructure, sanitation, and compliance view. |
-| Staff Competency Log | Staff development summary. |
-
-Report generation:
-
-- The Compliance Report Generator aggregates school stats.
-- It can produce a printable audit view.
-- The report is intended for board inspections and annual institutional reviews.
-
-### 11.4 Admin Reports
-
-Admin report components:
-
-| Component | Details |
-|---|---|
-| Total schools | Count of provisioned tenants. |
-| Total students | Count of student profiles. |
-| Total papers | Count of generated or stored papers. |
-| Pending requests | Count of school registration requests. |
-| Fleet status | Hardware node health and update status. |
-| System logs | Platform activity and errors. |
-| Subscription status | Plan and license tracking. |
-
-Admin report data sources:
-
-- `schools`
-- `profiles`
-- `exam_papers`
-- `registration_requests`
-- `hardware_nodes`
-- `fleet_deployments`
-- `system_logs`
-
-### 11.5 Auditor Reports
-
-Auditor report types:
-
-| Report Type | Description |
-|---|---|
-| Full Academic Year Audit | Complete school-year compliance and academic review. |
-| Monthly Compliance Snapshot | Month-level compliance status. |
-| Staff Performance Report | Staff performance and CPD review. |
-| Secure Signed Report | Cryptographically signed, watermarked PDF-style report. |
-
-Auditor review areas:
-
-- Attendance compliance.
-- HPC progress.
-- Engagement heatmap.
-- Institutional performance.
-- Staff development.
-- Safety and school health.
-
-## 12. Data Flow From Test to Reports
-
-```mermaid
-flowchart TD
-  A[Teacher deploys test] --> B[Student Hub receives test]
-  B --> C[Student selects answers]
-  C --> D[Student submits]
-  D --> E[Test submission stored]
-  E --> F[Auto grading or teacher review]
-  F --> G[Final grade stored]
-  G --> H[Competency records updated]
-  H --> I[Student HPC updated]
-  H --> J[Teacher class analytics updated]
-  H --> K[Principal compliance and academic reports updated]
-  H --> L[Auditor reports updated]
-  H --> M[Admin global analytics updated]
-```
-
-## 13. Database and Storage Areas
-
-Important current tables and intended responsibilities:
-
-| Table | Responsibility |
-|---|---|
-| `profiles` | Central identity for all users, including role and school binding. |
-| `schools` | Tenant metadata, school code, school name, plan, settings. |
-| `attendance` | Daily or subject-wise attendance records. |
-| `hpc_grades` | Marks and teacher grading records. |
-| `hpc_competencies` | NEP competency and mastery metrics. |
-| `materials` | Uploaded study material and cache/index status. |
-| `syllabus` | Curriculum structure and AI grounding context. |
-| `announcements` | School announcements shown to students/staff. |
-| `student_sessions` | Student Hub heartbeat and live session monitoring. |
-| `qr_sessions` | Cloud replica of local Class Station QR login/session verification receipts. Not a class-time dependency. |
-| `hardware_nodes` | Student Hub and Class Station registration and heartbeat. |
-| `fleet_releases` | EduOS release versions. |
-| `fleet_deployments` | OTA deployment status per hardware node. |
-| `support_tickets` | HOD/admin support workflow. |
-| `system_logs` | Local operational event view only; compliance audit evidence must be streamed to an immutable external sink. |
-| `cpd_logs` | Teacher professional development hour records. |
-| `offline_events` | Append-only event source for offline-first classroom writes. |
-
-Recommended additions for complete test submission persistence:
-
-| Table | Reason |
-|---|---|
-| `tests` | Store assessment metadata. |
-| `test_questions` | Store questions/options/answer key. |
-| `test_sessions` | Store each deployment of a test to a class. |
-| `test_submissions` | Store student test-level submission. |
-| `test_answers` | Store question-level answers. |
-| `test_audit_events` | Store start, sync, submit, auto-submit, reopen, and grading events. |
-
-Immutable audit requirement:
-
-- Database `system_logs` are useful for dashboards but are not sufficient as the source of truth for government compliance.
-- Security, provisioning, test lifecycle, grading, QR, AI, and hardware events must be streamed to WORM-capable storage such as AWS CloudWatch Logs with retention lock, S3 Object Lock, Datadog archive, or another immutable sink.
-- Application admins must not have permission to delete or rewrite the external audit record.
-- Each local audit event should include a correlation ID, actor, school, device, hash, previous hash where applicable, and external sink acknowledgement.
-
-## 14. Security and Tenant Isolation
-
-Current security controls:
-
-| Control | Purpose |
-|---|---|
-| Role-based route access | Users reach only role-appropriate dashboards. |
-| Code login role filters | Prevents wrong portal login. |
-| School code verification | Ensures user belongs to selected school. |
-| Supabase Auth | Provides session authentication. |
-| Service role server-only use | Sensitive user creation happens on backend. |
-| RLS policies | Database tenant isolation. |
-| Rate limiting | Protects login, QR, registration, and AI routes. |
-| Hardware node secrets | Protects hardware telemetry and update checks. |
-| QR session verification | Binds Student Hub session to classroom verification. |
-| Append-only offline events | Preserves offline classroom writes before projection into reporting tables. |
-
-Recommended production security controls:
-
-- Signed Student Hub identity token.
-- Signed Class Station identity token.
-- Device challenge-response instead of header-only device checks.
-- Full RLS test suite for every table.
-- Immutable audit log for test lifecycle.
-- External WORM audit sink for compliance-critical logs.
-- Encrypted storage for sensitive student evidence.
-- Redaction for AI logs and scanned worksheet data.
-- Parent/student consent model for face verification.
-- Realtime authorization for every classroom channel.
-- Server or Class Station enforced test deadlines.
-- Rotating QR nonce verification with replay protection.
-- Class Station local signing keys for QR payloads, unlock receipts, and deferred sync batches.
-- Local encrypted cache for roster, device binding, timetable, and face templates needed for offline authentication.
-
-## 15. Hardware-Assisted Classroom Flow
-
-### 15.1 Before Class
-
-1. Student Hub boots EduOS.
-2. Student Hub opens locked PWA shell.
-3. Student Hub sends heartbeat to Class Station if reachable and queues cloud heartbeat if internet is unavailable.
-4. Class Station boots EduOS.
-5. Class Station sends heartbeat and opens the local classroom authority service.
-6. Class Station verifies that roster, face templates, device bindings, timetable, and study material caches are fresh enough for the day's classes.
-7. Study materials are served from cache if cloud connectivity is unavailable.
-
-### 15.2 During Class
-
-1. Student Hub displays student session QR.
-2. Student stands before Class Station.
-3. Class Station scans student face.
-4. Class Station scans QR from Student Hub.
-5. Class Station verifies student identity and device session locally.
-6. Teacher starts class activity.
-7. Student receives class tools, study notes, or live test.
-
-### 15.3 During Test
-
-1. Teacher deploys test.
-2. Student Hub receives test.
-3. Student answers.
-4. Timer counts down.
-5. Student submits or auto-submit happens.
-6. Submission is synced.
-7. Teacher sees submission status.
-
-### 15.4 After Test
-
-1. Teacher reviews objective or subjective answers.
-2. AI can assist with OCR or rubric suggestions.
-3. Teacher finalizes marks.
-4. HPC updates.
-5. Reports update for student, teacher, principal, auditor, and admin.
-
-## 16. User-Wise Report Access Matrix
-
-| Report / Data | Admin | Principal/HOD | Teacher | Moderator | Student | Auditor |
-|---|---:|---:|---:|---:|---:|---:|
-| Global school count | Yes | No | No | No | No | Yes, if granted |
-| School staff list | Yes | Yes | Limited | No | No | View-only if granted |
-| Student list | Yes | Yes | Class-limited | No | No | View-only |
-| Attendance report | Yes | Yes | Class-limited | No | Own summary | Yes |
-| Live test status | No/optional | Yes | Yes | No | Own test only | Optional |
-| Test submission | No/optional | Yes | Yes | No | Own submission | View-only |
-| Grade sheet | No/optional | Yes | Yes | No | Own grade | View-only |
-| HPC report | Aggregate | School aggregate | Class/student | No | Own HPC | Aggregate/view-only |
-| CPD report | Aggregate | Yes | Own CPD | Own CPD | No | Yes |
-| Content library | Yes | Yes | Yes | Yes | Read-only | View-only |
-| Compliance report | Yes | Yes | Limited | No | No | Yes |
-| Hardware fleet | Yes | School devices | Class devices | No | Assigned hub status | View-only |
-| System logs | Yes | Limited support logs | No | No | No | View-only if granted |
-
-## 17. Report Lifecycle After Student Test Submission
-
-After a test is submitted, the reporting chain should update in this order:
-
-1. Submission confirmation: Student sees completion screen.
-2. Submission record: System stores student answers and timestamp.
-3. Teacher queue: Submission appears in teacher grading/pending review.
-4. Auto scoring: Objective answers are scored automatically.
-5. Manual review: Teacher reviews subjective or flagged answers.
-6. AI assistance: Teacher may use OCR and AI grading suggestion.
-7. Finalization: Teacher submits final grade and feedback.
-8. HPC update: Academic and competency metrics update.
-9. Student report: Student HPC and grade view refresh.
-10. Class report: Teacher class analytics refresh.
-11. School report: Principal compliance and academic report refresh.
-12. Audit report: Auditor can generate updated report.
-13. Admin analytics: Platform aggregate counts refresh.
-
-## 18. Current Implementation Status
-
-Implemented or present:
-
-- Admin login and dashboard surfaces.
-- School provisioning API.
-- Principal account creation during provisioning.
-- Principal staff creation API for teachers and moderators.
-- Code-based login with role checks.
-- Role-based dashboard routing.
-- Student Hub dashboard surface.
-- Student Desk with timetable and announcements.
-- Study Hub with material listing and offline-ready indicators.
-- Live Test Engine with realtime receive, timer, answer selection, submit button, auto-submit trigger, local offline queue, and sync event posting.
-- Teacher Split-Screen Grader.
-- Worksheet scanner and AI grading route.
-- HPC Viewer for student progress.
-- Compliance report generator for HOD.
-- Auditor report generator.
-- Hardware handshake, telemetry, and update-check routes.
-- QR generation and verification routes.
-- Local Class Station QR session and verification routes under `/api/local/qr/*`.
-- EduOS hardware model for Student Hub and Class Station.
-
-Pilot-blocking gaps to close before any B2G field deployment:
-
-- Accepted offline exam events must be projected into `test_submissions` and `test_answers`.
-- Teacher deployment UI should persist test definitions and broadcast from stored test sessions.
-- Auto grading should write directly to grade draft records before teacher finalization.
-- Test deadline enforcement must move from client countdown to backend/Class Station authority.
-- Classroom Realtime channels must enforce authorization and must not use guessable public channel names.
-- QR generation, face verification, nonce verification, and session unlock must run on the Class Station local edge service; cloud QR routes must become prototype-only or post-class sync endpoints.
-- QR verification must use rotating signed nonces, one-time replay protection, local station receipts, and deferred Supabase replication.
-- Password delivery must use secure out-of-band channels and no API response may include plaintext credentials.
-- AI generation must use RAG chunk retrieval and token quotas instead of whole-document prompting.
-- Compliance audit events must stream to an immutable external sink.
-
-## 19. Recommended Production Completion Checklist
-
-Account and identity:
-
-- Add full student roster import.
-- Add student login code generation.
-- Add parent/guardian contact fields if required.
-- Add first-login password reset for staff and students.
-- Add account disable/suspend workflow.
-
-Test submission:
-
-- Add `tests`, `test_questions`, `test_sessions`, `test_submissions`, and `test_answers`.
-- Add a projector from accepted `offline_events` with `stream_type = 'exam'` into submission and answer tables.
-- Save draft answers periodically.
-- Support offline draft cache on Student Hub.
-- Add auto-submit reason and device heartbeat snapshot.
-- Enforce `serverStartAt`, `serverEndAt`, and 30-second grace on the backend/Class Station.
-- Add teacher review status.
-- Add grade finalization history.
-
-Reports:
-
-- Generate downloadable student HPC PDF.
-- Generate class-level test result PDF/CSV.
-- Generate principal academic report PDF.
-- Generate auditor signed report PDF.
-- Add report ID, generated by, generated at, school ID, and hash.
-
-Security:
-
-- Replace soft device headers with signed device identity.
-- Add full audit event trail for account creation and tests.
-- Add RLS tests for every table.
-- Add per-school AI quota.
-- Add storage lifecycle policy for scanned worksheets.
-- Add Realtime Authorization policies for classroom topics.
-- Add Class Station local QR authority with rotating nonce storage, replay rejection, signed unlock receipts, and deferred cloud sync.
-- Add external WORM audit export with retention policy.
-
-Operations:
-
-- Add production health endpoint.
-- Add structured logs with correlation IDs.
-- Add backup and restore runbook.
-- Add incident response policy for student data.
-- Add monitoring for hardware fleet heartbeat failure.
-- Add a classroom cache freshness dashboard so teachers know before class whether offline login can run without internet.
-
-## 20. Conclusion
-
-EduPortal provides a connected working model for the complete school journey: school onboarding, principal creation, staff provisioning, student device workflow, classroom verification, live tests, teacher grading, AI support, HPC generation, compliance review, and platform-level reporting.
-
-The strongest product idea is the combination of cloud school operations with two classroom devices:
-
-- Student Hub without camera for safer student desk usage.
-- Class Station with camera for centralized face verification and classroom scanning.
-
-This design keeps the student interface focused while allowing secure classroom identity, test delivery, worksheet scanning, and report generation. The remaining technical priority is not another dashboard; it is to complete the classroom edge data plane: local Class Station QR authority, durable offline-first submissions, server/Class Station enforced deadlines, authorized Realtime channels, replay-proof QR verification, RAG-limited AI generation, and immutable audit export.
+| High | Credential delivery | Jobs exist, browser no longer receives secrets | Integrate real SMS/email/reset provider and delivery audit |
+| High | Auth/database partial failure | Documented as non-atomic | Complete idempotent provisioning job runner and verified cleanup |
+| High | Offline exam projection | Append-only sync exists | Ensure projections into `test_submissions`, `test_answers`, HPC, and audit tables are durable |
+| High | Device key protection | Signed requests exist | Add timestamp freshness, rotation, revocation, secure storage |
+| High | Local QR trust | Signed local QR exists | Replace shared HMAC with per-station keys for production |
+| Medium | AI context control | AI endpoints are rate-limited | Add RAG chunk retrieval and source-bound generation |
+| Medium | Immutable compliance logs | Reports exist | Stream critical events to WORM-capable external audit storage |
+| Medium | EduOS kiosk hardening | Image/scripts exist | Lock compositor escape paths, debug ports, and reset behavior |
+
+## 24. Conclusion
+
+The current EduPortal codebase is no longer only a web dashboard. It now contains the core pieces of a school operating platform: tenant provisioning, role-based portals, staff management, AI-assisted assessment, offline-first test recovery, append-only sync, local classroom QR authority, signed hardware requests, face embedding verification, APAAR/ABC learner identity, hub distribution, and EduOS deployment assets.
+
+The next engineering focus should be productionizing delivery and trust boundaries: secure credential delivery, provisioning compensation, durable event projections, station key management, immutable audit export, and fully hardened EduOS kiosk deployment.

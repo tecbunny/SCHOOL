@@ -1,3 +1,12 @@
+-- EDUPORTAL MAINTENANCE / RESET SCRIPT
+-- Use only when you intentionally want to clear local/dev data.
+-- This combines the old clear_all_data.sql and auth_del.sql helpers into one file.
+
+
+-- ============================================================
+-- From clear_all_data.sql
+-- ============================================================
+
 -- EDUPORTAL DATA CLEAR SCRIPT
 -- Clears application data only. It intentionally skips auth.users.
 -- Run supabase/system.sql for schema/setup, and this file only when data must be wiped.
@@ -46,3 +55,23 @@ BEGIN
 END $$;
 
 SELECT 'EduPortal application data cleared. auth.users was not touched.' as status;
+
+-- ============================================================
+-- From auth_del.sql
+-- ============================================================
+
+-- Deletes all Supabase Auth users without resetting auth-owned sequences.
+-- This avoids "must be owner of sequence refresh_tokens_id_seq" errors that
+-- can happen with TRUNCATE ... RESTART IDENTITY in hosted Supabase.
+--
+-- WARNING: public.profiles references auth.users ON DELETE CASCADE in this app,
+-- so deleting auth.users also deletes linked profiles and dependent rows.
+
+BEGIN;
+
+DELETE FROM auth.sessions;
+DELETE FROM auth.refresh_tokens;
+DELETE FROM auth.identities;
+DELETE FROM auth.users;
+
+COMMIT;

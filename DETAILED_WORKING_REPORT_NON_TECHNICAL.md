@@ -7,134 +7,217 @@ Project handled by: Co-founder Shubham Bhisaji
 Email: shubham@tecbunny.com  
 Mobile: +91 7387375651  
 
-## 1. Purpose
+## 1. What EduPortal Is
 
-This report explains EduPortal in simple business and operational language. It is meant for school owners, principals, investors, partners, and non-technical stakeholders who need to understand what the system does, why it matters, and how it works in daily school life.
+EduPortal is a complete school operating system. It connects school administration, principals, teachers, students, assessments, reports, AI assistance, compliance, and classroom devices into one workflow.
 
-EduPortal is a connected school operating system. It brings school administration, teacher workflows, student learning, assessments, reports, AI assistance, and classroom devices into one managed platform.
+The goal is simple: schools should not need one tool for admissions, another for attendance, another for tests, another for report cards, another for learning material, and another for classroom devices. EduPortal brings these daily school activities into one connected system.
 
-## 2. The Problem EduPortal Solves
+## 2. What Has Been Updated
 
-Most schools use separate tools for admissions, attendance, tests, report cards, learning material, compliance, and communication. Teachers often repeat manual work, school leaders do not get real-time visibility, and students depend on fragmented apps or paper workflows.
+The current project files show that EduPortal has moved beyond a basic dashboard. The system now includes:
 
-EduPortal solves this by creating one connected loop:
+- Secure school provisioning.
+- Principal, teacher, moderator, student, auditor, and admin workflows.
+- Staff account creation without exposing passwords in the browser.
+- Offline-ready live tests.
+- Local classroom QR login that can work even when internet is weak.
+- Student Hub and Class Station device model.
+- Face verification through classroom station devices.
+- Hardware request signing to stop fake device requests.
+- APAAR/ABC student identity support.
+- Grade version protection.
+- Hub checkout and lock workflow for shared classroom devices.
+- AI support for question generation, worksheet reading, and grading help.
+- Compliance, engagement, HPC, and audit-oriented reporting tools.
 
-1. School is onboarded.
-2. Staff and students receive role-based access.
-3. Teachers run classes, tests, and grading.
-4. Students complete learning and assessment activities.
-5. Reports, progress cards, attendance, and compliance data update automatically.
-6. School leaders and auditors get clear dashboards and exports.
+## 3. The Problem It Solves
 
-## 3. Main Users
+Many schools have software, but the daily school loop is still broken:
 
-| User | What They Do |
+- Administration data is separate from classroom activity.
+- Teachers repeat attendance, test, grading, and report work manually.
+- Students use disconnected apps, paper, or shared devices without proper identity control.
+- School leaders do not get a live picture of what is happening.
+- Offline classrooms struggle when internet drops.
+- AI tools are often separate from the actual school records.
+
+EduPortal solves this by connecting the school office, classroom, student desk, teacher workflow, AI assessment, and reports.
+
+## 4. Main Users
+
+| User | What They Can Do |
 |---|---|
-| Admin | Creates schools, manages subscriptions, monitors platform activity, and controls global settings. |
-| Principal / HOD | Manages staff, attendance rules, timetable, promotions, school operations, compliance, and reports. |
-| Teacher | Runs classes, prepares tests, grades work, tracks student performance, and uses AI support. |
-| Moderator | Uploads syllabus, study material, and learning content. |
-| Student | Logs in, attends learning sessions, receives tests, submits work, and views progress. |
-| Auditor | Reviews school performance, compliance health, engagement, and signed reports. |
-| Hardware Node | Supports classroom identity, offline access, QR sessions, device health, and test delivery. |
+| Admin | Create schools, approve requests, manage subscriptions, view analytics, manage fleet and settings |
+| Principal/HOD | Create staff, configure rules, manage timetable, view school operations, reports, promotions, and compliance |
+| Teacher | Run classes, deploy tests, monitor students, scan worksheets, grade work, and view class analytics |
+| Moderator | Upload syllabus, study material, and learning content |
+| Student | Study, take live tests, submit answers, view timetable/materials, and see progress |
+| Auditor | Review compliance health, engagement, analytics, and generated reports |
+| Hardware Device | Supports classroom identity, offline access, test delivery, telemetry, and updates |
 
-## 4. How the Platform Works
+## 5. How a School Starts
 
-EduPortal has three connected layers:
+1. The admin creates a school using its U-DISE code.
+2. The principal account is created automatically.
+3. The principal receives login access through a secure delivery process.
+4. The principal logs in and creates teacher and moderator accounts.
+5. Teachers and moderators start preparing classes, material, timetable, and assessments.
+6. Students use the student portal or Student Hub device.
+7. Reports begin to build from real school activity.
 
-| Layer | Meaning |
-|---|---|
-| Central Cloud Layer | The main control system for school onboarding, subscriptions, analytics, global settings, and platform health. |
-| School Operations Layer | The daily workspace for principals, teachers, moderators, and school teams. |
-| Classroom Edge Layer | EduOS classroom devices that support student access, identity checks, tests, offline materials, and classroom activity. |
-
-In simple terms, the cloud manages the school, the staff portal runs daily operations, and the classroom devices make the system usable inside real classrooms even when connectivity is imperfect.
-
-## 5. School Onboarding Flow
-
-The Admin creates a school tenant and configures the school profile. A principal account is generated for the school. The principal then creates staff accounts, defines school rules, and prepares the operational setup.
-
-After onboarding:
-
-- Teachers can access class tools.
-- Moderators can upload syllabus and material.
-- Students can log in through the student portal or Student Hub.
-- Hardware devices can be connected to the school.
-- Reports and dashboards begin collecting activity data.
+Important update: passwords are no longer shown back in the browser during account creation. The system is designed so credentials are delivered through a secure channel.
 
 ## 6. Daily School Workflow
 
-A normal school day in EduPortal looks like this:
+A normal day inside EduPortal works like this:
 
 1. Staff log in to the school workspace.
-2. Teachers prepare lessons, material, attendance, and tests.
+2. Teachers open their class tools.
 3. Students access the Student Desk or classroom Student Hub.
-4. Class Station verifies student identity using face and QR flow.
-5. Teacher starts a test or class activity.
-6. Students complete and submit work.
-7. Teacher grades manually or with AI help.
-8. Marks, attendance, competencies, and reports update for the school.
-
-This reduces repeated manual work and gives leadership a clearer view of what is happening across classes.
+4. The Class Station verifies the student using face and QR flow.
+5. Teacher starts class activity or live test.
+6. Student work is saved continuously.
+7. If power or internet drops, the test state can recover from local storage.
+8. Final submission syncs when the system is available.
+9. Teacher grades manually or with AI help.
+10. Progress, reports, compliance, and analytics update.
 
 ## 7. Student Hub and Class Station
 
-EduPortal uses a two-device classroom model:
+EduPortal uses two classroom device types.
 
-| Device | Role |
+| Device | Meaning |
 |---|---|
-| Student Hub | Student-facing locked learning surface used for timetable, material, tests, submissions, and progress. |
-| Class Station | Teacher/classroom station with camera, QR scanning, local cache, identity verification, and classroom control. |
+| Student Hub | A student desk device for study, tests, timetable, materials, and progress |
+| Class Station | A classroom device controlled by teacher/school for QR scanning, face verification, local cache, and device management |
 
-The Student Hub does not need a camera. The Class Station handles face verification and scans the Student Hub QR. This keeps identity verification controlled at the classroom level and helps schools manage device privacy and supervision.
+Why two devices:
 
-## 8. Assessment and Reporting
+- Student Hubs do not need cameras.
+- The Class Station handles face verification in one supervised place.
+- Classroom login can continue locally even during internet issues.
+- Schools can check out hubs to students and lock them again at the end of class.
 
-EduPortal supports the full test workflow:
+## 8. Classroom Login Flow
 
-1. Teacher creates or deploys a test.
-2. Student receives the test on the Student Hub or portal.
-3. Student submits answers.
-4. Teacher reviews submissions.
-5. AI can assist with OCR, grading suggestions, and rubric-based feedback.
-6. Final marks update student records.
-7. Progress cards and reports are generated for stakeholders.
+The current login flow is designed for real classrooms:
 
-Reports can support teachers, principals, students, auditors, and admins.
+1. Student Hub asks the Class Station for a QR session.
+2. Class Station creates a signed QR code.
+3. Student Hub displays it.
+4. Class Station verifies the student's face.
+5. Class Station scans/verifies the QR.
+6. Student Hub receives a signed unlock receipt.
+7. Student can continue into the classroom session.
 
-## 9. AI Role
+This is important because the student device does not need to depend on Supabase/cloud QR unlock during an internet outage.
 
-AI is used as an assistant, not as an uncontrolled replacement for teachers. It helps with:
+## 9. Live Tests and Offline Protection
+
+The live test system now protects students better.
+
+Current behavior:
+
+- Answers save as the student works.
+- Test state is saved in browser storage and IndexedDB.
+- A refresh, app suspend, or low-memory device event should not immediately destroy the student's progress.
+- Submissions retry in the background.
+- Test timing uses server/station-issued deadline information.
+- The system records whether a submission is late instead of trusting only the student's screen timer.
+
+This is a major improvement for classrooms where Wi-Fi, power, or device memory may be unreliable.
+
+## 10. Student Identity and APAAR/ABC
+
+EduPortal now supports a better student identity model.
+
+Instead of treating a student only as a record inside one school, the platform can link a student profile to APAAR/ABC identity and separate that from school enrollment.
+
+This helps with:
+
+- Transfers between schools.
+- Alumni records.
+- Long-term progress history.
+- Holistic Progress Card continuity.
+
+## 11. AI Assistance
+
+AI is used to help teachers and schools, not to replace final teacher judgment.
+
+AI-supported workflows include:
 
 - Question paper generation.
-- Worksheet scanning.
-- Subjective answer support.
-- Rubric-based grading suggestions.
-- Learning material assistance.
-- Report preparation.
+- Worksheet text extraction.
+- Vision-based grading suggestions.
+- Rubric-based feedback.
+- Study and assessment support.
 
-Teachers and school staff remain responsible for final decisions.
+The system also includes rate limits and role controls so students cannot use AI to generate full exam papers.
 
-## 10. Business Value
+## 12. Reports and Compliance
 
-EduPortal creates value by reducing fragmentation in school operations. Instead of separate tools for each function, schools get one connected system for administration, classroom execution, assessment, AI support, hardware, and reporting.
+EduPortal supports reporting for multiple stakeholders:
 
-The key benefits are:
+- Teachers can view class and assessment progress.
+- Principals can view school operations and snapshots.
+- Students can view HPC progress.
+- Auditors can review compliance health and generated reports.
+- Admins can view platform-level analytics and school activity.
 
-- Less manual repetition for teachers.
-- Better visibility for principals.
-- More structured student progress tracking.
-- Cleaner compliance and audit data.
-- Offline-ready classroom support.
-- Scalable school onboarding.
-- Stronger link between school ERP and actual classroom activity.
+The current system also has the foundation for stronger audit logs. The next production step is to stream critical logs to an immutable audit storage system.
 
-## 11. Investment and Growth Context
+## 13. Hardware Trust
 
-The pitch deck positions EduPortal around a ₹1 Cr seed ask. The use of funds is intended to support product completion, hardware pilots, sales onboarding, cloud and AI infrastructure, and operational compliance.
+The hardware layer has been strengthened.
 
-The first growth goal is to prove the platform through school pilots, then expand into school clusters and larger networks.
+Class Stations and other hardware nodes can now use signed requests. This means the server can check that a request really came from a registered device, not from someone pretending to be a device.
 
-## 12. Conclusion
+This protects:
 
-EduPortal is designed to become the operating layer for schools. It connects the people, workflows, data, devices, and reports that schools need every day. The platform is not only a dashboard; it is a complete school workflow system that reaches from central administration to the classroom desk.
+- Telemetry.
+- Face verification.
+- Update checks.
+- Sensitive classroom hardware actions.
+
+## 14. Business Value
+
+EduPortal creates value in five ways:
+
+| Area | Value |
+|---|---|
+| School operations | Less manual work and fewer disconnected systems |
+| Teachers | Faster test, grading, worksheet, and classroom workflows |
+| Students | More reliable access to study, tests, and progress |
+| Leadership | Better visibility into daily school activity |
+| Investors/partners | A product that combines SaaS, AI, and classroom hardware |
+
+## 15. Current Investment Context
+
+The pitch deck is positioned around a Rs. 1 Cr seed ask, including convertible-note possibility. The goal is to fund product completion, pilot hardware, school onboarding, cloud/AI infrastructure, and go-to-market execution.
+
+The near-term plan is:
+
+1. Complete pilot readiness.
+2. Run 5-10 school pilots.
+3. Prove teacher usage, device reliability, and school reporting.
+4. Build a 50-school pipeline.
+5. Prepare for a larger institutional round.
+
+## 16. Remaining Work Before Strong Pilot Readiness
+
+EduPortal is much stronger than a simple prototype, but these items should be finished before serious B2G or large-network pilots:
+
+- Real secure credential delivery through SMS/email/reset links.
+- Full provisioning recovery if account creation fails halfway.
+- Durable report projections from offline event sync.
+- Stronger device key rotation and revocation.
+- Immutable external audit storage.
+- Production kiosk lockdown for EduOS.
+- AI generation based on approved school content chunks.
+
+## 17. Conclusion
+
+EduPortal now has the shape of a complete school operating platform. It connects administration, classroom devices, teachers, students, AI, assessments, identity, offline workflows, and reports.
+
+The most important current strength is that the platform is designed around real classroom conditions: shared devices, weak connectivity, identity verification, power interruptions, teacher workload, and school-level reporting. The next step is to harden delivery, audit, and device trust for paid pilots.
