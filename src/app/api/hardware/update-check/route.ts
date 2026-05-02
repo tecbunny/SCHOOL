@@ -16,6 +16,16 @@ function compareVersion(left: string, right: string) {
   return 0;
 }
 
+function isMaintenanceWindow(now = new Date()) {
+  const startHour = Number.parseInt(process.env.EDUOS_OTA_WINDOW_START_HOUR ?? "1", 10);
+  const endHour = Number.parseInt(process.env.EDUOS_OTA_WINDOW_END_HOUR ?? "4", 10);
+  const hour = now.getHours();
+
+  if (startHour === endHour) return true;
+  if (startHour < endHour) return hour >= startHour && hour < endHour;
+  return hour >= startHour || hour < endHour;
+}
+
 export async function POST(req: Request) {
   try {
     const bodyText = await req.text();
@@ -50,12 +60,14 @@ export async function POST(req: Request) {
 
     // 2. Compare semantic versions where possible.
     const isNewer = compareVersion(String(latestRelease.version_code), String(currentVersion)) > 0;
+    const withinMaintenanceWindow = isMaintenanceWindow();
+    const updateAllowed = isNewer && (withinMaintenanceWindow || latestRelease.is_mandatory === true);
 
     // 3. Log the check-in from the node
     await supabase.from('fleet_deployments').upsert({
       node_id: auth.node.id,
       release_id: latestRelease.id,
-      status: isNewer ? 'pending' : 'installed',
+      status: updateAllowed ? 'pending' : 'installed',
       updated_at: new Date().toISOString()
     });
 
@@ -64,17 +76,31 @@ export async function POST(req: Request) {
     await logger.log({
       eventType: 'HARDWARE',
       severity: isNewer ? 'info' : 'info',
-      message: `Node ${auth.node.id} checked for updates. Available: ${isNewer}`,
-      metadata: { current_version: currentVersion, release_type: releaseType, update_found: isNewer }
+      message: `Node ${auth.node.id} checked for updates. Available: ${isNewer}. Allowed now: ${updateAllowed}`,
+      metadata: {
+        current_version: currentVersion,
+        release_type: releaseType,
+        update_found: isNewer,
+        update_allowed: updateAllowed,
+        maintenance_window: {
+          start_hour: process.env.EDUOS_OTA_WINDOW_START_HOUR ?? "1",
+          end_hour: process.env.EDUOS_OTA_WINDOW_END_HOUR ?? "4"
+        }
+      }
     });
 
     return NextResponse.json({
-      update_available: isNewer,
+      update_available: updateAllowed,
       version: latestRelease.version_code,
-      url: latestRelease.download_url,
-      checksum: latestRelease.checksum,
+      url: updateAllowed ? latestRelease.download_url : null,
+      checksum: updateAllowed ? latestRelease.checksum : null,
       is_mandatory: latestRelease.is_mandatory,
-      changelog: latestRelease.changelog
+      maintenance_window_active: withinMaintenanceWindow,
+      next_window: {
+        start_hour: process.env.EDUOS_OTA_WINDOW_START_HOUR ?? "1",
+        end_hour: process.env.EDUOS_OTA_WINDOW_END_HOUR ?? "4"
+      },
+      changelog: updateAllowed ? latestRelease.changelog : "Update deferred until the maintenance window."
     });
 
   } catch (err) {

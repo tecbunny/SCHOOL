@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { isStudentHubDevice } from '@/lib/device.client';
+import { loadLiveTestStatesByPrefix, saveLiveTestState } from '@/lib/live-test-vault';
 import {
   Zap,
   Clock,
@@ -23,7 +24,14 @@ type LiveTest = {
   title: string;
   subject: string;
   durationMinutes: number;
+  startsAt?: string;
+  endsAt?: string;
   questions: TestQuestion[];
+};
+
+type DeadlineLiveTest = LiveTest & {
+  startsAt: string;
+  endsAt: string;
 };
 
 type StudentProfile = {
@@ -63,6 +71,8 @@ type PersistedTestState = {
   submitted: boolean;
   acknowledged: boolean;
   timeLeft: number;
+  startsAt: string;
+  endsAt: string;
 };
 
 const STORAGE_PREFIX = 'eduportal.live-test';
@@ -109,6 +119,16 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function withServerDeadline(test: LiveTest, saved?: PersistedTestState | null): DeadlineLiveTest {
+  const startsAt = saved?.startsAt ?? test.startsAt ?? new Date().toISOString();
+  const endsAt = saved?.endsAt ?? test.endsAt ?? new Date(new Date(startsAt).getTime() + test.durationMinutes * 60_000).toISOString();
+  return { ...test, startsAt, endsAt };
+}
+
+function secondsUntil(isoTime: string) {
+  return Math.max(Math.ceil((new Date(isoTime).getTime() - Date.now()) / 1000), 0);
+}
+
 export default function LiveTestEngine({ classId }: { classId: string }) {
   const [testData, setTestData] = useState<LiveTest | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -136,7 +156,11 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
   }, [classId, profile?.id]);
 
   const persistState = useCallback((state: PersistedTestState) => {
-    window.localStorage.setItem(storageKey(state.test), JSON.stringify(state));
+    const key = storageKey(state.test);
+    window.localStorage.setItem(key, JSON.stringify(state));
+    void saveLiveTestState(key, state).catch((error) => {
+      console.warn("Live test IndexedDB vault write failed", error);
+    });
     setPendingCount(state.queue.length);
   }, [storageKey]);
 
@@ -224,14 +248,17 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
 
   const enqueueEvent = useCallback((test: LiveTest, event: Omit<QueuedExamEvent, 'eventId' | 'deviceId' | 'streamId'>) => {
     const existing = readState(test);
+    const deadlineTest = withServerDeadline(test, existing);
     const state: PersistedTestState = existing ?? {
-      test,
+      test: deadlineTest,
       answers: {},
       lamportVersion: 0,
       queue: [],
       submitted: false,
       acknowledged: false,
-      timeLeft
+      timeLeft: secondsUntil(deadlineTest.endsAt),
+      startsAt: deadlineTest.startsAt,
+      endsAt: deadlineTest.endsAt
     };
     const streamId = `${getTestId(test)}:${profile?.id ?? deviceId}`;
 
@@ -247,11 +274,11 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
           streamId
         }
       ],
-      timeLeft
+      timeLeft: secondsUntil(deadlineTest.endsAt)
     });
 
     void flushQueue(test);
-  }, [deviceId, flushQueue, persistState, profile?.id, readState, timeLeft]);
+  }, [deviceId, flushQueue, persistState, profile?.id, readState]);
 
   const handleAnswer = useCallback((question: TestQuestion, option: string) => {
     if (!testData) return;
@@ -261,13 +288,15 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
 
     setAnswers(nextAnswers);
     persistState({
-      test: testData,
+      test: withServerDeadline(testData, previous),
       answers: nextAnswers,
       lamportVersion: nextLamport,
       queue: previous?.queue ?? [],
       submitted: false,
       acknowledged: false,
-      timeLeft
+      timeLeft,
+      startsAt: previous?.startsAt ?? testData.startsAt ?? new Date().toISOString(),
+      endsAt: previous?.endsAt ?? testData.endsAt ?? new Date(Date.now() + testData.durationMinutes * 60_000).toISOString()
     });
     enqueueEvent(testData, {
       action: 'answer_saved',
@@ -287,16 +316,21 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
     const previous = readState(testData);
     const nextLamport = (previous?.lamportVersion ?? 0) + 1;
     const finalAnswers = previous?.answers ?? answers;
+    const deadlineTest = withServerDeadline(testData, previous);
+    const now = new Date();
+    const endsAt = new Date(deadlineTest.endsAt);
 
     setIsSubmitting(true);
     persistState({
-      test: testData,
+      test: deadlineTest,
       answers: finalAnswers,
       lamportVersion: nextLamport,
       queue: previous?.queue ?? [],
       submitted: true,
       acknowledged: false,
-      timeLeft
+      timeLeft: secondsUntil(deadlineTest.endsAt),
+      startsAt: deadlineTest.startsAt,
+      endsAt: deadlineTest.endsAt
     });
     enqueueEvent(testData, {
       action: 'test_submitted',
@@ -306,11 +340,16 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
         class_id: classId,
         answers: finalAnswers,
         answered_count: Object.keys(finalAnswers).length,
-        total_questions: testData.questions.length
+        total_questions: testData.questions.length,
+        starts_at: deadlineTest.startsAt,
+        ends_at: deadlineTest.endsAt,
+        submitted_at: now.toISOString(),
+        server_timer_enforced: true,
+        late_by_seconds: Math.max(Math.ceil((now.getTime() - endsAt.getTime()) / 1000), 0)
       }
     });
     void flushQueue(testData, true);
-  }, [answers, classId, enqueueEvent, flushQueue, isStudentHub, isSubmitting, persistState, readState, testData, timeLeft]);
+  }, [answers, classId, enqueueEvent, flushQueue, isStudentHub, isSubmitting, persistState, readState, testData]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -329,12 +368,21 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
     void loadProfile();
   }, [supabase]);
 
+  const liveTestTopic = useMemo(() => {
+    if (!profile) return null;
+    const profileClass = profile.class_id ?? classId;
+    return `private:school:${profile.school_id}:class:${profileClass}:student:${profile.id}`;
+  }, [classId, profile]);
+
   useEffect(() => {
-    const channel = supabase.channel(`class_room_${classId}`)
+    if (!profile || !liveTestTopic) return;
+
+    const channel = supabase.channel(liveTestTopic, { config: { private: true } })
       .on('broadcast', { event: 'DEPLOY_TEST' }, ({ payload }: { payload: LiveTest }) => {
-        const studentTest = randomizeTestForStudent(payload);
-        const saved = readState(studentTest);
-        setTimeLeft(saved?.timeLeft ?? studentTest.durationMinutes * 60);
+        const randomizedTest = randomizeTestForStudent(payload);
+        const saved = readState(randomizedTest);
+        const studentTest = withServerDeadline(randomizedTest, saved);
+        setTimeLeft(secondsUntil(studentTest.endsAt));
         setTestData(studentTest);
         setIsFinished(Boolean(saved?.acknowledged));
         setIsSubmitting(Boolean(saved?.submitted && !saved.acknowledged));
@@ -347,12 +395,15 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [classId, flushQueue, randomizeTestForStudent, readState, supabase]);
+  }, [flushQueue, liveTestTopic, profile, randomizeTestForStudent, readState, supabase]);
 
   useEffect(() => {
     if (!profile) return;
-    const states = Object.keys(window.localStorage)
-      .filter(key => key.startsWith(`${STORAGE_PREFIX}.${classId}.${profile.id}.`))
+    let cancelled = false;
+    const prefix = `${STORAGE_PREFIX}.${classId}.${profile.id}.`;
+
+    const localStates = Object.keys(window.localStorage)
+      .filter(key => key.startsWith(prefix))
       .map(key => {
         try {
           return JSON.parse(window.localStorage.getItem(key) ?? '') as PersistedTestState;
@@ -361,37 +412,57 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
         }
       })
       .filter((state): state is PersistedTestState => Boolean(state));
-    const saved = states.find(state => !state.acknowledged);
 
-    if (!saved) return;
-    setTestData(saved.test);
-    setAnswers(saved.answers);
-    setTimeLeft(saved.timeLeft);
-    setIsSubmitting(saved.submitted);
-    setPendingCount(saved.queue.length);
-    void flushQueue(saved.test, true);
+    const hydrate = async () => {
+      const vaultStates = await loadLiveTestStatesByPrefix<PersistedTestState>(prefix).catch((error) => {
+        console.warn("Live test IndexedDB vault read failed", error);
+        return [];
+      });
+
+      const saved = [...vaultStates, ...localStates]
+        .filter(state => !state.acknowledged)
+        .sort((a, b) => new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime())[0];
+
+      if (!saved || cancelled) return;
+
+      const restoredTest = withServerDeadline(saved.test, saved);
+      setTestData(restoredTest);
+      setAnswers(saved.answers);
+      setTimeLeft(secondsUntil(restoredTest.endsAt));
+      setIsSubmitting(saved.submitted);
+      setPendingCount(saved.queue.length);
+      void flushQueue(saved.test, true);
+    };
+
+    void hydrate();
+
+    return () => {
+      cancelled = true;
+    };
   }, [classId, flushQueue, profile]);
 
   useEffect(() => {
-    if (testData && timeLeft > 0 && !isFinished) {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => {
-          const next = Math.max(prev - 1, 0);
-          const state = readState(testData);
-          if (state) persistState({ ...state, timeLeft: next });
-          return next;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
+    if (!testData || isFinished) return;
 
+    const timer = setInterval(() => {
+      const state = readState(testData);
+      const endsAt = state?.endsAt ?? testData.endsAt;
+      if (!endsAt) return;
+      const next = secondsUntil(endsAt);
+      setTimeLeft(next);
+      if (state) persistState({ ...state, timeLeft: next });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [testData, isFinished, persistState, readState]);
+
+  useEffect(() => {
     if (timeLeft === 0 && testData && !isFinished) {
       const submitTimer = setTimeout(() => {
         void handleSubmit();
       }, 0);
       return () => clearTimeout(submitTimer);
     }
-  }, [timeLeft, testData, isFinished, handleSubmit, persistState, readState]);
+  }, [timeLeft, testData, isFinished, handleSubmit]);
 
   useEffect(() => {
     const onOnline = () => {

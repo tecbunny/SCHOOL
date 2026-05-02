@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { Building2, ShieldCheck, Loader2, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Building2, Loader2, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProvisionPage() {
   const [udiseCode, setUdiseCode] = useState('');
   const [adminName, setAdminName] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
@@ -21,7 +20,7 @@ export default function ProvisionPage() {
       const res = await fetch('/api/school/provision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ udiseCode, adminName, adminPassword })
+        body: JSON.stringify({ udiseCode, adminName })
       });
       
       const data = await res.json();
@@ -58,7 +57,7 @@ export default function ProvisionPage() {
             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-left mb-8">
               <p className="text-[10px] text-muted uppercase tracking-widest mb-1">Principal Login Code</p>
               <p className="text-xl font-mono text-primary font-bold">{result.principalCode}</p>
-              <p className="text-[10px] text-muted mt-4">Provide this code and the password you set to the school administration.</p>
+              <p className="text-[10px] text-muted mt-4">Initial access is queued for secure delivery. No temporary password is shown in this portal.</p>
             </div>
 
             <Link href="/admin/dashboard" className="btn btn-primary w-full py-4 justify-center">
@@ -88,18 +87,6 @@ export default function ProvisionPage() {
                 className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors"
                 value={adminName}
                 onChange={(e) => setAdminName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-muted">Initial Admin Password</label>
-              <input 
-                type="password" 
-                placeholder="Set a secure password" 
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
                 required
               />
             </div>
