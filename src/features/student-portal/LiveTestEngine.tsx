@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { isStudentHubDevice } from '@/lib/device.client';
+import { loadLiveTestStatesByPrefix, saveLiveTestState } from '@/lib/live-test-vault';
 import {
   Zap,
   Clock,
@@ -155,7 +156,11 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
   }, [classId, profile?.id]);
 
   const persistState = useCallback((state: PersistedTestState) => {
-    window.localStorage.setItem(storageKey(state.test), JSON.stringify(state));
+    const key = storageKey(state.test);
+    window.localStorage.setItem(key, JSON.stringify(state));
+    void saveLiveTestState(key, state).catch((error) => {
+      console.warn("Live test IndexedDB vault write failed", error);
+    });
     setPendingCount(state.queue.length);
   }, [storageKey]);
 
@@ -394,8 +399,11 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
 
   useEffect(() => {
     if (!profile) return;
-    const states = Object.keys(window.localStorage)
-      .filter(key => key.startsWith(`${STORAGE_PREFIX}.${classId}.${profile.id}.`))
+    let cancelled = false;
+    const prefix = `${STORAGE_PREFIX}.${classId}.${profile.id}.`;
+
+    const localStates = Object.keys(window.localStorage)
+      .filter(key => key.startsWith(prefix))
       .map(key => {
         try {
           return JSON.parse(window.localStorage.getItem(key) ?? '') as PersistedTestState;
@@ -404,16 +412,33 @@ export default function LiveTestEngine({ classId }: { classId: string }) {
         }
       })
       .filter((state): state is PersistedTestState => Boolean(state));
-    const saved = states.find(state => !state.acknowledged);
 
-    if (!saved) return;
-    const restoredTest = withServerDeadline(saved.test, saved);
-    setTestData(restoredTest);
-    setAnswers(saved.answers);
-    setTimeLeft(secondsUntil(restoredTest.endsAt));
-    setIsSubmitting(saved.submitted);
-    setPendingCount(saved.queue.length);
-    void flushQueue(saved.test, true);
+    const hydrate = async () => {
+      const vaultStates = await loadLiveTestStatesByPrefix<PersistedTestState>(prefix).catch((error) => {
+        console.warn("Live test IndexedDB vault read failed", error);
+        return [];
+      });
+
+      const saved = [...vaultStates, ...localStates]
+        .filter(state => !state.acknowledged)
+        .sort((a, b) => new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime())[0];
+
+      if (!saved || cancelled) return;
+
+      const restoredTest = withServerDeadline(saved.test, saved);
+      setTestData(restoredTest);
+      setAnswers(saved.answers);
+      setTimeLeft(secondsUntil(restoredTest.endsAt));
+      setIsSubmitting(saved.submitted);
+      setPendingCount(saved.queue.length);
+      void flushQueue(saved.test, true);
+    };
+
+    void hydrate();
+
+    return () => {
+      cancelled = true;
+    };
   }, [classId, flushQueue, profile]);
 
   useEffect(() => {

@@ -171,3 +171,25 @@ Local smoke checks passed:
 - `/admin/provision` returned 200.
 - `/school/student` returned 200.
 - The deprecated `/api/auth/qr/generate` endpoint correctly returned 410.
+
+## 15. IndexedDB Exam Vault Was Added
+
+Round three infrastructure review identified the PWA RAM suspend risk on low-memory Student Hub devices.
+
+The live test engine now writes exam state into an IndexedDB-backed local vault every time the student state changes. The existing `localStorage` mirror remains for fast synchronous reads, but IndexedDB is now the durable source used after browser tab refresh, PWA suspend, process kill, or device memory pressure.
+
+On reload, the Student Hub now scans the IndexedDB vault for unfinished tests, rehydrates the exact saved answers, restores the server-issued deadline, resumes pending sync events, and continues the timer from disk-backed state.
+
+This directly reduces the risk that a 60-minute live test is wiped when Android or the custom Hub OS suspends the browser process.
+
+Changed files:
+
+- `src/lib/live-test-vault.ts`
+- `src/features/student-portal/LiveTestEngine.tsx`
+- `TODAYS_CHANGES_REPORT.md`
+
+Verification after this change:
+
+- `npx tsc --noEmit` passed.
+- `npm run lint` passed with only existing warnings.
+- `npm run build` passed.
