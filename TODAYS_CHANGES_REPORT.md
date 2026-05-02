@@ -129,3 +129,45 @@ Lint passed with only existing warnings.
 Production build passed.
 
 The local QR authority smoke test also passed: one signed QR session was accepted once, and the replay attempt was rejected.
+
+## 13. Critical Audit Flaws Were Remediated In Code
+
+The external architectural audit was reviewed and the directly actionable runtime flaws were patched.
+
+Principal provisioning no longer accepts or exposes a human-entered initial password. The backend now generates the first password internally and creates a secure credential-delivery job, while the admin UI shows only the principal login code and delivery status.
+
+The old cloud QR login endpoints were disabled. `/api/auth/qr/generate` and `/api/auth/qr/verify` now return `410 Gone`, and the student QR modal uses the local Class Station QR authority instead. This prevents the classroom Face + QR unlock flow from depending on Supabase during an internet outage.
+
+The live test engine no longer joins predictable public `class_room_*` Realtime channels. Student Hubs now subscribe to private per-school, per-class, per-student topics, and a new Supabase migration adds RLS policies on `realtime.messages` so only the intended student can receive the live test broadcast.
+
+The live test timer was hardened. Test payloads now carry server-issued `startsAt` and `endsAt` deadlines, local persistence stores those deadlines, and submissions include timing metadata such as `submitted_at`, `ends_at`, timer status, and late seconds. The sync API validates exam submissions and records server-side timing status instead of trusting only the browser countdown.
+
+OTA update checks now respect maintenance windows. Routine device updates are deferred outside the configured OTA window, while mandatory updates can still be allowed. This prevents a large firmware update from disrupting morning classes.
+
+Changed files:
+
+- `src/app/api/school/provision/route.ts`
+- `src/app/admin/(dashboard)/provision/page.tsx`
+- `src/components/school/AuthModals.tsx`
+- `src/app/api/auth/qr/generate/route.ts`
+- `src/app/api/auth/qr/verify/route.ts`
+- `src/features/student-portal/LiveTestEngine.tsx`
+- `src/app/api/sync/events/route.ts`
+- `src/app/api/hardware/update-check/route.ts`
+- `supabase/migrations/20260502_credential_delivery_and_realtime_rls.sql`
+
+## 14. Final Verification After Audit Fixes
+
+The project was checked again after the audit remediation pass.
+
+TypeScript passed with `npx tsc --noEmit`.
+
+Lint passed with only existing warnings.
+
+Production build passed with `npm run build`.
+
+Local smoke checks passed:
+
+- `/admin/provision` returned 200.
+- `/school/student` returned 200.
+- The deprecated `/api/auth/qr/generate` endpoint correctly returned 410.

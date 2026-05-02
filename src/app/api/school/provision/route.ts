@@ -7,13 +7,13 @@ export async function POST(req: Request) {
     const auth = await requireUser(["admin"]);
     if (!auth.ok) return auth.response;
 
-    const { udiseCode, adminName, adminPassword } = await req.json();
+    const { udiseCode, adminName } = await req.json();
 
     if (!udiseCode || udiseCode.length !== 11) {
       return NextResponse.json({ error: "Invalid 11-digit U-DISE code." }, { status: 400 });
     }
-    if (!adminName || typeof adminPassword !== "string" || adminPassword.length < 10) {
-      return NextResponse.json({ error: "Principal name and a stronger initial password are required." }, { status: 400 });
+    if (!adminName || typeof adminName !== "string" || adminName.trim().length < 2) {
+      return NextResponse.json({ error: "Principal name is required." }, { status: 400 });
     }
 
     const service = getServiceClient();
@@ -50,10 +50,11 @@ export async function POST(req: Request) {
     // 3. Provision the Principal Account
     const principalCode = `PR${udiseCode.substring(7)}01`;
     const email = `${principalCode.toLowerCase()}@auth.ssph01.eduportal.internal`;
+    const generatedPassword = `Edu@${crypto.randomUUID().replace(/-/g, '').substring(0, 18)}`;
     
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
-      password: adminPassword,
+      password: generatedPassword,
       email_confirm: true,
     });
 
@@ -79,11 +80,26 @@ export async function POST(req: Request) {
       throw profileError;
     }
 
+    await supabase
+      .from('credential_delivery_jobs')
+      .insert({
+        user_id: authUser.user.id,
+        school_id: school.id,
+        delivery_channel: 'principal_verified_contact',
+        delivery_status: 'pending',
+        metadata: {
+          user_code: principalCode,
+          recipient_name: adminName,
+          purpose: 'principal_initial_access'
+        }
+      });
+
     return NextResponse.json({ 
       success: true, 
       schoolName, 
       principalCode,
-      message: "School provisioned successfully. Please use the principal code to login."
+      credentialDelivery: "pending",
+      message: "School provisioned successfully. Initial access will be delivered through the configured secure channel."
     });
 
   } catch (error: unknown) {

@@ -12,7 +12,7 @@ export function QRLoginModal({ deviceId, onClose }: { deviceId: string, onClose:
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const response = await fetch('/api/auth/qr/generate', {
+        const response = await fetch('/api/local/qr/session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -22,7 +22,7 @@ export function QRLoginModal({ deviceId, onClose }: { deviceId: string, onClose:
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Unable to create QR session.');
-        setToken(data.qrPayload);
+        setToken(JSON.stringify(data.qrPayload));
       } catch (err) {
         console.error(err);
         setToken('');
