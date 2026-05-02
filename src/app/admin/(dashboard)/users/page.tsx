@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Search, Filter, UserPlus, Mail, ShieldCheck, MoreVertical, Loader2 } from 'lucide-react';
+import { Users, Search, Filter, UserPlus, Mail, ShieldCheck, MoreVertical, Loader2, X, KeyRound, Copy, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
@@ -27,6 +27,12 @@ export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedPrincipal, setSelectedPrincipal] = useState<AdminUser | null>(null);
+  const [authorizationLoading, setAuthorizationLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [authorizationCode, setAuthorizationCode] = useState('');
+  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [resetError, setResetError] = useState('');
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -58,6 +64,60 @@ export default function UsersPage() {
       return haystack.includes(q);
     });
   }, [search, users]);
+
+  const openPrincipalReset = (user: AdminUser) => {
+    setSelectedPrincipal(user);
+    setAuthorizationCode('');
+    setTemporaryPassword('');
+    setResetError('');
+  };
+
+  const generateAuthorizationCode = async () => {
+    setAuthorizationLoading(true);
+    setResetError('');
+    setTemporaryPassword('');
+
+    try {
+      const response = await fetch('/api/admin/authorization-code', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Authorization code generation failed');
+      setAuthorizationCode(data.authorizationCode);
+    } catch (err: unknown) {
+      setResetError(err instanceof Error ? err.message : 'Authorization code generation failed');
+    } finally {
+      setAuthorizationLoading(false);
+    }
+  };
+
+  const resetPrincipalPassword = async () => {
+    if (!selectedPrincipal || !authorizationCode) return;
+    setResetLoading(true);
+    setResetError('');
+    setTemporaryPassword('');
+
+    try {
+      const response = await fetch('/api/admin/principal/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          principalCode: selectedPrincipal.user_code,
+          adminAuthorizationCode: authorizationCode,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Password reset failed');
+      setTemporaryPassword(data.temporaryPassword);
+    } catch (err: unknown) {
+      setResetError(err instanceof Error ? err.message : 'Password reset failed');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const copyLoginDetails = () => {
+    if (!selectedPrincipal || !temporaryPassword) return;
+    navigator.clipboard.writeText(`Principal Login\nPR Code: ${selectedPrincipal.user_code}\nTemporary Password: ${temporaryPassword}`);
+  };
 
   return (
     <>
@@ -124,7 +184,12 @@ export default function UsersPage() {
               <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
                 <span className="text-xs text-muted">Created: {new Date(user.created_at).toLocaleDateString()}</span>
                 <div className="flex gap-2">
-                  <button className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white transition-colors">
+                  <button
+                    className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white transition-colors disabled:opacity-30"
+                    title={user.role === 'principal' ? 'Generate principal temporary password' : 'Password reset available for principal accounts'}
+                    disabled={user.role !== 'principal'}
+                    onClick={() => openPrincipalReset(user)}
+                  >
                     <ShieldCheck className="w-4 h-4" />
                   </button>
                   <button className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white transition-colors">
@@ -142,6 +207,80 @@ export default function UsersPage() {
           )}
         </div>
       </div>
+
+      {selectedPrincipal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-card border border-[var(--border)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-secondary/10 border border-secondary/20 p-2 rounded-xl">
+                  <KeyRound className="w-5 h-5 text-secondary" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-lg">Principal Access Reset</h2>
+                  <p className="text-xs text-muted font-mono">{selectedPrincipal.user_code}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedPrincipal(null)} className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-5">
+              <div>
+                <p className="text-sm font-bold">{selectedPrincipal.full_name || 'Principal account'}</p>
+                <p className="text-xs text-muted mt-1">{selectedPrincipal.schools?.school_name || 'Institution account'}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={generateAuthorizationCode}
+                className="btn btn-secondary w-full justify-center"
+                disabled={authorizationLoading}
+              >
+                {authorizationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                Generate Authorization Code
+              </button>
+
+              {authorizationCode && (
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+                  <p className="text-[10px] text-muted uppercase tracking-widest">Authorization Code</p>
+                  <p className="text-primary font-mono text-3xl font-black tracking-[0.2em] mt-1">{authorizationCode}</p>
+                  <p className="text-[10px] text-muted mt-2">Valid for 10 minutes and usable once.</p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={resetPrincipalPassword}
+                className="btn btn-primary w-full justify-center"
+                disabled={!authorizationCode || resetLoading}
+              >
+                {resetLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                Generate Temporary Password
+              </button>
+
+              {resetError && (
+                <div className="bg-danger/10 border border-danger/30 text-danger text-xs p-3 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> {resetError}
+                </div>
+              )}
+
+              {temporaryPassword && (
+                <div className="bg-success/10 border border-success/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-success text-xs font-bold uppercase tracking-widest mb-2">
+                    <CheckCircle2 className="w-4 h-4" /> Temporary Password
+                  </div>
+                  <p className="text-secondary font-mono font-bold break-all">{temporaryPassword}</p>
+                  <button type="button" onClick={copyLoginDetails} className="btn btn-outline w-full justify-center mt-4">
+                    <Copy className="w-4 h-4" /> Copy Login Details
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
