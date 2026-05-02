@@ -10,6 +10,7 @@ export default function TeacherStationLogin() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const [schoolCode, setSchoolCode] = useState('SCH7878');
   const [userCode, setUserCode] = useState('');
   const [password, setPassword] = useState('');
@@ -99,6 +100,13 @@ export default function TeacherStationLogin() {
                 required
               />
             </div>
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              className="text-xs text-secondary hover:text-white font-bold text-right mt-2"
+            >
+              Forgot password?
+            </button>
           </div>
 
           <button type="submit" className="btn btn-primary w-full py-4 text-md font-bold rounded-xl mt-4" disabled={isLoading}>
@@ -106,6 +114,19 @@ export default function TeacherStationLogin() {
           </button>
         </form>
       </div>
+      {forgotOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-card border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h2 className="text-xl font-bold mb-2">Forgot password?</h2>
+            <p className="text-sm text-muted leading-relaxed">
+              Ask your EduPortal admin to reset your teacher password from Accounts using a generated authorization code.
+            </p>
+            <button type="button" onClick={() => setForgotOpen(false)} className="btn btn-primary w-full mt-6 justify-center">
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

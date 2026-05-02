@@ -27,7 +27,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedPrincipal, setSelectedPrincipal] = useState<AdminUser | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<AdminUser | null>(null);
   const [authorizationLoading, setAuthorizationLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [authorizationCode, setAuthorizationCode] = useState('');
@@ -40,7 +40,7 @@ export default function UsersPage() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, user_code, role, school_id, created_at, schools(school_name)')
-        .in('role', ['admin', 'auditor', 'principal', 'moderator'])
+        .in('role', ['admin', 'auditor', 'principal', 'teacher', 'moderator'])
         .order('created_at', { ascending: false });
 
       if (error) console.error('Failed to fetch accounts:', error);
@@ -65,8 +65,10 @@ export default function UsersPage() {
     });
   }, [search, users]);
 
-  const openPrincipalReset = (user: AdminUser) => {
-    setSelectedPrincipal(user);
+  const canResetPassword = (role: string) => ['principal', 'teacher', 'moderator'].includes(role);
+
+  const openStaffReset = (user: AdminUser) => {
+    setSelectedStaff(user);
     setAuthorizationCode('');
     setTemporaryPassword('');
     setResetError('');
@@ -89,18 +91,18 @@ export default function UsersPage() {
     }
   };
 
-  const resetPrincipalPassword = async () => {
-    if (!selectedPrincipal || !authorizationCode) return;
+  const resetStaffPassword = async () => {
+    if (!selectedStaff || !authorizationCode) return;
     setResetLoading(true);
     setResetError('');
     setTemporaryPassword('');
 
     try {
-      const response = await fetch('/api/admin/principal/reset-password', {
+      const response = await fetch('/api/admin/staff/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          principalCode: selectedPrincipal.user_code,
+          staffCode: selectedStaff.user_code,
           adminAuthorizationCode: authorizationCode,
         }),
       });
@@ -115,8 +117,8 @@ export default function UsersPage() {
   };
 
   const copyLoginDetails = () => {
-    if (!selectedPrincipal || !temporaryPassword) return;
-    navigator.clipboard.writeText(`Principal Login\nPR Code: ${selectedPrincipal.user_code}\nTemporary Password: ${temporaryPassword}`);
+    if (!selectedStaff || !temporaryPassword) return;
+    navigator.clipboard.writeText(`Staff Login\nStaff Code: ${selectedStaff.user_code}\nTemporary Password: ${temporaryPassword}`);
   };
 
   return (
@@ -186,9 +188,9 @@ export default function UsersPage() {
                 <div className="flex gap-2">
                   <button
                     className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white transition-colors disabled:opacity-30"
-                    title={user.role === 'principal' ? 'Generate principal temporary password' : 'Password reset available for principal accounts'}
-                    disabled={user.role !== 'principal'}
-                    onClick={() => openPrincipalReset(user)}
+                    title={canResetPassword(user.role) ? 'Generate staff temporary password' : 'Password reset available for staff accounts'}
+                    disabled={!canResetPassword(user.role)}
+                    onClick={() => openStaffReset(user)}
                   >
                     <ShieldCheck className="w-4 h-4" />
                   </button>
@@ -208,7 +210,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {selectedPrincipal && (
+      {selectedStaff && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-card border border-[var(--border)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
@@ -217,19 +219,19 @@ export default function UsersPage() {
                   <KeyRound className="w-5 h-5 text-secondary" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-lg">Principal Access Reset</h2>
-                  <p className="text-xs text-muted font-mono">{selectedPrincipal.user_code}</p>
+                  <h2 className="font-bold text-lg">Staff Access Reset</h2>
+                  <p className="text-xs text-muted font-mono">{selectedStaff.user_code}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedPrincipal(null)} className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white">
+              <button onClick={() => setSelectedStaff(null)} className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 flex flex-col gap-5">
               <div>
-                <p className="text-sm font-bold">{selectedPrincipal.full_name || 'Principal account'}</p>
-                <p className="text-xs text-muted mt-1">{selectedPrincipal.schools?.school_name || 'Institution account'}</p>
+                <p className="text-sm font-bold">{selectedStaff.full_name || 'Staff account'}</p>
+                <p className="text-xs text-muted mt-1">{selectedStaff.schools?.school_name || 'Institution account'}</p>
               </div>
 
               <button
@@ -252,7 +254,7 @@ export default function UsersPage() {
 
               <button
                 type="button"
-                onClick={resetPrincipalPassword}
+                onClick={resetStaffPassword}
                 className="btn btn-primary w-full justify-center"
                 disabled={!authorizationCode || resetLoading}
               >

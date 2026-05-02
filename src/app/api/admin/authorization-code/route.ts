@@ -30,7 +30,7 @@ export async function POST() {
       .insert({
         admin_id: auth.context.user.id,
         code_hash: hashCode(code),
-        purpose: "principal_password_reset",
+        purpose: "staff_password_reset",
         expires_at: expiresAt,
       });
 
