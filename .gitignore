@@ -45,8 +45,11 @@ next-env.d.ts
 # EduOS Artifacts
 eduos/*.img
 eduos/*.zip
+eduos/images/
 eduos/edge-server/dist
 eduos/image_payload/
+eduos/image_payload_*/
+eduos/vm/.runtime*/
 .eduos-local/
 
 

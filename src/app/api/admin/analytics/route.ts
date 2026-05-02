@@ -7,37 +7,48 @@ export async function GET() {
     if (!auth.ok) return auth.response;
     const { supabase } = auth.context;
 
-    // 1. Total Schools
-    const { count: schoolCount, error: sErr } = await supabase
+    const { data: schools, error: sErr } = await supabase
       .from('schools')
-      .select('*', { count: 'exact', head: true });
+      .select('id, plan_type, status');
 
-    // 2. Total Students (Profiles with role 'student')
     const { count: studentCount, error: stErr } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
       .eq('role', 'student');
 
-    // 3. Active Sessions (Profiles with status 'active' in student_sessions - if exists)
-    // For now, let's just use the student count as a placeholder for "Total Users"
-    
-    // 4. AI Papers generated
     const { count: paperCount, error: pErr } = await supabase
       .from('exam_papers')
       .select('*', { count: 'exact', head: true });
 
-    if (sErr || stErr || pErr) {
-        console.warn("Some analytics data could not be fetched:", { sErr, stErr, pErr });
+    const { count: requestCount, error: rErr } = await supabase
+      .from('registration_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
+    if (sErr || stErr || pErr || rErr) {
+        console.warn("Some analytics data could not be fetched:", { sErr, stErr, pErr, rErr });
     }
 
+    const schoolRows = schools || [];
+    const planDistribution = schoolRows.reduce<Record<string, number>>((acc, school) => {
+      const plan = String(school.plan_type || 'unknown');
+      acc[plan] = (acc[plan] || 0) + 1;
+      return acc;
+    }, {});
+    const statusDistribution = schoolRows.reduce<Record<string, number>>((acc, school) => {
+      const status = String(school.status || 'unknown');
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
     return NextResponse.json({
-      totalSchools: schoolCount || 0,
+      totalSchools: schoolRows.length,
+      activeSchools: statusDistribution.active || 0,
       totalStudents: studentCount || 0,
       totalPapers: paperCount || 0,
-      planDistribution: {
-        premium: 0, // Would need aggregate query
-        standard: 0
-      }
+      totalRequests: requestCount || 0,
+      planDistribution,
+      statusDistribution
     });
   } catch (error: unknown) {
     return NextResponse.json({ error: errorMessage(error) }, { status: 500 });

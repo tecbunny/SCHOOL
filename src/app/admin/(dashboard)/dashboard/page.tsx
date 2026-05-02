@@ -3,7 +3,6 @@
 import { 
   Plus, 
   Bell, 
-  MessageSquare, 
   Building, 
   Users, 
   Bot, 
@@ -11,8 +10,6 @@ import {
   TrendingUp, 
   AlertCircle, 
   CheckCircle, 
-  BarChart2, 
-  FolderUp, 
   Settings, 
   ShieldCheck, 
   Megaphone,
@@ -28,7 +25,14 @@ import { analyticsService } from '@/services/analytics.service';
 
 export default function AdminDashboard() {
   const chartRef = useRef<HTMLCanvasElement>(null);
-  const [stats, setStats] = useState<any>({ totalSchools: 0, totalStudents: 0, totalPapers: 0, totalRequests: 0 });
+  const [stats, setStats] = useState<any>({
+    totalSchools: 0,
+    activeSchools: 0,
+    totalStudents: 0,
+    totalPapers: 0,
+    totalRequests: 0,
+    statusDistribution: {}
+  });
   const [fleet, setFleet] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,13 +60,17 @@ export default function AdminDashboard() {
     const ctx = chartRef.current.getContext('2d');
     if (!ctx) return;
 
+    const statusDistribution = stats.statusDistribution || {};
+    const labels = Object.keys(statusDistribution).length ? Object.keys(statusDistribution) : ['No schools'];
+    const values = Object.keys(statusDistribution).length ? Object.values(statusDistribution) : [1];
+
     const chart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['High Engagement', 'Medium', 'Inactive'],
+        labels: labels.map((label) => label.replace(/_/g, ' ').toUpperCase()),
         datasets: [{
-          data: [65, 25, 10],
-          backgroundColor: ['#8B5CF6', '#F472B6', '#1F2937'],
+          data: values as number[],
+          backgroundColor: ['#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#64748B'],
           borderWidth: 0,
           hoverOffset: 10
         }]
@@ -76,7 +84,11 @@ export default function AdminDashboard() {
     });
 
     return () => chart.destroy();
-  }, [loading]);
+  }, [loading, stats.statusDistribution]);
+
+  const adoptionPercent = stats.totalSchools > 0
+    ? Math.round((stats.activeSchools / stats.totalSchools) * 100)
+    : 0;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#070B19]">
@@ -168,17 +180,17 @@ export default function AdminDashboard() {
                <h3 className="text-lg font-black text-white uppercase tracking-[0.3em] opacity-40 ml-4">Rapid Actions</h3>
                <div className="grid grid-cols-3 gap-6">
                   {[
-                    { label: 'Cloud Provision', icon: Globe, desc: 'Setup new institution' },
-                    { label: 'MDM Fleet', icon: Monitor, desc: 'Manage hardware kiosk' },
-                    { label: 'Edge Nodes', icon: Cpu, desc: 'Orchestrate compute' },
-                    { label: 'Vault Backups', icon: ShieldCheck, desc: 'Postgres maintenance' },
-                    { label: 'Announce', icon: Megaphone, desc: 'Platform broadcast' },
+                    { label: 'Cloud Provision', icon: Globe, desc: 'Setup new institution', href: '/admin/provision' },
+                    { label: 'MDM Fleet', icon: Monitor, desc: 'Manage hardware kiosk', href: '/admin/fleet' },
+                    { label: 'Edge Nodes', icon: Cpu, desc: 'Orchestrate compute', href: '/admin/nodes' },
+                    { label: 'Vault Backups', icon: ShieldCheck, desc: 'Postgres maintenance', href: '/admin/snapshots' },
+                    { label: 'Announce', icon: Megaphone, desc: 'Platform broadcast', href: '/admin/settings' },
                   ].map((cmd, i) => (
-                    <button key={i} className="glass-card p-8 rounded-[2rem] text-left hover:scale-[1.02] transition-all hover:bg-primary/5 group">
+                    <Link key={i} href={cmd.href} className="glass-card p-8 rounded-[2rem] text-left hover:scale-[1.02] transition-all hover:bg-primary/5 group">
                        <cmd.icon className="w-8 h-8 text-muted group-hover:text-primary transition-colors mb-4" />
                        <h4 className="font-bold text-white mb-1">{cmd.label}</h4>
                        <p className="text-[10px] text-muted font-bold uppercase tracking-widest">{cmd.desc}</p>
-                    </button>
+                    </Link>
                   ))}
                </div>
             </div>
@@ -190,17 +202,17 @@ export default function AdminDashboard() {
                   <div className="relative inline-flex items-center justify-center">
                     <canvas ref={chartRef} className="relative z-10" width="200" height="200"></canvas>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                       <span className="text-3xl font-black text-white leading-none">82%</span>
+                       <span className="text-3xl font-black text-white leading-none">{adoptionPercent}%</span>
                        <span className="text-[8px] text-muted font-bold uppercase tracking-widest">Active</span>
                     </div>
                   </div>
                   <div className="mt-8 flex flex-col gap-3">
                      <div className="flex items-center justify-between text-[10px] font-bold">
                         <span className="text-muted">NEP COMPLIANCE</span>
-                        <span className="text-success">HIGH</span>
+                        <span className="text-success">{stats.activeSchools}/{stats.totalSchools}</span>
                      </div>
                      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div className="w-[82%] h-full bg-success"></div>
+                        <div className="h-full bg-success" style={{ width: `${adoptionPercent}%` }}></div>
                      </div>
                   </div>
                </div>

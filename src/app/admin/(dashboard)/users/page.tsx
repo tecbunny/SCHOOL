@@ -1,16 +1,64 @@
 "use client";
 
-import { Users, Search, Filter, Shield, UserPlus, Mail, ShieldCheck } from 'lucide-react';
+import { Users, Search, Filter, UserPlus, Mail, ShieldCheck, MoreVertical, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { createClient } from '@/lib/supabase';
 
-const MOCK_USERS = [
-  { id: 1, name: "Super Admin", role: "Platform Admin", email: "admin@eduportal.com", status: "Online", lastActive: "Just now" },
-  { id: 2, name: "Dr. Anita Sharma", role: "School Admin", email: "anita.s@stmarys.edu", status: "Offline", lastActive: "2h ago" },
-  { id: 3, name: "Mr. Rajesh Kumar", role: "School Admin", email: "rajesh.k@dps.edu", status: "Online", lastActive: "10m ago" },
-  { id: 4, name: "Sarah Jenkins", role: "Auditor", email: "sarah.j@audit.ext", status: "Offline", lastActive: "1d ago" },
-  { id: 5, name: "John Doe", role: "Platform Admin", email: "john.d@eduportal.com", status: "Online", lastActive: "Just now" },
-];
+type AdminUser = {
+  id: string;
+  full_name: string | null;
+  user_code: string;
+  role: string;
+  school_id: string | null;
+  created_at: string;
+  schools?: { school_name: string | null } | null;
+};
+
+type AdminUserRow = Omit<AdminUser, 'schools'> & {
+  schools?: { school_name: string | null } | { school_name: string | null }[] | null;
+};
+
+const normalizeAdminUser = (user: AdminUserRow): AdminUser => ({
+  ...user,
+  schools: Array.isArray(user.schools) ? user.schools[0] ?? null : user.schools ?? null,
+});
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, user_code, role, school_id, created_at, schools(school_name)')
+        .in('role', ['admin', 'auditor', 'principal', 'moderator'])
+        .order('created_at', { ascending: false });
+
+      if (error) console.error('Failed to fetch accounts:', error);
+      else setUsers(((data || []) as AdminUserRow[]).map(normalizeAdminUser));
+      setLoading(false);
+    };
+
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((user) => {
+      const haystack = [
+        user.full_name,
+        user.user_code,
+        user.role,
+        user.schools?.school_name
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [search, users]);
+
   return (
     <>
       <header className="header-glass py-4 px-8 flex items-center justify-between">
@@ -34,6 +82,8 @@ export default function UsersPage() {
               type="text" 
               placeholder="Search users by name, email or role..." 
               className="w-full bg-card border border-[var(--border)] rounded-xl pl-10 pr-4 py-2.5 outline-none focus:border-primary transition-colors"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
             />
           </div>
           <button className="btn btn-outline gap-2">
@@ -43,31 +93,36 @@ export default function UsersPage() {
 
         {/* User Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MOCK_USERS.map((user) => (
+          {loading && (
+            <div className="col-span-full flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-secondary" />
+            </div>
+          )}
+
+          {!loading && filteredUsers.map((user) => (
             <div key={user.id} className="bg-card border border-[var(--border)] rounded-2xl p-6 hover:border-secondary/50 transition-all group">
               <div className="flex items-start justify-between mb-4">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary font-bold text-xl">
-                    {user.name.charAt(0)}
+                    {(user.full_name || user.user_code).charAt(0)}
                   </div>
-                  <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-[var(--bg-dark)] ${
-                    user.status === 'Online' ? 'bg-success' : 'bg-muted'
-                  }`}></div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-[var(--bg-dark)] bg-success"></div>
                 </div>
                 <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-white/5 text-muted`}>
-                  {user.role}
+                  {user.role.replace(/_/g, ' ')}
                 </span>
               </div>
               
               <div className="mb-6">
-                <h3 className="font-bold text-lg group-hover:text-secondary transition-colors">{user.name}</h3>
+                <h3 className="font-bold text-lg group-hover:text-secondary transition-colors">{user.full_name || 'Unnamed account'}</h3>
                 <p className="text-sm text-muted flex items-center gap-2 mt-1">
-                  <Mail className="w-3 h-3" /> {user.email}
+                  <Mail className="w-3 h-3" /> {user.user_code}
                 </p>
+                <p className="text-xs text-muted mt-2">{user.schools?.school_name || 'Platform account'}</p>
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
-                <span className="text-xs text-muted">Last active: {user.lastActive}</span>
+                <span className="text-xs text-muted">Created: {new Date(user.created_at).toLocaleDateString()}</span>
                 <div className="flex gap-2">
                   <button className="p-2 hover:bg-white/5 rounded-lg text-muted hover:text-white transition-colors">
                     <ShieldCheck className="w-4 h-4" />
@@ -79,12 +134,14 @@ export default function UsersPage() {
               </div>
             </div>
           ))}
+
+          {!loading && filteredUsers.length === 0 && (
+            <div className="col-span-full text-center py-20 text-muted font-bold">
+              No matching accounts found.
+            </div>
+          )}
         </div>
       </div>
     </>
   );
 }
-
-const MoreVertical = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-);

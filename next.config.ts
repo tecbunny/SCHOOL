@@ -5,13 +5,16 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['192.168.0.119'],
   async redirects() {
     const isStandalone = process.env.EDUOS_STANDALONE === 'true';
+    const role = process.env.EDUOS_ROLE ?? 'student-hub';
+    const destination = role === 'class-station'
+      ? '/school/dashboard/teacher'
+      : '/school/dashboard/student';
     
-    // If in standalone EduOS mode, force the root to the student dashboard
     if (isStandalone) {
       return [
         {
           source: '/',
-          destination: '/school/dashboard/student',
+          destination,
           permanent: false,
         },
       ];

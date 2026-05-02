@@ -16,7 +16,9 @@ import {
   ShieldCheck, 
   Cpu, 
   Monitor,
-  Award
+  Award,
+  CreditCard,
+  FolderUp
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -79,11 +81,14 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
           <>
             {renderLink('/admin/dashboard', 'Control Center', LayoutDashboard)}
             {renderLink('/admin/schools', 'Institutions', Building)}
+            {renderLink('/admin/users', 'Accounts', Users)}
+            {renderLink('/admin/subscriptions', 'Tenant Plans', CreditCard)}
             {renderLink('/admin/requests', 'Inbound Requests', Inbox, 3)}
             {renderLink('/admin/analytics', 'Global Metrics', BarChart2)}
             {renderSection('INFRASTRUCTURE')}
             {renderLink('/admin/nodes', 'Edge Nodes', Cpu)}
             {renderLink('/admin/fleet', 'MDM Fleet', Monitor)}
+            {renderLink('/admin/snapshots', 'Snapshots', FolderUp)}
             {renderLink('/admin/logs', 'Security Logs', ShieldCheck)}
           </>
         );

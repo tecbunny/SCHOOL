@@ -19,7 +19,38 @@ export async function GET(
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    const [
+      students,
+      staff,
+      principals,
+      materials,
+      papers,
+      nodes,
+      activity
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', id).eq('role', 'student'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', id).neq('role', 'student'),
+      supabase.from('profiles').select('id, full_name, user_code').eq('school_id', id).eq('role', 'principal').limit(1),
+      supabase.from('materials').select('*', { count: 'exact', head: true }).eq('school_id', id),
+      supabase.from('exam_papers').select('*', { count: 'exact', head: true }).eq('school_id', id),
+      supabase.from('hardware_nodes').select('*', { count: 'exact', head: true }).eq('school_id', id),
+      supabase.from('system_logs').select('id, event_type, severity, message, created_at, metadata').eq('tenant_id', id).order('created_at', { ascending: false }).limit(20)
+    ]);
+
+    const schoolWithMetrics = {
+      ...data,
+      principal: principals.data?.[0] || null,
+      metrics: {
+        students: students.count || 0,
+        staff: staff.count || 0,
+        materials: materials.count || 0,
+        examPapers: papers.count || 0,
+        hardwareNodes: nodes.count || 0
+      },
+      activity: activity.data || []
+    };
+
+    return NextResponse.json(schoolWithMetrics);
   } catch (error: unknown) {
     return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }

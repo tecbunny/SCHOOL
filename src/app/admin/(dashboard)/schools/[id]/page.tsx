@@ -24,7 +24,6 @@ export default function SchoolDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [school, setSchool] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchSchool = async () => {
@@ -40,6 +39,14 @@ export default function SchoolDetailPage() {
     };
     fetchSchool();
   }, [id]);
+
+  const metrics = school?.metrics || {
+    students: 0,
+    staff: 0,
+    materials: 0,
+    examPapers: 0,
+    hardwareNodes: 0
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -83,8 +90,8 @@ export default function SchoolDetailPage() {
             <p className="text-sm text-muted font-mono uppercase tracking-tighter mt-1">Tenant ID: {school.school_code}</p>
           </div>
         </div>
-        <button className="btn btn-primary gap-2" disabled={saving}>
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        <button className="btn btn-primary gap-2">
+          <Save className="w-4 h-4" />
           Save Changes
         </button>
       </header>
@@ -123,7 +130,7 @@ export default function SchoolDetailPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-muted uppercase">Principal / Head of Institution</label>
-                    <input type="text" placeholder="Dr. Sarah Wilson" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors text-white" />
+                    <input type="text" disabled defaultValue={school.principal?.full_name || 'No principal account linked'} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-muted" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
@@ -141,10 +148,15 @@ export default function SchoolDetailPage() {
               <section className="bg-card border border-white/5 rounded-2xl p-6">
                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2"><Settings className="w-5 h-5 text-secondary" /> NEP 2020 Stages</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  {['Foundational', 'Preparatory', 'Middle', 'Secondary'].map((stage) => (
+                  {[
+                    { stage: 'Foundational', enabled: metrics.students > 0 },
+                    { stage: 'Preparatory', enabled: metrics.students > 0 },
+                    { stage: 'Middle', enabled: metrics.staff > 0 },
+                    { stage: 'Secondary', enabled: metrics.examPapers > 0 }
+                  ].map(({ stage, enabled }) => (
                     <label key={stage} className="flex items-center justify-between p-4 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors border border-transparent hover:border-secondary/20">
                       <span className="text-sm">{stage}</span>
-                      <input type="checkbox" defaultChecked className="w-5 h-5 accent-secondary" />
+                      <input type="checkbox" checked={enabled} readOnly className="w-5 h-5 accent-secondary" />
                     </label>
                   ))}
                 </div>
@@ -181,7 +193,7 @@ export default function SchoolDetailPage() {
             <div className="bg-card border border-white/5 rounded-2xl p-8 flex flex-col gap-8">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-xl font-bold">{school.plan?.toUpperCase() || 'STANDARD'} LICENSE</h3>
+                  <h3 className="text-xl font-bold">{(school.plan_type || 'standard').toUpperCase()} LICENSE</h3>
                   <p className="text-sm text-muted mt-1">Status: {school.status === 'active' ? 'Active & Verified' : 'Action Required'}</p>
                 </div>
                 <div className={`px-4 py-2 rounded-xl border ${school.status === 'active' ? 'bg-success/10 border-success/20 text-success' : 'bg-warning/10 border-warning/20 text-warning'}`}>
@@ -191,7 +203,7 @@ export default function SchoolDetailPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
                   <div className="text-[10px] font-bold text-muted uppercase mb-1 tracking-widest">Student Capacity</div>
-                  <div className="text-3xl font-black text-white">2,500 <span className="text-sm text-muted font-normal">/ 5,000 Seats</span></div>
+                  <div className="text-3xl font-black text-white">{metrics.students.toLocaleString()} <span className="text-sm text-muted font-normal">students enrolled</span></div>
                 </div>
                 <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
                   <div className="text-[10px] font-bold text-muted uppercase mb-1 tracking-widest">License Verification</div>
@@ -204,14 +216,54 @@ export default function SchoolDetailPage() {
             </div>
           )}
 
-          {/* Placeholder for other tabs */}
-          {['usage', 'activity', 'notes'].includes(activeTab) && (
-            <div className="bg-card border border-white/5 rounded-2xl p-20 text-center flex flex-col items-center gap-4">
-              <div className="p-4 bg-white/5 rounded-full text-muted">
-                <Loader2 className="w-10 h-10 animate-spin" />
+          {activeTab === 'usage' && (
+            <div className="grid grid-cols-5 gap-4">
+              {[
+                ['Students', metrics.students],
+                ['Staff', metrics.staff],
+                ['Materials', metrics.materials],
+                ['AI Papers', metrics.examPapers],
+                ['Edge Nodes', metrics.hardwareNodes]
+              ].map(([label, value]) => (
+                <div key={label} className="bg-card border border-white/5 rounded-2xl p-6">
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-widest mb-2">{label}</p>
+                  <p className="text-3xl font-black text-white">{Number(value).toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
+              {(school.activity || []).map((event: any) => (
+                <div key={event.id} className="p-5 border-b border-white/5 flex items-start justify-between gap-6">
+                  <div>
+                    <p className="text-sm font-bold text-white">{event.message}</p>
+                    <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">{event.event_type} / {event.severity}</p>
+                  </div>
+                  <p className="text-xs text-muted whitespace-nowrap">{new Date(event.created_at).toLocaleString()}</p>
+                </div>
+              ))}
+              {(school.activity || []).length === 0 && (
+                <div className="p-16 text-center text-muted font-bold">
+                  No tenant activity has been logged yet.
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'notes' && (
+            <div className="bg-card border border-white/5 rounded-2xl p-8">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="text-[10px] font-bold text-muted uppercase mb-1 tracking-widest">School Code</div>
+                  <div className="text-xl font-black text-white">{school.school_code}</div>
+                </div>
+                <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="text-[10px] font-bold text-muted uppercase mb-1 tracking-widest">Attendance Mode</div>
+                  <div className="text-xl font-black text-white">{school.attendance_mode || 'morning'}</div>
+                </div>
               </div>
-              <h3 className="text-xl font-bold">Streaming Live Data...</h3>
-              <p className="text-muted max-w-xs">Connecting to Supabase Realtime to fetch {activeTab} metrics for this tenant.</p>
             </div>
           )}
 

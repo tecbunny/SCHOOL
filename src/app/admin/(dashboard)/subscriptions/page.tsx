@@ -1,15 +1,55 @@
 "use client";
 
-import { CreditCard, TrendingUp, DollarSign, Calendar, ArrowUpRight, Search, Filter } from 'lucide-react';
+import { CreditCard, TrendingUp, Building2, Calendar, Search, Filter, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { createClient } from '@/lib/supabase';
 
-const MOCK_PLANS = [
-  { id: 1, school: "St. Mary's Convent", plan: "Premium", amount: "₹45,000", status: "Paid", nextBilling: "2026-05-15" },
-  { id: 2, school: "Delhi Public School", plan: "Standard", amount: "₹25,000", status: "Paid", nextBilling: "2026-05-20" },
-  { id: 3, school: "Sunrise Academy", plan: "Trial", amount: "₹0", status: "Expiring", nextBilling: "2026-05-04" },
-  { id: 4, school: "Greenwood High", plan: "Premium", amount: "₹45,000", status: "Paid", nextBilling: "2026-06-01" },
-];
+type SchoolPlan = {
+  id: string;
+  school_name: string;
+  school_code: string;
+  plan_type: string | null;
+  status: string;
+  created_at: string;
+};
 
 export default function SubscriptionsPage() {
+  const [schools, setSchools] = useState<SchoolPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, school_name, school_code, plan_type, status, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) console.error('Failed to fetch subscription plans:', error);
+      else setSchools((data || []) as SchoolPlan[]);
+      setLoading(false);
+    };
+
+    fetchPlans();
+  }, []);
+
+  const filteredSchools = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return schools;
+    return schools.filter((school) =>
+      [school.school_name, school.school_code, school.plan_type, school.status]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [schools, search]);
+
+  const activePlans = schools.filter((school) => school.status === 'active').length;
+  const premiumPlans = schools.filter((school) => school.plan_type === 'premium').length;
+  const reviewQueue = schools.filter((school) => school.status !== 'active').length;
+
   return (
     <>
       <header className="header-glass py-4 px-8 flex items-center justify-between">
@@ -17,35 +57,30 @@ export default function SubscriptionsPage() {
           <div className="bg-primary/20 p-2 rounded-lg">
             <CreditCard className="w-6 h-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Billing & Subscriptions</h1>
+          <h1 className="text-2xl font-bold">Plans & Tenant Accounts</h1>
         </div>
-        <button className="btn btn-primary">
-          Manage Plans
-        </button>
+        <button className="btn btn-primary">Manage Plans</button>
       </header>
 
       <div className="p-8 flex flex-col gap-8">
-        {/* Revenue Stats */}
         <div className="grid grid-cols-3 gap-6">
           <div className="bg-card border border-[var(--border)] p-6 rounded-2xl">
             <div className="flex justify-between items-start mb-4">
               <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center text-success">
-                <DollarSign className="w-5 h-5" />
+                <Building2 className="w-5 h-5" />
               </div>
-              <div className="text-xs text-success flex items-center gap-1 font-bold">+15.4% <ArrowUpRight className="w-3 h-3" /></div>
             </div>
-            <p className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Monthly Recurring Revenue</p>
-            <h3 className="text-3xl font-bold">₹12.4L</h3>
+            <p className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Active Tenants</p>
+            <h3 className="text-3xl font-bold">{activePlans}</h3>
           </div>
           <div className="bg-card border border-[var(--border)] p-6 rounded-2xl">
             <div className="flex justify-between items-start mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <TrendingUp className="w-5 h-5" />
               </div>
-              <div className="text-xs text-primary flex items-center gap-1 font-bold">+8.2% <ArrowUpRight className="w-3 h-3" /></div>
             </div>
-            <p className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Conversion Rate</p>
-            <h3 className="text-3xl font-bold">24.5%</h3>
+            <p className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Premium Plans</p>
+            <h3 className="text-3xl font-bold">{premiumPlans}</h3>
           </div>
           <div className="bg-card border border-[var(--border)] p-6 rounded-2xl">
             <div className="flex justify-between items-start mb-4">
@@ -53,19 +88,20 @@ export default function SubscriptionsPage() {
                 <Calendar className="w-5 h-5" />
               </div>
             </div>
-            <p className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Upcoming Renewals</p>
-            <h3 className="text-3xl font-bold">18</h3>
+            <p className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Review Queue</p>
+            <h3 className="text-3xl font-bold">{reviewQueue}</h3>
           </div>
         </div>
 
-        {/* Filters */}
         <div className="flex gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-            <input 
-              type="text" 
-              placeholder="Search by school or plan type..." 
+            <input
+              type="text"
+              placeholder="Search by school or plan type..."
               className="w-full bg-card border border-[var(--border)] rounded-xl pl-10 pr-4 py-2.5 outline-none focus:border-primary transition-colors"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
             />
           </div>
           <button className="btn btn-outline gap-2">
@@ -73,44 +109,59 @@ export default function SubscriptionsPage() {
           </button>
         </div>
 
-        {/* Subscription Table */}
         <div className="table-wrapper">
           <table className="w-full">
             <thead>
               <tr>
                 <th>School</th>
                 <th>Plan Tier</th>
-                <th>Amount</th>
-                <th>Billing Status</th>
-                <th>Next Invoice</th>
+                <th>School Code</th>
+                <th>Tenant Status</th>
+                <th>Created</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {MOCK_PLANS.map((item) => (
+              {loading && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="flex justify-center py-16">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && filteredSchools.map((item) => (
                 <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="font-semibold text-white">{item.school}</td>
+                  <td className="font-semibold text-white">{item.school_name}</td>
                   <td>
                     <span className={`text-xs font-medium px-2 py-1 rounded-md ${
-                      item.plan === 'Premium' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
+                      item.plan_type === 'premium' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
                     }`}>
-                      {item.plan}
+                      {(item.plan_type || 'standard').toUpperCase()}
                     </span>
                   </td>
-                  <td className="font-mono">{item.amount}</td>
+                  <td className="font-mono">{item.school_code}</td>
                   <td>
-                    <span className={`badge ${
-                      item.status === 'Paid' ? 'badge-success' : 'badge-warning'
-                    }`}>
+                    <span className={`badge ${item.status === 'active' ? 'badge-success' : 'badge-warning'}`}>
                       {item.status}
                     </span>
                   </td>
-                  <td className="text-muted text-sm">{item.nextBilling}</td>
+                  <td className="text-muted text-sm">{new Date(item.created_at).toLocaleDateString()}</td>
                   <td className="text-right">
-                    <button className="text-sm text-primary hover:underline">View Invoice</button>
+                    <a className="text-sm text-primary hover:underline" href={`/admin/schools/${item.id}`}>Open Tenant</a>
                   </td>
                 </tr>
               ))}
+
+              {!loading && filteredSchools.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-16 text-muted font-bold">
+                    No matching plans found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -2,6 +2,17 @@ import { createClient } from "@/lib/supabase";
 
 const supabase = createClient();
 
+type PlanDistribution = Record<string, number>;
+type StatusDistribution = Record<string, number>;
+
+const countBy = <T extends Record<string, any>>(rows: T[] | null | undefined, key: keyof T) => {
+  return (rows || []).reduce<Record<string, number>>((acc, row) => {
+    const value = String(row[key] || 'unknown');
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {});
+};
+
 export const analyticsService = {
   async getClassHealthSnapshot(classId: string) {
     // 1. Fetch Students in class
@@ -73,28 +84,41 @@ export const analyticsService = {
     return { success: true };
   },
 
-  async getGlobalStats() {
+  async getGlobalStats(): Promise<{
+    totalSchools: number;
+    activeSchools: number;
+    totalStudents: number;
+    totalPapers: number;
+    totalRequests: number;
+    planDistribution: PlanDistribution;
+    statusDistribution: StatusDistribution;
+  }> {
     const [schools, students, papers, requests] = await Promise.all([
-      supabase.from('schools').select('*', { count: 'exact', head: true }),
+      supabase.from('schools').select('id, plan_type, status'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
       supabase.from('exam_papers').select('*', { count: 'exact', head: true }),
       supabase.from('registration_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
     ]);
 
+    const schoolRows = schools.data || [];
+    const statusDistribution = countBy(schoolRows, 'status');
+
     return {
-      totalSchools: schools.count || 0,
+      totalSchools: schoolRows.length,
+      activeSchools: statusDistribution.active || 0,
       totalStudents: students.count || 0,
       totalPapers: papers.count || 0,
-      totalRequests: requests.count || 0
+      totalRequests: requests.count || 0,
+      planDistribution: countBy(schoolRows, 'plan_type'),
+      statusDistribution
     };
   },
 
   async getSchoolStats(schoolId: string) {
-    const [students, staff, attendance, cpd] = await Promise.all([
+    const [students, staff, attendance] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('role', 'student'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).neq('role', 'student'),
-      supabase.from('attendance').select('status').eq('school_id', schoolId).eq('date', new Date().toISOString().split('T')[0]),
-      supabase.from('cpd_logs').select('hours_logged').eq('teacher_id', (await supabase.auth.getUser()).data.user?.id) // This is specific to user, but let's get school avg for HOD
+      supabase.from('attendance').select('status').eq('school_id', schoolId).eq('date', new Date().toISOString().split('T')[0])
     ]);
 
     // Calculate school-wide CPD avg
