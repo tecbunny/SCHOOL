@@ -1,33 +1,50 @@
 import { createClient } from "@/lib/supabase";
 
 const supabase = createClient();
+const MATERIALS_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || 'school-files';
+
+function getMaterialType(file: File, selectedType: string) {
+  if (file.type.startsWith('video/')) return 'video';
+  if (file.type === 'application/pdf') return 'pdf';
+  return selectedType.toLowerCase();
+}
 
 export const staffService = {
   // Content Management
   async uploadMaterial(file: File, metadata: { title: string; subject: string; class: string; type: string }) {
-    const fileName = `${Date.now()}_${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileName = `materials/${Date.now()}_${safeName}`;
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('You must be signed in to upload materials.');
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('school_id')
-      .eq('id', user?.id)
+      .eq('id', user.id)
       .single();
 
     if (!profile?.school_id) throw new Error('School context not found.');
 
     const { data, error } = await supabase.storage
-      .from('study_materials')
-      .upload(fileName, file);
+      .from(MATERIALS_BUCKET)
+      .upload(fileName, file, {
+        contentType: file.type || undefined,
+        upsert: false
+      });
 
     if (error) throw error;
+
+    const { data: publicUrlData } = supabase.storage
+      .from(MATERIALS_BUCKET)
+      .getPublicUrl(data.path);
 
     const { error: dbError } = await supabase
       .from('materials')
       .insert({
-        file_url: data.path,
+        file_url: publicUrlData.publicUrl || data.path,
         file_name: metadata.title,
         subject: metadata.subject,
-        material_type: metadata.type,
+        material_type: getMaterialType(file, metadata.type),
         school_id: profile.school_id
       });
 

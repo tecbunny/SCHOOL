@@ -14,6 +14,8 @@ import { useState, useEffect } from 'react';
 import { analyticsService } from '@/services/analytics.service';
 import { createClient } from '@/lib/supabase';
 
+const MATERIALS_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || 'school-files';
+
 export default function StudyHub() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
@@ -49,6 +51,14 @@ export default function StudyHub() {
   const filteredMaterials = materials.filter(m => 
     m.file_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getMaterialUrl = (fileUrl: string) => {
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      return fileUrl;
+    }
+
+    return supabase.storage.from(MATERIALS_BUCKET).getPublicUrl(fileUrl).data.publicUrl;
+  };
 
   return (
     <div className="flex flex-col gap-8 h-full">
@@ -117,7 +127,11 @@ export default function StudyHub() {
                         Cached
                      </div>
                   ) : (
-                     <button className="p-3 bg-white/5 hover:bg-primary/20 hover:text-primary rounded-2xl transition-all">
+                     <button
+                        type="button"
+                        onClick={() => window.open(getMaterialUrl(m.file_url), '_blank', 'noopener,noreferrer')}
+                        className="p-3 bg-white/5 hover:bg-primary/20 hover:text-primary rounded-2xl transition-all"
+                     >
                         <Download className="w-6 h-6" />
                      </button>
                   )}

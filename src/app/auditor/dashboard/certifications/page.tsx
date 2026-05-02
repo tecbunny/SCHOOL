@@ -1,0 +1,79 @@
+"use client";
+
+import { Award, BadgeCheck, CalendarDays, FileCheck2, ShieldCheck } from 'lucide-react';
+
+const certifications = [
+  { name: 'NEP 2020 Readiness', status: 'active', expires: '2027-03-31', coverage: 88 },
+  { name: 'Safety And Sanitation', status: 'review', expires: '2026-08-15', coverage: 72 },
+  { name: 'Digital Attendance Integrity', status: 'active', expires: '2027-01-10', coverage: 94 },
+  { name: 'Teacher CPD Compliance', status: 'attention', expires: '2026-06-30', coverage: 61 },
+];
+
+export default function CertificationsPage() {
+  return (
+    <section className="min-h-screen bg-[#070B19] text-white p-10">
+      <div className="max-w-[1400px] mx-auto flex flex-col gap-8">
+        <header className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 text-success font-black uppercase tracking-widest text-xs mb-3">
+              <Award className="w-5 h-5" />
+              Certifications
+            </div>
+            <h1 className="text-4xl font-black">Institution certification tracker</h1>
+            <p className="text-muted mt-2">Expiry, coverage, and review status for board-facing certifications.</p>
+          </div>
+          <button className="btn btn-primary bg-success border-success gap-2 px-6 py-3 rounded-2xl">
+            <FileCheck2 className="w-5 h-5" />
+            Issue certificate
+          </button>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {certifications.map((cert) => (
+            <article key={cert.name} className="glass-card rounded-[2rem] p-7">
+              <div className="flex items-start justify-between gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-success/10 text-success flex items-center justify-center">
+                    <BadgeCheck className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black">{cert.name}</h2>
+                    <p className="text-xs text-muted font-bold uppercase tracking-widest flex items-center gap-2 mt-2">
+                      <CalendarDays className="w-4 h-4" />
+                      Valid until {cert.expires}
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                  cert.status === 'active' ? 'bg-success/10 text-success' :
+                  cert.status === 'review' ? 'bg-warning/10 text-warning' :
+                  'bg-danger/10 text-danger'
+                }`}>
+                  {cert.status}
+                </span>
+              </div>
+
+              <div className="mt-8">
+                <div className="flex justify-between text-xs font-black uppercase tracking-widest text-muted mb-3">
+                  <span>Coverage</span>
+                  <span>{cert.coverage}%</span>
+                </div>
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${cert.coverage > 80 ? 'bg-success' : cert.coverage > 65 ? 'bg-warning' : 'bg-danger'}`}
+                    style={{ width: `${cert.coverage}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center gap-2 text-xs text-muted">
+                <ShieldCheck className="w-4 h-4 text-success" />
+                Signed audit evidence required before final board export.
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

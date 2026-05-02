@@ -32,8 +32,8 @@ export default function SchoolAppSelector() {
           <div className="flex items-center gap-4">
             <BrandIcon className="w-12 h-12" />
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-primary">Choose workspace</p>
-              <h1 className="text-5xl font-black">EduPortal Gateway</h1>
+              <p className="text-xs font-bold uppercase tracking-widest text-secondary">Choose workspace</p>
+              <h1 className="font-display text-5xl font-bold text-primary">EduPortal Gateway</h1>
             </div>
           </div>
           <p className="text-lg text-muted max-w-sm">
@@ -48,23 +48,23 @@ export default function SchoolAppSelector() {
         <section className="grid grid-cols-1 gap-5">
           <Link href="/school/staff" className="portal-card group">
             <div className="flex items-start justify-between gap-6">
-              <div className="bg-secondary/10 border border-secondary/20 rounded-2xl p-4">
+              <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4">
                 <Briefcase className="w-9 h-9 text-secondary" />
               </div>
               <ArrowRight className="w-6 h-6 text-muted group-hover:text-primary transition-colors" />
             </div>
-            <h2 className="text-3xl font-black mt-8 mb-3">Staff Station</h2>
+            <h2 className="font-display text-3xl font-bold mt-8 mb-3 text-primary">Staff Station</h2>
             <p className="text-muted">Teachers, HODs, moderators, and administrators manage academics and school operations here.</p>
           </Link>
 
           <Link href="/school/student" className="portal-card group">
             <div className="flex items-start justify-between gap-6">
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
                 <GraduationCap className="w-9 h-9 text-primary" />
               </div>
               <ArrowRight className="w-6 h-6 text-muted group-hover:text-primary transition-colors" />
             </div>
-            <h2 className="text-3xl font-black mt-8 mb-3">Student Hub</h2>
+            <h2 className="font-display text-3xl font-bold mt-8 mb-3 text-primary">Student Hub</h2>
             <p className="text-muted">A clean learner workspace for study material, assignments, tests, and progress cards.</p>
           </Link>
 

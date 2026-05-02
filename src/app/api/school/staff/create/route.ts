@@ -32,10 +32,22 @@ export async function POST(req: Request) {
       }
     );
 
-    // 4. Generate credentials. The temporary password is never returned to the browser.
-    // Format: TCH-SCHOOLID-RANDOM (e.g. TCH-SCH7878-A1B2)
-    const randomSuffix = crypto.randomUUID().replace(/-/g, '').substring(0, 6).toUpperCase();
-    const loginId = `${role === 'teacher' ? 'TCH' : 'MOD'}-${requesterProfile.school_id.substring(0, 8)}-${randomSuffix}`;
+    // 4. Generate sequential credentials.
+    // Format: TC00001 for teachers, MD00001 for moderators
+    const prefix = role === 'teacher' ? 'TC' : 'MD';
+    const { data: existingStaffCodes, error: codeLookupError } = await supabaseAdmin
+      .from('profiles')
+      .select('user_code')
+      .eq('role', role)
+      .like('user_code', `${prefix}%`);
+
+    if (codeLookupError) throw codeLookupError;
+
+    const lastSequence = (existingStaffCodes || []).reduce((max, staff) => {
+      const match = staff.user_code?.match(new RegExp(`^${prefix}(\\d{5})$`));
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+    const loginId = `${prefix}${String(lastSequence + 1).padStart(5, '0')}`;
     const email = `${loginId.toLowerCase()}@eduportal.internal`;
     const tempPassword = `Edu@${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
 
@@ -67,7 +79,6 @@ export async function POST(req: Request) {
     }
 
     // 7. Return only non-secret account metadata.
-    // Production delivery must send the temporary password through a verified SMS/email channel.
     return NextResponse.json({
       success: true,
       credentials: {

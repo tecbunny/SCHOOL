@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  allowedDevOrigins: ['192.168.0.119'],
+  allowedDevOrigins: ['192.168.0.119', '192.168.73.1'],
   async redirects() {
     const isStandalone = process.env.EDUOS_STANDALONE === 'true';
     const role = process.env.EDUOS_ROLE ?? 'student-hub';

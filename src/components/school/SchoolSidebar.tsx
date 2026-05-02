@@ -43,14 +43,14 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
   const getNavItems = () => {
     const activeClass = "bg-primary/10 text-primary border-primary/20";
     const inactiveClass = "text-muted hover:bg-primary/5 hover:text-primary border-transparent";
-    const itemBase = "nav-item flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 font-bold text-sm mb-1 group";
+    const itemBase = "nav-item flex items-center gap-3 px-4 py-3 rounded-lg border transition-all duration-300 font-semibold text-sm mb-1 group";
 
     const renderLink = (href: string, label: string, Icon: any, badge?: number) => (
       <Link href={href} className={`${itemBase} ${href !== '#' && pathname.startsWith(href) ? activeClass : inactiveClass}`}>
         <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
         {!isCollapsed && <span className="flex-1 truncate">{label}</span>}
         {!isCollapsed && badge ? (
-          <span className="bg-danger/20 text-danger text-[10px] px-2 py-0.5 rounded-full border border-danger/20 animate-pulse">
+          <span className="bg-danger/20 text-danger text-[10px] px-2 py-0.5 rounded-full border border-danger/20">
             {badge}
           </span>
         ) : null}
@@ -68,12 +68,12 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         return (
           <>
             {renderLink('/school/dashboard/student', 'My Dashboard', LayoutDashboard)}
-            {renderLink('#', 'Assignments', FileText, notifications.assignments)}
-            {renderLink('#', 'Class Timetable', Calendar)}
-            {renderLink('#', 'Study Hub', Book)}
+            {renderLink('/school/dashboard/student/assignments', 'Assignments', FileText, notifications.assignments)}
+            {renderLink('/school/dashboard/student/timetable', 'Class Timetable', Calendar)}
+            {renderLink('/school/dashboard/student/study-hub', 'Study Hub', Book)}
             {renderSection('NEP 2020 ACADEMICS')}
-            {renderLink('#', 'Holistic Card', BarChart)}
-            {renderLink('#', 'Peer Reviews', Users)}
+            {renderLink('/school/dashboard/student/holistic-card', 'Holistic Card', BarChart)}
+            {renderLink('/school/dashboard/student/peer-reviews', 'Peer Reviews', Users)}
           </>
         );
       case 'admin':
@@ -96,10 +96,10 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         return (
           <>
             {renderLink('/auditor/dashboard', 'Audit Console', LayoutDashboard)}
-            {renderLink('#', 'Compliance Check', BarChart)}
+            {renderLink('/auditor/dashboard/compliance-check', 'Compliance Check', BarChart)}
             {renderSection('OVERSIGHT')}
-            {renderLink('#', 'Institutional Logs', FileText)}
-            {renderLink('#', 'Certifications', Award)}
+            {renderLink('/auditor/dashboard/institutional-logs', 'Institutional Logs', FileText)}
+            {renderLink('/auditor/dashboard/certifications', 'Certifications', Award)}
           </>
         );
       default:
@@ -131,10 +131,10 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         <BrandIcon className={isCollapsed ? "w-8 h-8" : "w-10 h-10"} />
         {!isCollapsed && (
           <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-            <h2 className="font-black text-xl tracking-tighter leading-none">
-              EduPortal<span className="text-primary">.</span>
+            <h2 className="font-display font-bold text-xl leading-none">
+              EduPortal
             </h2>
-            <span className="text-[10px] text-primary font-black uppercase tracking-widest mt-1 block opacity-80">{role} hub</span>
+            <span className="text-[10px] text-secondary font-bold uppercase tracking-widest mt-1 block opacity-90">{role} hub</span>
           </div>
         )}
       </div>
@@ -143,7 +143,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         {getNavItems()}
       </nav>
 
-      <div className={`mt-8 bg-primary/5 rounded-2xl p-4 flex items-center gap-4 border border-primary/20 ${isCollapsed ? 'justify-center flex-col p-2 gap-6' : ''}`}>
+      <div className={`mt-8 bg-primary/5 rounded-2xl p-4 flex items-center gap-4 border border-primary/20 shadow-lg ${isCollapsed ? 'justify-center flex-col p-2 gap-6' : ''}`}>
         <div className="relative flex-shrink-0">
           <img src={profile.avatar} alt={profile.name} className="w-10 h-10 rounded-2xl border-2 border-primary/50 object-cover shadow-lg" />
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success border-4 rounded-full"></div>
@@ -156,7 +156,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
         )}
         <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
           <ThemeToggle />
-          <button onClick={() => signOut()} className="text-muted hover:text-danger transition-all bg-white/5 p-2.5 rounded-xl hover:bg-danger/10 border border-transparent hover:border-danger/20">
+          <button onClick={() => signOut()} className="text-muted hover:text-danger transition-all bg-primary/5 p-2.5 rounded-lg hover:bg-danger/10 border border-transparent hover:border-danger/20">
             <LogOut className="w-4 h-4" />
           </button>
         </div>

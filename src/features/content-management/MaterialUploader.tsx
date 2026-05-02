@@ -124,7 +124,7 @@ export default function MaterialUploader() {
 
         {status === 'success' && (
           <div className="flex items-center gap-2 text-xs text-success animate-in fade-in slide-in-from-top-1">
-            <CheckCircle className="w-3.5 h-3.5" /> Material successfully uploaded to study_materials
+            <CheckCircle className="w-3.5 h-3.5" /> Material successfully uploaded to storage
           </div>
         )}
       </form>

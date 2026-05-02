@@ -16,8 +16,6 @@ import {
   ArrowRightLeft
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
-import { timetableService } from '@/services/timetable.service';
-import { UserRole } from '@/lib/constants';
 
 export default function TimetableManager() {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -35,7 +33,7 @@ export default function TimetableManager() {
       .eq('role', 'teacher');
 
     const { data: activeSchedules } = await supabase
-      .from('timetables')
+      .from('timetable')
       .select('teacher_id')
       .eq('start_time', slotStartTime);
 
@@ -48,12 +46,8 @@ export default function TimetableManager() {
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
-        .from('timetables')
-        .select(`
-          *,
-          teacher:profiles(id, full_name),
-          room:school_rooms(id, name)
-        `)
+        .from('timetable')
+        .select('*')
         .order('start_time', { ascending: true });
       
       if (!error) setSchedules(data);
@@ -65,7 +59,7 @@ export default function TimetableManager() {
     // Subscribe to real-time changes to update student views instantly
     const channel = supabase
       .channel('timetable-global')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'timetables' }, fetchSchedules)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'timetable' }, fetchSchedules)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -75,7 +69,7 @@ export default function TimetableManager() {
     if (!newTeacherId) return;
     
     const { error } = await supabase
-      .from('timetables')
+      .from('timetable')
       .update({ teacher_id: newTeacherId })
       .eq('id', scheduleId);
 
@@ -132,8 +126,8 @@ export default function TimetableManager() {
                  <div>
                     <div className="text-lg font-bold text-white group-hover:text-secondary transition-colors">{slot.subject}</div>
                     <div className="flex items-center gap-4 text-[10px] text-muted font-bold uppercase tracking-widest mt-1">
-                       <span className="flex items-center gap-1.5"><User className="w-3 h-3 text-secondary" /> {slot.teacher?.full_name}</span>
-                       <span className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {slot.room?.name}</span>
+                       <span className="flex items-center gap-1.5"><User className="w-3 h-3 text-secondary" /> Teacher assigned</span>
+                       <span className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {slot.room || 'Room pending'}</span>
                     </div>
                  </div>
               </div>
