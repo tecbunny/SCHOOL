@@ -11,6 +11,10 @@ export default function ProvisionPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
   const [principalCode, setPrincipalCode] = useState('');
+  const [adminAuthorizationCode, setAdminAuthorizationCode] = useState('');
+  const [generatedAuthorizationCode, setGeneratedAuthorizationCode] = useState<any>(null);
+  const [authorizationLoading, setAuthorizationLoading] = useState(false);
+  const [authorizationError, setAuthorizationError] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetResult, setResetResult] = useState<any>(null);
   const [resetError, setResetError] = useState('');
@@ -49,7 +53,7 @@ export default function ProvisionPage() {
       const res = await fetch('/api/admin/principal/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ principalCode })
+        body: JSON.stringify({ principalCode, adminAuthorizationCode })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Password reset failed');
@@ -58,6 +62,24 @@ export default function ProvisionPage() {
       setResetError(err.message);
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleGenerateAuthorizationCode = async () => {
+    setAuthorizationLoading(true);
+    setAuthorizationError('');
+    setGeneratedAuthorizationCode(null);
+
+    try {
+      const res = await fetch('/api/admin/authorization-code', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Authorization code generation failed');
+      setGeneratedAuthorizationCode(data);
+      setAdminAuthorizationCode(data.authorizationCode);
+    } catch (err: any) {
+      setAuthorizationError(err.message);
+    } finally {
+      setAuthorizationLoading(false);
     }
   };
 
@@ -146,12 +168,40 @@ export default function ProvisionPage() {
               <div className="flex items-center gap-2 text-sm font-bold text-secondary">
                 <KeyRound className="w-4 h-4" /> Existing Principal First Login
               </div>
+              <button
+                type="button"
+                onClick={handleGenerateAuthorizationCode}
+                className="btn btn-secondary w-full justify-center"
+                disabled={authorizationLoading}
+              >
+                {authorizationLoading ? <Loader2 className="animate-spin" /> : <>Generate Admin Authorization Code</>}
+              </button>
+              {authorizationError && (
+                <div className="bg-danger/10 border border-danger text-danger text-xs p-3 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> {authorizationError}
+                </div>
+              )}
+              {generatedAuthorizationCode && (
+                <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl">
+                  <p className="text-[10px] text-muted uppercase tracking-widest">Authorization Code</p>
+                  <p className="text-primary font-mono text-2xl font-black tracking-[0.2em] mt-1">{generatedAuthorizationCode.authorizationCode}</p>
+                  <p className="text-[10px] text-muted mt-2">Valid for {generatedAuthorizationCode.expiresInMinutes} minutes and usable once.</p>
+                </div>
+              )}
               <input
                 type="text"
                 placeholder="Enter PR code, e.g. PR620101"
                 className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-secondary transition-colors font-mono"
                 value={principalCode}
                 onChange={(e) => setPrincipalCode(e.target.value.toUpperCase())}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Generated admin authorization code"
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-secondary transition-colors"
+                value={adminAuthorizationCode}
+                onChange={(e) => setAdminAuthorizationCode(e.target.value)}
                 required
               />
               {resetError && (

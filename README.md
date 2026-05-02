@@ -48,4 +48,5 @@ Class Station runs on `http://127.0.0.1:4102/school/teacher`.
 ## Notes
 
 - Environment values belong in `.env.local`.
+- Principal password reset uses a short-lived admin-generated authorization code.
 - Generated folders such as `.next/`, `node_modules/`, and build info files can be recreated and are not part of the clean handoff.
