@@ -47,5 +47,6 @@ eduos/*.img
 eduos/*.zip
 eduos/edge-server/dist
 eduos/image_payload/
+.eduos-local/
 
 

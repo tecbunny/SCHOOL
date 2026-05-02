@@ -361,29 +361,32 @@ Class Station responsibilities:
 
 ### 7.3 Face + QR Login Flow
 
-The desired classroom identity flow is:
+The production classroom identity flow must be local-first. During class, "API" means the Class Station's local edge service on the classroom LAN, not Supabase Cloud. Supabase is only an eventual sync destination for append-only session logs after connectivity returns.
 
 ```mermaid
 sequenceDiagram
   participant Student
   participant Hub as Student Hub
   participant Station as Class Station
-  participant API as EduPortal API
-  participant DB as Supabase
+  participant Edge as Local Class Station API
+  participant LocalDB as Station Local DB
+  participant Cloud as Supabase Cloud
 
   Student->>Hub: Opens Student Hub
-  Hub->>API: Requests QR session
-  API->>DB: Creates short-lived QR session
-  API-->>Hub: Returns signed rotating QR payload
+  Hub->>Edge: Requests QR session over classroom LAN
+  Edge->>LocalDB: Creates pending local QR session
+  Edge-->>Hub: Returns signed rotating QR payload
   Hub-->>Student: Displays QR that rotates every 10 seconds
   Student->>Station: Stands before Class Station
   Station->>Station: Captures face
-  Station->>API: Verifies face against student identity
+  Station->>LocalDB: Verifies face against cached templates
   Station->>Hub: Scans displayed QR
-  Station->>API: Sends QR nonce + verified face context
-  API->>DB: Marks QR session verified
-  API-->>Station: Session accepted
-  API-->>Hub: Student session unlocked
+  Station->>Edge: Sends QR nonce + verified face context
+  Edge->>LocalDB: Atomically verifies nonce and marks session verified
+  Edge-->>Station: Session accepted with signed local receipt
+  Edge-->>Hub: Student session unlocked
+  Edge-->>LocalDB: Queues append-only qr_session_verified event
+  Edge-->>Cloud: Syncs qr_sessions log when internet returns
 ```
 
 Important privacy design:
@@ -394,6 +397,21 @@ Important privacy design:
 - QR binds the physical Student Hub session to the verified student identity.
 - QR payloads must contain a signed nonce that rotates every 10 seconds and expires immediately after verification.
 - Verification must reject stale nonces, replayed nonces, cross-school devices, and QR payloads not tied to the active Student Hub device session.
+
+Local authority requirements:
+
+- Class Station must keep a local encrypted cache of roster rows, device bindings, active timetable/session context, and active face templates required for the day's classes.
+- Student Hubs must request QR payloads from the Class Station LAN endpoint, such as `http://class-station.local/api/local/qr/session`, instead of calling the cloud QR API directly.
+- The Class Station must sign every QR payload and every unlock receipt with its station private key. Hubs trust only enrolled station public keys for their school.
+- QR verification must be an atomic local transaction against a one-time nonce table so a scanned QR cannot be replayed by another device.
+- `qr_sessions` in Supabase is a replicated audit table. It must not be required for class-time login.
+- If the internet is unavailable, verified sessions remain valid locally and sync later through the offline event queue.
+- If the Class Station lacks a fresh local roster/template cache for the class, it must fail closed for identity verification and offer the teacher a documented manual attendance fallback, not silently depend on the cloud.
+
+Current implementation correction:
+
+- The existing `/api/auth/qr/generate`, `/api/auth/qr/verify`, and `/api/hardware/face-verify` routes are acceptable for prototype/cloud simulation only.
+- For field deployment, those routes must be moved behind or mirrored by the Class Station local edge service. Cloud routes may accept only signed sync receipts from the station, not participate in the live classroom unlock path.
 
 ## 8. Daily Working Flow by User
 
@@ -899,7 +917,7 @@ Important current tables and intended responsibilities:
 | `syllabus` | Curriculum structure and AI grounding context. |
 | `announcements` | School announcements shown to students/staff. |
 | `student_sessions` | Student Hub heartbeat and live session monitoring. |
-| `qr_sessions` | QR login/session verification records. |
+| `qr_sessions` | Cloud replica of local Class Station QR login/session verification receipts. Not a class-time dependency. |
 | `hardware_nodes` | Student Hub and Class Station registration and heartbeat. |
 | `fleet_releases` | EduOS release versions. |
 | `fleet_deployments` | OTA deployment status per hardware node. |
@@ -957,6 +975,8 @@ Recommended production security controls:
 - Realtime authorization for every classroom channel.
 - Server or Class Station enforced test deadlines.
 - Rotating QR nonce verification with replay protection.
+- Class Station local signing keys for QR payloads, unlock receipts, and deferred sync batches.
+- Local encrypted cache for roster, device binding, timetable, and face templates needed for offline authentication.
 
 ## 15. Hardware-Assisted Classroom Flow
 
@@ -964,11 +984,11 @@ Recommended production security controls:
 
 1. Student Hub boots EduOS.
 2. Student Hub opens locked PWA shell.
-3. Student Hub sends heartbeat.
+3. Student Hub sends heartbeat to Class Station if reachable and queues cloud heartbeat if internet is unavailable.
 4. Class Station boots EduOS.
-5. Class Station sends heartbeat.
-6. Both devices check for updates.
-7. Study materials are cached if available.
+5. Class Station sends heartbeat and opens the local classroom authority service.
+6. Class Station verifies that roster, face templates, device bindings, timetable, and study material caches are fresh enough for the day's classes.
+7. Study materials are served from cache if cloud connectivity is unavailable.
 
 ### 15.2 During Class
 
@@ -976,7 +996,7 @@ Recommended production security controls:
 2. Student stands before Class Station.
 3. Class Station scans student face.
 4. Class Station scans QR from Student Hub.
-5. System verifies student identity and device session.
+5. Class Station verifies student identity and device session locally.
 6. Teacher starts class activity.
 7. Student receives class tools, study notes, or live test.
 
@@ -1055,6 +1075,7 @@ Implemented or present:
 - Auditor report generator.
 - Hardware handshake, telemetry, and update-check routes.
 - QR generation and verification routes.
+- Local Class Station QR session and verification routes under `/api/local/qr/*`.
 - EduOS hardware model for Student Hub and Class Station.
 
 Pilot-blocking gaps to close before any B2G field deployment:
@@ -1064,7 +1085,8 @@ Pilot-blocking gaps to close before any B2G field deployment:
 - Auto grading should write directly to grade draft records before teacher finalization.
 - Test deadline enforcement must move from client countdown to backend/Class Station authority.
 - Classroom Realtime channels must enforce authorization and must not use guessable public channel names.
-- QR verification must use rotating signed nonces and one-time replay protection.
+- QR generation, face verification, nonce verification, and session unlock must run on the Class Station local edge service; cloud QR routes must become prototype-only or post-class sync endpoints.
+- QR verification must use rotating signed nonces, one-time replay protection, local station receipts, and deferred Supabase replication.
 - Password delivery must use secure out-of-band channels and no API response may include plaintext credentials.
 - AI generation must use RAG chunk retrieval and token quotas instead of whole-document prompting.
 - Compliance audit events must stream to an immutable external sink.
@@ -1106,7 +1128,7 @@ Security:
 - Add per-school AI quota.
 - Add storage lifecycle policy for scanned worksheets.
 - Add Realtime Authorization policies for classroom topics.
-- Add rotating QR nonce storage and replay rejection.
+- Add Class Station local QR authority with rotating nonce storage, replay rejection, signed unlock receipts, and deferred cloud sync.
 - Add external WORM audit export with retention policy.
 
 Operations:
@@ -1116,6 +1138,7 @@ Operations:
 - Add backup and restore runbook.
 - Add incident response policy for student data.
 - Add monitoring for hardware fleet heartbeat failure.
+- Add a classroom cache freshness dashboard so teachers know before class whether offline login can run without internet.
 
 ## 20. Conclusion
 
@@ -1126,4 +1149,4 @@ The strongest product idea is the combination of cloud school operations with tw
 - Student Hub without camera for safer student desk usage.
 - Class Station with camera for centralized face verification and classroom scanning.
 
-This design keeps the student interface focused while allowing secure classroom identity, test delivery, worksheet scanning, and report generation. The remaining technical priority is not another dashboard; it is to complete the assessment data plane: durable offline-first submissions, server/Class Station enforced deadlines, authorized Realtime channels, replay-proof QR verification, RAG-limited AI generation, and immutable audit export.
+This design keeps the student interface focused while allowing secure classroom identity, test delivery, worksheet scanning, and report generation. The remaining technical priority is not another dashboard; it is to complete the classroom edge data plane: local Class Station QR authority, durable offline-first submissions, server/Class Station enforced deadlines, authorized Realtime channels, replay-proof QR verification, RAG-limited AI generation, and immutable audit export.

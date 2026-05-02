@@ -71,7 +71,7 @@ The Student Hub is the locked-down student-facing EduOS device.
 Primary workflows:
 
 - Student login.
-- Shows QR handshake session for Class Station scan.
+- Requests and shows QR handshake sessions issued by the local Class Station authority.
 - Study material viewing.
 - Live tests and quizzes.
 - Student dashboard.
@@ -132,17 +132,19 @@ Runtime stack:
 
 Cloud sync:
 
-- Supabase auth/session.
+- Deferred Supabase auth/session receipt sync after Class Station unlock.
 - Student profile.
 - Assignments/materials.
 - Attendance/test state.
-- Device heartbeat.
+- Queued device heartbeat when the classroom or internet link is unavailable.
 
 Local/offline behavior:
 
 - Load cached student dashboard shell.
 - Load cached app assets.
 - Load cached materials where available.
+- Request QR sessions from the Class Station LAN endpoint instead of Supabase Cloud.
+- Accept unlock receipts signed by the enrolled Class Station.
 - Queueing writes is not yet fully implemented and should be added before true offline production use.
 
 ### 4.7 Student Hub Security
@@ -152,11 +154,12 @@ Current controls:
 - Student dashboard route protection.
 - Hardware binding by `mac_address` / `is_hardware_bound`.
 - Student-hub device context through `x-eduos` / `is-eduos`.
-- QR session generation now requires student-hub context and rate limiting.
+- QR session generation must be station-local in production and must require signed Student Hub identity.
 
 Required production hardening:
 
 - Replace spoofable headers/cookies with signed device identity.
+- Store enrolled Class Station public keys so Hubs can reject forged QR payloads or unlock receipts.
 - Store node secret outside browser-accessible storage.
 - Add kiosk escape prevention at compositor/browser level.
 - Add physical tamper control for reset/debug ports.
@@ -260,9 +263,9 @@ Responsibilities:
 
 - Add `x-class-station` only from trusted local runtime or future signed identity.
 - Cache app/materials with Nginx.
-- Relay classroom workflows to cloud APIs.
-- Monitor student session heartbeats.
-- Issue device commands through Supabase realtime tables.
+- Act as the local classroom authority for QR generation, face verification, session unlock, local receipts, and deferred sync.
+- Monitor student session heartbeats over the classroom LAN.
+- Issue device commands locally first, then mirror state to Supabase realtime tables when internet is available.
 
 ### 5.7 Class Station Security
 
@@ -271,7 +274,7 @@ Current controls:
 - Teacher/principal/moderator role checks.
 - Class-station context required for AI generation/OCR/vision grading.
 - Hardware telemetry/update routes use per-node secret.
-- QR verification checks staff role and same-school student ownership.
+- QR verification must check cached same-school student ownership locally and sync the signed receipt later.
 
 Required production hardening:
 
@@ -280,6 +283,8 @@ Required production hardening:
 - Local admin password or hardware maintenance mode.
 - Secure update verification using checksums/signatures.
 - No shared class-station secret across all schools.
+- Encrypted local cache for roster, timetable, device bindings, and face templates.
+- Append-only local audit log for QR, face verification, and unlock receipts.
 
 ### 5.8 Class Station Validation Checklist
 
@@ -304,11 +309,11 @@ Required production hardening:
 flowchart LR
   Student["Student"] --> Hub["Student Hub\nLuckfox Pico Ultra W"]
   Teacher["Teacher"] --> Station["Class Station\nLuckfox Pico Ultra BW"]
-  Hub -->|Heartbeat / activity| Supabase["Supabase"]
-  Station -->|Monitor sessions| Supabase
-  Station -->|Commands| Supabase
-  Supabase -->|Realtime commands| Hub
-  Station -->|AI / OCR / grading| NextApi["Next API Routes"]
+  Hub -->|QR request / heartbeat / activity| Station
+  Station -->|Signed QR and unlock receipts| Hub
+  Station -->|Deferred receipts / telemetry sync| Supabase["Supabase"]
+  Supabase -->|Roster / timetable / material updates| Station
+  Station -->|AI / OCR / grading| NextApi["Local or Cloud Next API Routes"]
   Hub -->|Study / tests / profile| NextApp["EduPortal PWA"]
   Station --> Cache["Nginx Edge Cache"]
   Cache --> NextApp
@@ -321,30 +326,33 @@ flowchart LR
 Expected classroom flow:
 
 1. Student opens the Student Hub login screen.
-2. Student Hub requests a QR session and displays the QR on-screen.
+2. Student Hub requests a QR session from the local Class Station LAN authority and displays the QR on-screen.
 3. Class Station camera scans the student's face.
 4. Class Station scans the QR displayed on the Student Hub.
-5. Teacher/Class Station verifies that the face-recognized student matches the selected/student identity.
-6. EduPortal marks the QR session verified.
-7. Student Hub completes login.
+5. Class Station verifies that the face-recognized student matches cached roster and device-binding data.
+6. Class Station marks the local QR session verified and issues a signed unlock receipt.
+7. Student Hub completes login from the signed local receipt.
+8. Class Station syncs the append-only `qr_sessions` receipt to Supabase after connectivity returns.
 
 ```mermaid
 sequenceDiagram
   participant Hub as Student Hub
-  participant API as EduPortal API
-  participant Teacher as Teacher/Class Station
-  participant DB as Supabase
+  participant Station as Local Class Station API
+  participant LocalDB as Station Local DB
+  participant Cloud as Supabase
 
-  Hub->>API: Create QR session
-  API->>DB: Insert pending qr_sessions row
-  API-->>Hub: QR payload displayed on screen
-  Teacher->>Teacher: Scan student's face on Class Station camera
-  Teacher->>Teacher: Scan Student Hub QR
-  Teacher->>API: Verify QR session and recognized student
-  API->>DB: Check staff role + same school
-  API->>DB: Mark QR session verified
-  Hub->>API: Continue login/session flow
+  Hub->>Station: Create QR session over classroom LAN
+  Station->>LocalDB: Insert pending local qr session
+  Station-->>Hub: Signed rotating QR payload
+  Station->>Station: Scan student's face on Class Station camera
+  Station->>Station: Scan Student Hub QR
+  Station->>LocalDB: Verify cached student, device binding, and nonce
+  Station->>LocalDB: Mark QR session verified
+  Station-->>Hub: Signed unlock receipt
+  Station-->>Cloud: Sync qr_sessions receipt when online
 ```
+
+Production rule: Supabase must not be in the class-time QR unlock path. Cloud QR APIs are prototype/simulation endpoints unless they are called only by the Class Station as deferred receipt sync.
 
 ### 7.2 Live Classroom Control Flow
 
@@ -412,8 +420,10 @@ Class Station:
 | `/api/hardware/handshake` | Yes | Yes |
 | `/api/hardware/telemetry` | Yes | Yes |
 | `/api/hardware/update-check` | Yes | Yes |
-| `/api/auth/qr/generate` | Yes | No |
-| `/api/auth/qr/verify` | No | Yes, after face scan + QR scan |
+| `/api/local/qr/session` on Class Station | Yes, LAN-only client | Yes, local authority |
+| `/api/local/qr/verify` on Class Station | No | Yes, after face scan + QR scan |
+| `/api/auth/qr/generate` cloud route | Prototype only | No live class-time dependency |
+| `/api/auth/qr/verify` cloud route | No | Prototype or deferred signed receipt sync only |
 | `/api/auth/gate/token` | No | Yes, if station acts as gate |
 | `/api/auth/gate/login` | Yes, after station-issued token | Optional |
 | `/api/ai/generate` | No, except restricted student study usage if later added | Yes |
@@ -431,6 +441,7 @@ Student Hub identity:
 - `school_id`
 - `device role = student_hub`
 - hardware secret/private key.
+- enrolled Class Station public key for QR and unlock receipt verification.
 
 Class Station identity:
 
@@ -439,6 +450,7 @@ Class Station identity:
 - optional `class_id`
 - `device role = class_station`
 - hardware secret/private key.
+- local signing key used for QR payloads, unlock receipts, and deferred sync batches.
 
 Recommended database shape:
 

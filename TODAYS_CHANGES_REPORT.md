@@ -84,11 +84,29 @@ Key architecture corrections added today:
 - Classroom Realtime channels must be tenant-scoped, session-scoped, and authorized instead of using guessable class room names.
 - Live test submissions must be durably projected into `test_submissions` and `test_answers`.
 - Student Hub timers are treated only as UI convenience; backend or Class Station time must enforce the real deadline.
-- QR verification must use signed rotating nonces with replay rejection.
+- QR verification must run through the Class Station local authority during class time, using signed rotating nonces with replay rejection.
 - AI generation must use RAG-style chunk retrieval instead of sending full PDFs to the model.
 - Compliance logs must stream to an immutable WORM-capable external audit sink.
 
-## 10. Staff Credential Leak Was Removed
+## 10. Offline QR Authority Was Added
+
+The Face + QR classroom login flow was redesigned so it no longer depends on Supabase during class.
+
+Student Hubs now have a local Class Station QR authority path. The Class Station can issue signed QR payloads, verify a face-confirmed QR session locally, reject replayed QR payloads, and return a signed unlock receipt.
+
+Supabase is now treated as a deferred audit/sync destination for `qr_sessions`, not as the runtime dependency that unlocks students during a network outage.
+
+Changed files:
+
+- `src/lib/local-station-qr.ts`
+- `src/app/api/local/qr/session/route.ts`
+- `src/app/api/local/qr/verify/route.ts`
+- `DETAILED_WORKING_REPORT.md`
+- `DETAILED_WORKING_REPORT.pdf`
+- `HARDWARE_TECHNICAL_DETAILS.md`
+- `.gitignore`
+
+## 11. Staff Credential Leak Was Removed
 
 The staff creation API no longer returns the generated temporary password to the browser.
 
@@ -100,7 +118,7 @@ Changed files:
 - `src/features/staff-management/AddStaffModal.tsx`
 - `DETAILED_WORKING_REPORT.md`
 
-## 11. Build Verification Passed
+## 12. Build Verification Passed
 
 The project was checked after the changes.
 
@@ -109,3 +127,5 @@ TypeScript passed.
 Lint passed with only existing warnings.
 
 Production build passed.
+
+The local QR authority smoke test also passed: one signed QR session was accepted once, and the replay attempt was rejected.
