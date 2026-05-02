@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.offline_events (
         'behavior',
         'material',
         'announcement',
+        'exam',
         'device',
         'system'
     )),
@@ -53,6 +54,63 @@ CREATE INDEX IF NOT EXISTS offline_events_stream_idx
 CREATE INDEX IF NOT EXISTS offline_events_pending_projection_idx
     ON public.offline_events (school_id, status, lamport_version)
     WHERE status = 'accepted';
+
+CREATE OR REPLACE VIEW public.offline_event_current_state AS
+SELECT DISTINCT ON (school_id, stream_type, stream_id)
+    school_id,
+    stream_type,
+    stream_id,
+    action,
+    actor_id,
+    device_id,
+    lamport_version,
+    payload,
+    event_id,
+    received_at
+FROM public.offline_events
+WHERE status IN ('accepted', 'applied')
+ORDER BY
+    school_id,
+    stream_type,
+    stream_id,
+    lamport_version DESC,
+    device_id DESC,
+    event_id DESC;
+
+ALTER VIEW public.offline_event_current_state SET (security_invoker = true);
+
+CREATE OR REPLACE VIEW public.current_attendance_events AS
+SELECT
+    school_id,
+    (payload->>'student_id')::uuid AS student_id,
+    payload->>'attendance_date' AS attendance_date,
+    payload->>'status' AS status,
+    actor_id AS recorded_by,
+    device_id,
+    lamport_version,
+    event_id
+FROM public.offline_event_current_state
+WHERE stream_type = 'attendance';
+
+ALTER VIEW public.current_attendance_events SET (security_invoker = true);
+
+CREATE OR REPLACE VIEW public.current_grade_events AS
+SELECT
+    school_id,
+    (payload->>'student_id')::uuid AS student_id,
+    payload->>'subject' AS subject,
+    payload->>'assessment_type' AS assessment_type,
+    NULLIF(payload->>'marks_obtained', '')::numeric AS marks_obtained,
+    NULLIF(payload->>'max_marks', '')::numeric AS max_marks,
+    payload->>'cbse_grade' AS cbse_grade,
+    actor_id AS teacher_id,
+    device_id,
+    lamport_version,
+    event_id
+FROM public.offline_event_current_state
+WHERE stream_type = 'grade';
+
+ALTER VIEW public.current_grade_events SET (security_invoker = true);
 
 ALTER TABLE public.offline_device_clocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offline_events ENABLE ROW LEVEL SECURITY;

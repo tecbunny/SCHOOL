@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/api-auth";
-import { verifyHardwareNode } from "@/lib/hardware-auth";
+import { verifySignedHardwareRequest } from "@/lib/hardware-auth";
 
 function compareVersion(left: string, right: string) {
   const leftParts = left.split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -18,9 +18,10 @@ function compareVersion(left: string, right: string) {
 
 export async function POST(req: Request) {
   try {
-    const { nodeId, currentVersion, releaseType } = await req.json();
-    if (!nodeId || !currentVersion || !releaseType) {
-      return NextResponse.json({ error: "Node id, version, and release type are required." }, { status: 400 });
+    const bodyText = await req.text();
+    const { currentVersion, releaseType } = JSON.parse(bodyText);
+    if (!currentVersion || !releaseType) {
+      return NextResponse.json({ error: "Version and release type are required." }, { status: 400 });
     }
     if (!["os", "pwa"].includes(releaseType)) {
       return NextResponse.json({ error: "Unsupported release type." }, { status: 400 });
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    const auth = await verifyHardwareNode(supabase, nodeId, req.headers.get("x-node-secret"));
+    const auth = await verifySignedHardwareRequest(supabase, req, bodyText);
     if (!auth.ok) return auth.response;
 
     // 1. Fetch latest release of specified type
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     await logger.log({
       eventType: 'HARDWARE',
       severity: isNewer ? 'info' : 'info',
-      message: `Node ${nodeId} checked for updates. Available: ${isNewer}`,
+      message: `Node ${auth.node.id} checked for updates. Available: ${isNewer}`,
       metadata: { current_version: currentVersion, release_type: releaseType, update_found: isNewer }
     });
 

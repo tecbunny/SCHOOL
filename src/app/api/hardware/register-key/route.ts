@@ -1,0 +1,45 @@
+import { createClient } from "@supabase/supabase-js";
+import { createPublicKey } from "crypto";
+import { NextResponse } from "next/server";
+
+import { errorMessage, getServiceClient } from "@/lib/api-auth";
+
+export async function POST(req: Request) {
+  try {
+    const { nodeId, publicKeyPem, secretKey } = await req.json();
+
+    if (!process.env.HARDWARE_PROVISIONING_SECRET || secretKey !== process.env.HARDWARE_PROVISIONING_SECRET) {
+      return NextResponse.json({ error: "Invalid provisioning secret." }, { status: 401 });
+    }
+
+    if (!nodeId || !publicKeyPem) {
+      return NextResponse.json({ error: "nodeId and publicKeyPem are required." }, { status: 400 });
+    }
+
+    const key = createPublicKey(publicKeyPem);
+    if (key.asymmetricKeyType !== "ed25519") {
+      return NextResponse.json({ error: "Only Ed25519 hardware keys are supported." }, { status: 400 });
+    }
+
+    const service = getServiceClient();
+    const supabase = createClient(service.url, service.key, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data, error } = await supabase
+      .from("hardware_nodes")
+      .update({
+        public_key_pem: publicKeyPem,
+        key_algorithm: "ed25519",
+        key_registered_at: new Date().toISOString(),
+      })
+      .eq("id", nodeId)
+      .select("id, school_id, key_algorithm, key_registered_at")
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json({ node: data });
+  } catch (error) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+  }
+}

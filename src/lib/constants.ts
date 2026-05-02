@@ -27,6 +27,7 @@ export interface Profile {
   role: UserRole;
   is_teaching_staff: boolean;
   school_id: string;
+  global_student_id?: string | null;
 }
 
 export interface GateJwtPayload extends JwtPayload {

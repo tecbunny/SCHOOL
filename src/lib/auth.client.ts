@@ -1,8 +1,9 @@
 "use client";
 
-import { createClient } from './supabase';
 import { useEffect } from 'react';
+
 import { ROUTES, type UserRole } from './constants';
+import { createClient } from './supabase';
 
 export { createClient };
 
@@ -63,7 +64,6 @@ export const signInWithCode = async (code: string, password: string, options: Si
   return { profile, authData };
 };
 
-
 export const signOut = async () => {
   const supabase = createClient();
   if (supabase) await supabase.auth.signOut();
@@ -77,37 +77,43 @@ export const signOut = async () => {
   }
 };
 
-// --- HOOKS ---
 export function useDeviceMonitoring(studentId: string, currentActivity: string) {
   const supabase = createClient();
-  
+
   useEffect(() => {
     if (!studentId || !supabase) return;
-    
+
     const ping = async () => {
-      await supabase.from('student_sessions').upsert({ 
-        student_id: studentId, current_activity: currentActivity, last_ping: new Date().toISOString(), status: 'active'
+      await supabase.from('student_sessions').upsert({
+        student_id: studentId,
+        current_activity: currentActivity,
+        last_ping: new Date().toISOString(),
+        status: 'active'
       });
     };
-    
+
     const interval = setInterval(ping, 30000);
-    ping(); // initial ping
-    
+    void ping();
+
     const channel = supabase.channel(`device_commands_${studentId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'device_commands', filter: `target_student_id=eq.${studentId}` }, 
-      (p: { new: DeviceCommand }) => handleCommand(p.new, supabase)).subscribe();
-      
-    return () => { 
-      clearInterval(interval); 
-      supabase.removeChannel(channel); 
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'device_commands', filter: `target_student_id=eq.${studentId}` },
+        (payload: { new: DeviceCommand }) => handleCommand(payload.new, supabase)
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
     };
   }, [studentId, currentActivity, supabase]);
 }
 
 type DeviceCommand = {
   id: string;
-  command_type: 'PUSH_URL' | 'LOCK_SCREEN' | 'RESET';
-  payload?: { url?: string };
+  command_type: 'PUSH_URL' | 'LOCK_SCREEN' | 'RESET' | 'SESSION_END';
+  payload?: { url?: string; sessionId?: string; hubDeviceId?: string; reason?: string };
 };
 
 type SupabaseCommandClient = ReturnType<typeof createClient>;
@@ -130,8 +136,22 @@ const handleCommand = async (command: DeviceCommand, supabase: SupabaseCommandCl
       if (safePath) window.location.href = safePath;
       break;
     }
-    case 'LOCK_SCREEN': alert("🔒 Locked by Teacher."); break;
-    case 'RESET': window.location.reload(); break;
+    case 'LOCK_SCREEN': {
+      localStorage.setItem('eduportal.student-hub.locked', 'teacher_lock');
+      alert('Locked by Teacher.');
+      break;
+    }
+    case 'SESSION_END': {
+      localStorage.setItem('eduportal.student-hub.locked', 'session_end');
+      localStorage.setItem('eduportal.student-hub.last-session', command.payload?.sessionId ?? '');
+      await supabase.auth.signOut();
+      window.location.href = '/school/student?locked=session_end';
+      break;
+    }
+    case 'RESET':
+      window.location.reload();
+      break;
   }
+
   await supabase.from('device_commands').update({ is_executed: true }).eq('id', command.id);
 };

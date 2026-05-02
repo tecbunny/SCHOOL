@@ -5,6 +5,7 @@ import TeacherList from '@/features/staff-management/TeacherList';
 import AnnouncementComposer from '@/features/announcements/AnnouncementComposer';
 import ComplianceReportGenerator from '@/features/compliance/ComplianceReportGenerator';
 import SupportTicketSystem from '@/features/support/SupportTicketSystem';
+import OfflineHealthDashboard from '@/features/support/OfflineHealthDashboard';
 import PromotionConsole from '@/features/school-operations/PromotionConsole';
 import TimetableManager from '@/features/school-operations/TimetableManager';
 import EngagementHeatmap from '@/features/compliance/EngagementHeatmap';
@@ -81,6 +82,7 @@ export default function HODDashboard() {
 
           {/* Right Column: Settings, Compliance & Support */}
           <div className="col-span-4 flex flex-col gap-8">
+            <OfflineHealthDashboard />
             <ComplianceReportGenerator />
             <HpcAnalytics />
             <EngagementHeatmap />

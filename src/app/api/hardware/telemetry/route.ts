@@ -1,13 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/api-auth";
-import { verifyHardwareNode } from "@/lib/hardware-auth";
+import { verifySignedHardwareRequest } from "@/lib/hardware-auth";
 
 export async function POST(req: Request) {
   try {
-    const { nodeId, temp, disk_usage, memory_usage, uptime } = await req.json();
-    if (!nodeId || typeof temp !== "number") {
-      return NextResponse.json({ error: "Node id and temperature are required." }, { status: 400 });
+    const bodyText = await req.text();
+    const { temp, disk_usage, memory_usage, uptime } = JSON.parse(bodyText);
+    if (typeof temp !== "number") {
+      return NextResponse.json({ error: "Temperature is required." }, { status: 400 });
     }
     if (temp < -20 || temp > 125) {
       return NextResponse.json({ error: "Temperature is outside the accepted telemetry range." }, { status: 400 });
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    const auth = await verifyHardwareNode(supabase, nodeId, req.headers.get("x-node-secret"));
+    const auth = await verifySignedHardwareRequest(supabase, req, bodyText);
     if (!auth.ok) return auth.response;
 
     // 1. Update Node Status & Telemetry
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
     await logger.log({
       eventType: 'HARDWARE',
       severity: temp > 75 ? 'warning' : 'info',
-      message: `Node ${nodeId} reported telemetry.`,
+      message: `Node ${auth.node.id} reported telemetry.`,
       metadata: { disk_usage, memory_usage, uptime, temp }
     });
 

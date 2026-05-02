@@ -7,6 +7,8 @@ import Link from 'next/link';
 import LiveMonitorGrid from '@/components/school/LiveMonitorGrid';
 import ClassAnalytics from '@/components/school/ClassAnalytics';
 import { isClassStationDevice } from '@/lib/device.client';
+import OfflineHealthDashboard from '@/features/support/OfflineHealthDashboard';
+import HubDistributionMode from '@/features/hardware/HubDistributionMode';
 
 type GeneratedQuestion = {
   question?: string;
@@ -173,6 +175,12 @@ export default function TeacherDashboard() {
           </div>
         </div>
         
+        {isClassStation && <OfflineHealthDashboard />}
+
+        {isClassStation && stats.schoolId && (
+          <HubDistributionMode schoolId={stats.schoolId} classId="10-A" />
+        )}
+
         {/* Quick Actions Menu */}
         <div className="flex gap-4">
           <button className="glass-panel hover:bg-white/5 transition-colors border border-[var(--border)] rounded-lg p-4 flex items-center justify-center gap-3 flex-1 text-primary font-semibold">
