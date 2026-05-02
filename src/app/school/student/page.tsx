@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCap, Hash, Lock, Loader2, ArrowRight, Camera, Fingerprint, Info, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Hash, Lock, Loader2, ArrowRight, Fingerprint, Info, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent, useEffect } from 'react';
@@ -19,7 +19,6 @@ export default function StudentAppLogin() {
   const [password, setPassword] = useState('');
   const [schoolCode, setSchoolCode] = useState('SCH7878');
   const [showQR, setShowQR] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
   const [deviceId] = useState(() => {
     if (typeof window === 'undefined') return 'FETCHING...';
     return window.navigator.userAgent.split(' ').pop() || 'SSPH-01-STUDENT';
@@ -32,6 +31,7 @@ export default function StudentAppLogin() {
   useEffect(() => {
     if (isEduOS) {
       document.cookie = 'is-eduos=true;path=/;max-age=31536000;samesite=lax';
+      setShowQR(true);
     }
   }, [isEduOS]);
 
@@ -126,14 +126,10 @@ export default function StudentAppLogin() {
             <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-bold text-muted"><span className="bg-card px-4">Secure sign in</span></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className={isEduOS ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 gap-4"}>
             <button type="button" onClick={() => setShowQR(true)} className="btn btn-outline py-4 rounded-xl flex flex-col gap-2 h-auto">
               <Fingerprint className="w-6 h-6 text-primary" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Biometric</span>
-            </button>
-            <button type="button" onClick={() => setShowScanner(true)} className="btn btn-outline py-4 rounded-xl flex flex-col gap-2 h-auto">
-              <Camera className="w-6 h-6 text-secondary" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Gate Scan</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Show Teacher QR</span>
             </button>
           </div>
         </form>
@@ -147,8 +143,7 @@ export default function StudentAppLogin() {
         )}
       </div>
 
-      {showQR && <QRLoginModal deviceId={deviceId} onClose={() => setShowQR(false)} />}
-      {showScanner && <QRScannerModal deviceId={deviceId} onLoginSuccess={(code) => { setUserCode(code); setShowScanner(false); }} onClose={() => setShowScanner(false)} />}
+      {showQR && <QRLoginModal deviceId={deviceId} locked={isEduOS} onClose={() => setShowQR(false)} />}
     </div>
   );
 }

@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
     const isStandalone = process.env.EDUOS_STANDALONE === 'true';
     const role = process.env.EDUOS_ROLE ?? 'student-hub';
     const destination = role === 'class-station'
-      ? '/school/dashboard/teacher'
-      : '/school/dashboard/student';
+      ? '/school/teacher'
+      : '/school/student';
     
     if (isStandalone) {
       return [

@@ -17,5 +17,5 @@ $classArgs = @("-NoExit", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $VmD
 Start-Process powershell.exe -ArgumentList $studentArgs -WindowStyle Hidden
 Start-Process powershell.exe -ArgumentList $classArgs -WindowStyle Hidden
 
-Write-Host "Student Hub VM:  http://127.0.0.1:4101/school/dashboard/student" -ForegroundColor Green
-Write-Host "Class Station VM: http://127.0.0.1:4102/school/dashboard/teacher" -ForegroundColor Green
+Write-Host "Student Hub VM:  http://127.0.0.1:4101/school/student" -ForegroundColor Green
+Write-Host "Class Station VM: http://127.0.0.1:4102/school/teacher" -ForegroundColor Green

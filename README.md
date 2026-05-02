@@ -42,8 +42,8 @@ This creates:
 .\eduos\vm\start-both-vms.ps1
 ```
 
-Student Hub runs on `http://127.0.0.1:4101/school/dashboard/student`.
-Class Station runs on `http://127.0.0.1:4102/school/dashboard/teacher`.
+Student Hub runs on `http://127.0.0.1:4101/school/student`.
+Class Station runs on `http://127.0.0.1:4102/school/teacher`.
 
 ## Notes
 

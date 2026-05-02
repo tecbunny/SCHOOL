@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Fingerprint, Loader2, X, Camera } from 'lucide-react';
 
 // --- QR LOGIN MODAL ---
-export function QRLoginModal({ deviceId, onClose }: { deviceId: string, onClose: () => void }) {
+export function QRLoginModal({ deviceId, onClose, locked = false }: { deviceId: string, onClose: () => void, locked?: boolean }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,15 +35,17 @@ export function QRLoginModal({ deviceId, onClose }: { deviceId: string, onClose:
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
       <div className="bg-card border border-primary/20 rounded-2xl p-8 max-w-sm w-full relative shadow-2xl animate-in zoom-in-95 duration-300">
-        <button onClick={onClose} className="absolute right-4 top-4 text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        {!locked && (
+          <button onClick={onClose} className="absolute right-4 top-4 text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        )}
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="bg-primary/10 p-4 rounded-full"><Fingerprint className="w-10 h-10 text-primary" /></div>
           <div>
-            <h2 className="text-xl font-bold mb-2">Secure Teacher Handshake</h2>
-            <p className="text-xs text-muted">Ask your teacher to scan this code with their master terminal to authorize your session.</p>
+            <h2 className="text-xl font-bold mb-2">Student Hub QR</h2>
+            <p className="text-xs text-muted">Ask your teacher to scan this code from the Class Station to authorize your session.</p>
           </div>
           <div className="bg-white p-4 rounded-xl shadow-inner shadow-black/20">
-            {isLoading ? <Loader2 className="w-32 h-32 animate-spin text-primary" /> : <QRCodeSVG value={token || ''} size={160} level="H" />}
+            {isLoading ? <Loader2 className="w-40 h-40 animate-spin text-primary" /> : <QRCodeSVG value={token || ''} size={locked ? 220 : 160} level="H" />}
           </div>
           <div className="text-[10px] font-mono text-muted uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full border border-white/5">Device ID: {deviceId.substring(0, 16)}...</div>
         </div>

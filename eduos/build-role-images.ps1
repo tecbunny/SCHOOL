@@ -11,14 +11,14 @@ $roles = @(
         Name = "Student Hub"
         Slug = "student-hub"
         File = "student-hub-v1.0.0.img"
-        Route = "/school/dashboard/student"
+        Route = "/school/student"
         Features = @("Student desk", "Study hub", "Live tests", "Kiosk mode")
     },
     @{
         Name = "Class Station"
         Slug = "class-station"
         File = "class-station-v1.0.0.img"
-        Route = "/school/dashboard/teacher"
+        Route = "/school/teacher"
         Features = @("Teacher dashboard", "Class monitoring", "AI grading", "Classroom tools")
     }
 )
