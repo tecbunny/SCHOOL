@@ -70,7 +70,37 @@ The system records which student has which Hub.
 
 At the end of class, the teacher can end the session and lock all checked-out Hubs remotely. Student Hubs sign out and return to the locked state.
 
-## 9. Build Verification Passed
+## 9. Enterprise Architecture Hardening Updated
+
+The Detailed Working Report was updated for B2G pilot readiness.
+
+The document now clearly marks the remaining pilot blockers instead of presenting them as normal future improvements.
+
+Key architecture corrections added today:
+
+- API responses must never return plaintext passwords, reset tokens, or recovery links.
+- Supabase Auth and database profile creation are not treated as one atomic transaction.
+- Failed provisioning must use idempotent jobs, tenant activation gates, and compensating cleanup for orphaned Auth users.
+- Classroom Realtime channels must be tenant-scoped, session-scoped, and authorized instead of using guessable class room names.
+- Live test submissions must be durably projected into `test_submissions` and `test_answers`.
+- Student Hub timers are treated only as UI convenience; backend or Class Station time must enforce the real deadline.
+- QR verification must use signed rotating nonces with replay rejection.
+- AI generation must use RAG-style chunk retrieval instead of sending full PDFs to the model.
+- Compliance logs must stream to an immutable WORM-capable external audit sink.
+
+## 10. Staff Credential Leak Was Removed
+
+The staff creation API no longer returns the generated temporary password to the browser.
+
+The Add Staff modal was also updated so principals can copy only non-secret login metadata. Temporary password delivery is now documented as secure-channel-only.
+
+Changed files:
+
+- `src/app/api/school/staff/create/route.ts`
+- `src/features/staff-management/AddStaffModal.tsx`
+- `DETAILED_WORKING_REPORT.md`
+
+## 11. Build Verification Passed
 
 The project was checked after the changes.
 

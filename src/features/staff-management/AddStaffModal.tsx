@@ -1,6 +1,6 @@
 "use client";
 
-import { UserPlus, X, ShieldCheck, Copy, CheckCircle, Loader2, Printer } from 'lucide-react';
+import { UserPlus, X, ShieldCheck, Copy, CheckCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AddStaffModal({ onClose }: { onClose: () => void }) {
@@ -25,7 +25,7 @@ export default function AddStaffModal({ onClose }: { onClose: () => void }) {
       } else {
         alert(data.error || 'Failed to create staff');
       }
-    } catch (err) {
+    } catch {
       alert('An error occurred');
     } finally {
       setLoading(false);
@@ -33,7 +33,7 @@ export default function AddStaffModal({ onClose }: { onClose: () => void }) {
   };
 
   const copyToClipboard = () => {
-    const text = `Staff Login Details:\nName: ${credentials.fullName}\nRole: ${credentials.role.toUpperCase()}\nLogin ID: ${credentials.loginId}\nTemp Password: ${credentials.password}`;
+    const text = `Staff Login Details:\nName: ${credentials.fullName}\nRole: ${credentials.role.toUpperCase()}\nLogin ID: ${credentials.loginId}\nTemporary password delivery: Secure channel pending`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -143,17 +143,14 @@ export default function AddStaffModal({ onClose }: { onClose: () => void }) {
                    </div>
                    <div>
                       <div className="text-[10px] text-muted uppercase mb-1">Temporary Password</div>
-                      <div className="text-secondary font-bold text-lg tracking-wider">{credentials.password}</div>
+                      <div className="text-secondary font-bold text-sm">Sent through secure channel only</div>
                    </div>
                 </div>
               </div>
 
               <div className="flex flex-col gap-3">
                  <button onClick={copyToClipboard} className="btn btn-primary w-full gap-2">
-                    <Copy className="w-4 h-4" /> Copy Credentials
-                 </button>
-                 <button onClick={() => window.print()} className="btn btn-outline w-full gap-2">
-                    <Printer className="w-4 h-4" /> Print Staff Access Card
+                    <Copy className="w-4 h-4" /> Copy Login ID
                  </button>
               </div>
 

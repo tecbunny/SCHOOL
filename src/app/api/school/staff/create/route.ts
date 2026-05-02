@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       }
     );
 
-    // 4. Generate Credentials
+    // 4. Generate credentials. The temporary password is never returned to the browser.
     // Format: TCH-SCHOOLID-RANDOM (e.g. TCH-SCH7878-A1B2)
     const randomSuffix = crypto.randomUUID().replace(/-/g, '').substring(0, 6).toUpperCase();
     const loginId = `${role === 'teacher' ? 'TCH' : 'MOD'}-${requesterProfile.school_id.substring(0, 8)}-${randomSuffix}`;
@@ -66,16 +66,18 @@ export async function POST(req: Request) {
       throw profileError;
     }
 
-    // 7. Return credentials for the Principal to hand over
+    // 7. Return only non-secret account metadata.
+    // Production delivery must send the temporary password through a verified SMS/email channel.
     return NextResponse.json({
       success: true,
       credentials: {
         loginId,
         email,
-        password: tempPassword,
         fullName,
-        role
-      }
+        role,
+        deliveryStatus: 'secure_delivery_pending'
+      },
+      message: 'Account created. Temporary credentials must be delivered through the configured secure channel.'
     });
 
   } catch (error: unknown) {
