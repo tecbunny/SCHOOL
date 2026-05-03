@@ -44,7 +44,7 @@ export default function SplitScreenGrader({ assignmentId }: { assignmentId?: str
       }
     };
     loadSubmissions();
-  }, [assignmentId]);
+  }, [assignmentId, supabase]);
 
   const currentSubmission = submissions[currentIndex];
 
@@ -147,6 +147,7 @@ export default function SplitScreenGrader({ assignmentId }: { assignmentId?: str
         <div className="flex-1 overflow-y-auto p-12 flex flex-col items-center gap-8 bg-[#111]">
           
           {scannedImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={scannedImage} className="w-full max-w-2xl bg-white aspect-[1/1.414] shadow-2xl object-contain" alt="Scanned" />
           ) : (
             <div className="w-full max-w-2xl">

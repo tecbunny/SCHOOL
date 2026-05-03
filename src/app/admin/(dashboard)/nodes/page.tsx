@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { 
   Cpu, 
   Thermometer, 
-  HardDrive, 
   Activity, 
   Server, 
   RefreshCw,
@@ -42,7 +41,7 @@ export default function EdgeNodesPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [supabase]);
 
   const getThermalStatus = (temp: number) => {
     if (temp > 75) return { color: 'text-danger', icon: <AlertTriangle className="w-4 h-4" />, label: 'CRITICAL' };
@@ -135,6 +134,16 @@ export default function EdgeNodesPage() {
              </div>
            );
          })}
+         {loading && (
+           <div className="col-span-12 p-10 text-center text-xs font-bold uppercase tracking-widest text-muted">
+             Loading edge node telemetry...
+           </div>
+         )}
+         {!loading && nodes.length === 0 && (
+           <div className="col-span-12 p-10 text-center text-xs font-bold uppercase tracking-widest text-muted">
+             No edge nodes are currently registered.
+           </div>
+         )}
       </div>
     </div>
   );

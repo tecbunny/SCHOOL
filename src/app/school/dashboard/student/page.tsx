@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import StudentDesk from '@/features/student-portal/StudentDesk';
 import HPCViewer from '@/features/student-portal/HPCViewer';
 import LiveTestEngine from '@/features/student-portal/LiveTestEngine';
@@ -39,7 +40,7 @@ export default function StudentDashboard() {
       if (data) setProfile(data);
     };
     fetchProfile();
-  }, []);
+  }, [supabase]);
 
   const navItems = [
     { id: 'desk', label: 'My Desk', icon: LayoutDashboard, color: 'text-primary' },
@@ -104,9 +105,12 @@ export default function StudentDashboard() {
                       <div className="text-sm font-bold text-white">{profile?.full_name || "User"}</div>
                       <div className="text-[10px] text-muted font-mono">ID: {profile?.user_code || "XXXX-XXXX"}</div>
                    </div>
-                  <img 
+                  <Image
                      src={`https://ui-avatars.com/api/?name=${profile?.full_name || 'User'}&background=random`} 
                      alt="Profile" 
+                     width={56}
+                     height={56}
+                     unoptimized
                      className="w-14 h-14 rounded-[1.2rem] border-2 border-primary/50 object-cover shadow-lg" 
                   />
                </div>

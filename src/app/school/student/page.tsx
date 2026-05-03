@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useState, FormEvent, useEffect } from 'react';
 import { signInWithCode } from '@/lib/auth.client';
 import { navigateByRole } from '@/lib/constants';
-import { QRScannerModal, QRLoginModal } from '@/components/school/AuthModals';
+import {  QRLoginModal } from '@/components/school/AuthModals';
+import EduOsSetupGate from '@/components/school/EduOsSetupGate';
 
 export default function StudentAppLogin() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function StudentAppLogin() {
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 ${isEduOS ? 'bg-[#000]' : 'app-shell'}`}>
+      <EduOsSetupGate role="student-hub" next="/school/student" />
       <div className={`${isEduOS ? 'border-none shadow-none' : 'auth-card'} w-full max-w-[420px] animate-in fade-in zoom-in duration-700`}>
         
         <div className="flex flex-col items-center gap-4 mb-10">

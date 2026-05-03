@@ -9,8 +9,7 @@ import {
   Wifi, 
   Cpu, 
   HardDrive, 
-  Thermometer, 
-  ShieldCheck,
+  Thermometer,
   Search,
   ArrowUpRight
 } from 'lucide-react';
@@ -45,15 +44,6 @@ export default function FleetManagementPage() {
   const handlePushGlobalUpdate = async () => {
     alert("Broadcasting OTA Update v1.2.0 to all online nodes...");
     // Logic to fetch latest release and trigger for all active nodes
-  };
-
-  const handlePushNodeUpdate = async (nodeId: string) => {
-    try {
-      await analyticsService.triggerOtaUpdate(nodeId, 'LATEST_RELEASE_ID');
-      alert(`Update queued for node ${nodeId}`);
-    } catch (err) {
-      console.error("Deploy failed:", err);
-    }
   };
 
   return (
@@ -127,7 +117,19 @@ export default function FleetManagementPage() {
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                     {nodes.map((node) => (
+                     {loading ? (
+                        <tr>
+                           <td colSpan={6} className="px-6 py-12 text-center text-xs font-bold uppercase tracking-widest text-muted">
+                              Loading fleet inventory...
+                           </td>
+                        </tr>
+                     ) : nodes.length === 0 ? (
+                        <tr>
+                           <td colSpan={6} className="px-6 py-12 text-center text-xs font-bold uppercase tracking-widest text-muted">
+                              No registered EduOS nodes found.
+                           </td>
+                        </tr>
+                     ) : nodes.map((node) => (
                         <tr key={node.id} className="hover:bg-white/[0.02] transition-colors group">
                            <td className="px-6 py-5">
                               <div className="flex items-center gap-3">

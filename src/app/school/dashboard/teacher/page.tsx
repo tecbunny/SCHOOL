@@ -47,7 +47,7 @@ export default function TeacherDashboard() {
       }
     };
     fetchStats();
-  }, []);
+  }, [supabase]);
 
   const handleGenerateAI = async () => {
     if (!isClassStation) {

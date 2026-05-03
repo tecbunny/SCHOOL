@@ -45,7 +45,7 @@ export default function ComplianceReportGenerator() {
       }
     };
     fetchCompliance();
-  }, []);
+  }, [supabase]);
 
   const handleGenerate = async () => {
     setIsGenerating(true);

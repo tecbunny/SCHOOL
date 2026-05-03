@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { Camera, RefreshCcw, Check, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Camera, RefreshCcw, Check, X, Loader2 } from 'lucide-react';
 
 export default function WorksheetScanner({ onScanComplete }: { onScanComplete: (image: string) => void }) {
   const [isActive, setIsActive] = useState(false);
@@ -75,6 +75,7 @@ export default function WorksheetScanner({ onScanComplete }: { onScanComplete: (
       {/* Viewport */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
         {capturedImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={capturedImage} className="max-w-full max-h-full object-contain" alt="Captured Worksheet" />
         ) : (
           <video 

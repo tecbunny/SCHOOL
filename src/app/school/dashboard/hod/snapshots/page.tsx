@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { 
   FileText, 
-  Download, 
   Activity, 
   Users, 
   ChevronRight, 
@@ -108,7 +108,15 @@ export default function AcademicSnapshotsPage() {
                  <div className="flex items-center gap-3">
                     <div className="flex -space-x-3 mr-4">
                        {[1,2,3,4].map(i => (
-                         <img key={i} src={`https://i.pravatar.cc/100?img=${i+10}`} className="w-8 h-8 rounded-full border-2 border-[#0a0a0a]" alt="S" />
+                         <Image
+                           key={i}
+                           src={`https://i.pravatar.cc/100?img=${i+10}`}
+                           width={32}
+                           height={32}
+                           unoptimized
+                           className="w-8 h-8 rounded-full border-2 border-[#0a0a0a]"
+                           alt="Student avatar"
+                         />
                        ))}
                        <div className="w-8 h-8 rounded-full bg-white/5 border-2 border-[#0a0a0a] flex items-center justify-center text-[10px] font-bold">+{cls.students - 4}</div>
                     </div>

@@ -43,7 +43,7 @@ export default function HPCViewer() {
       }
     };
     loadData();
-  }, []);
+  }, [supabase]);
 
   const metrics = stats ? [
     { 
@@ -91,6 +91,11 @@ export default function HPCViewer() {
       </div>
 
       <div className="grid grid-cols-3 gap-8 flex-1">
+         {loading && (
+           <div className="col-span-3 bg-card border border-white/5 rounded-[2.5rem] p-8 text-center text-xs font-bold uppercase tracking-widest text-muted">
+             Loading holistic progress card...
+           </div>
+         )}
          {metrics.map((m, i) => (
             <div key={i} className="bg-card border border-white/5 rounded-[2.5rem] p-8 flex flex-col gap-6 relative overflow-hidden group">
                <div className="flex items-center gap-4">

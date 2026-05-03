@@ -63,7 +63,7 @@ export default function StudentTimetablePage() {
     };
 
     loadTimetable();
-  }, []);
+  }, [supabase]);
 
   const visibleSlots = useMemo(
     () => slots.filter((slot) => slot.day_of_week === selectedDay),

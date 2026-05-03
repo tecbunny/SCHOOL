@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { MessageSquare, X, Send, Loader2, Camera, ShieldAlert, Eye, UserCheck } from 'lucide-react';
+import { MessageSquare, X, Send, Loader2, ShieldAlert, Eye, UserCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
 // --- CHAT DRAWER ---
@@ -24,7 +24,7 @@ export function ChatDrawer({ title }: { title: string }) {
       setMessages(prev => [...prev, p.new]);
     }).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [isOpen]);
+  }, [isOpen, supabase]);
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
 
@@ -70,28 +70,31 @@ export function ChatDrawer({ title }: { title: string }) {
 // --- PROCTORING AGENT ---
 export function ProctoringAgent({ isExamActive }: { isExamActive: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [status, setStatus] = useState<'monitoring' | 'warning' | 'alert'>('monitoring');
   const [violationCount, setViolationCount] = useState(0);
 
   useEffect(() => {
+    const stop = () => {
+      const stream = videoRef.current?.srcObject as MediaStream | null;
+      stream?.getTracks().forEach(t => t.stop());
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
+
+    const start = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 160, height: 120 } });
+        if (videoRef.current) videoRef.current.srcObject = stream;
+        intervalRef.current = setInterval(() => {
+          if (Math.random() > 0.95) handleViolation();
+        }, 5000);
+      } catch (err) { console.error(err); }
+    };
+
     if (isExamActive) start(); else stop();
-    return () => stop();
+    return stop;
   }, [isExamActive]);
-
-  const start = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 160, height: 120 } });
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      const interval = setInterval(() => { if (Math.random() > 0.95) handleViolation(); }, 5000);
-      (videoRef as any)._interval = interval;
-    } catch (err) { console.error(err); }
-  };
-
-  const stop = () => {
-    const stream = videoRef.current?.srcObject as MediaStream;
-    stream?.getTracks().forEach(t => t.stop());
-    if ((videoRef as any)._interval) clearInterval((videoRef as any)._interval);
-  };
 
   const handleViolation = () => {
     setStatus('warning');

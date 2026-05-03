@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/api-auth";
-import { cookies } from "next/headers";
 import { createClient as createServerClient } from "@/lib/supabase-server";
 
 function isValidEmbedding(value: unknown): value is number[] {

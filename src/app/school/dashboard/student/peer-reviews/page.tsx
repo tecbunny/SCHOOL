@@ -53,7 +53,7 @@ export default function StudentPeerReviewsPage() {
       }
     };
     fetchReviews();
-  }, []);
+  }, [supabase]);
 
   const handleSubmitReview = async () => {
     if (!newReview.submissionId || !newReview.comment) return;

@@ -3,7 +3,7 @@
 import MaterialUploader from '@/features/content-management/MaterialUploader';
 import SyllabusManager from '@/features/content-management/SyllabusManager';
 import AnnouncementComposer from '@/features/announcements/AnnouncementComposer';
-import { BookOpen, Database, Layout } from 'lucide-react';
+import {  Database } from 'lucide-react';
 
 export default function ModeratorDashboard() {
   return (

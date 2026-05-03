@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Download, Shield, Loader2, CheckCircle } from 'lucide-react';
+import { FileText, Shield, Loader2, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ReportGenerator() {

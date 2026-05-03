@@ -4,8 +4,7 @@ import {
   Calendar, 
   Megaphone, 
   Clock, 
-  BookOpen, 
-  ChevronRight,
+  BookOpen,
   Sparkles
 } from 'lucide-react';
 
@@ -46,7 +45,7 @@ export default function StudentDesk() {
       }
     };
     fetchData();
-  }, []);
+  }, [supabase]);
 
   const currentSession = timetable.find(s => {
     const now = new Date();
@@ -76,8 +75,12 @@ export default function StudentDesk() {
                <span className="text-sm font-bold uppercase tracking-widest text-primary/80">Ongoing Session</span>
             </div>
             
-            <h2 className="text-4xl font-black text-white mb-2">{currentSession?.subject || "Independent Study"}</h2>
-            <p className="text-lg text-muted mb-8">{currentSession ? `Room ${currentSession.room}` : "No scheduled classes at this time"}</p>
+            <h2 className="text-4xl font-black text-white mb-2">
+              {loading ? "Loading schedule..." : currentSession?.subject || "Independent Study"}
+            </h2>
+            <p className="text-lg text-muted mb-8">
+              {loading ? "Syncing today's timetable" : currentSession ? `Room ${currentSession.room}` : "No scheduled classes at this time"}
+            </p>
             
             <div className="flex gap-4">
                <button className="bg-white text-black px-8 py-4 rounded-2xl font-bold text-lg hover:scale-105 active:scale-95 transition-all shadow-xl">

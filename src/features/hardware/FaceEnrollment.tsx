@@ -29,7 +29,7 @@ export default function FaceEnrollment() {
     };
 
     fetchStudents();
-  }, []);
+  }, [supabase]);
 
   const handleEnroll = async () => {
     if (!selectedStudent) {

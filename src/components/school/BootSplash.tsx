@@ -4,20 +4,20 @@ import { useEffect, useState } from 'react';
 import { ShieldCheck, Cpu, Wifi } from 'lucide-react';
 import BrandIcon from '@/components/BrandIcon';
 
+const bootLogs = [
+  "Initializing EduOS Kernel 1.0.0-SSPH01...",
+  "Mounting /system (ext4, ro)...",
+  "Loading SSPH-01 Hardware Overlays...",
+  "NPU Co-processor: READY",
+  "Starting Weston Compositor...",
+  "Establishing Secure Handshake Bridge...",
+  "Connecting to EduPortal Mesh Network...",
+  "Launching Standalone Kiosk Surface..."
+];
+
 export default function BootSplash({ onComplete }: { onComplete: () => void }) {
   const [stage, setStage] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
-
-  const bootLogs = [
-    "Initializing EduOS Kernel 1.0.0-SSPH01...",
-    "Mounting /system (ext4, ro)...",
-    "Loading SSPH-01 Hardware Overlays...",
-    "NPU Co-processor: READY",
-    "Starting Weston Compositor...",
-    "Establishing Secure Handshake Bridge...",
-    "Connecting to EduPortal Mesh Network...",
-    "Launching Standalone Kiosk Surface..."
-  ];
 
   useEffect(() => {
     if (stage < bootLogs.length) {
@@ -30,7 +30,7 @@ export default function BootSplash({ onComplete }: { onComplete: () => void }) {
       const timer = setTimeout(onComplete, 1000);
       return () => clearTimeout(timer);
     }
-  }, [stage]);
+  }, [onComplete, stage]);
 
   return (
     <div className="fixed inset-0 z-[99999] bg-[#000] text-white flex flex-col items-center justify-center font-mono">

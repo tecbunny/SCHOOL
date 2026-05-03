@@ -28,7 +28,7 @@ export default function GlobalChatDrawer() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { messages, setMessages } = useRealtimeChat(activeRoom?.id || null);
+  const { messages } = useRealtimeChat(activeRoom?.id || null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function GlobalChatDrawer() {
       }
     };
     init();
-  }, []);
+  }, [supabase.auth]);
 
   useEffect(() => {
     if (scrollRef.current) {

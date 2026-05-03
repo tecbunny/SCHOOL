@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Save, Cpu, Globe, Lock, Sliders, Zap, Loader2, Megaphone } from 'lucide-react';
+import { Bot, Save, Cpu, Zap, Loader2, Megaphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function AISettingsPage() {

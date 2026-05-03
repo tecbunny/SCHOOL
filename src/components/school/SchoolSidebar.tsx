@@ -22,6 +22,7 @@ import {
   ScanFace
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth.client';
@@ -147,7 +148,14 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
 
       <div className={`mt-8 bg-primary/5 rounded-2xl p-4 flex items-center gap-4 border border-primary/20 shadow-lg ${isCollapsed ? 'justify-center flex-col p-2 gap-6' : ''}`}>
         <div className="relative flex-shrink-0">
-          <img src={profile.avatar} alt={profile.name} className="w-10 h-10 rounded-2xl border-2 border-primary/50 object-cover shadow-lg" />
+          <Image
+            src={profile.avatar}
+            alt={profile.name}
+            width={40}
+            height={40}
+            unoptimized
+            className="w-10 h-10 rounded-2xl border-2 border-primary/50 object-cover shadow-lg"
+          />
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success border-4 rounded-full"></div>
         </div>
         {!isCollapsed && (

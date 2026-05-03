@@ -1,7 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { getSupabasePublishableKey, getSupabaseUrl } from './supabase-env';
 
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+
 export function createClient() {
+  if (browserClient) return browserClient;
+
   const url = getSupabaseUrl();
   const key = getSupabasePublishableKey();
 
@@ -14,10 +18,12 @@ export function createClient() {
     throw new Error('Supabase public environment variables are not configured.');
   }
 
-  return createBrowserClient(
+  browserClient = createBrowserClient(
     url,
     key
   );
+
+  return browserClient;
 }
 
 

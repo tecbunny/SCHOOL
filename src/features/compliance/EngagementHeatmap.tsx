@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { Activity, Info, Calendar } from 'lucide-react';
 
 export default function EngagementHeatmap() {

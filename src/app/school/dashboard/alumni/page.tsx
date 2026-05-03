@@ -2,10 +2,7 @@
 
 import { 
   Award, 
-  MessageSquare, 
   Users, 
-  Globe, 
-  BookOpen, 
   TrendingUp,
   History,
   ShieldCheck,

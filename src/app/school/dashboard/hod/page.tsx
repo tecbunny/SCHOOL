@@ -10,7 +10,7 @@ import PromotionConsole from '@/features/school-operations/PromotionConsole';
 import TimetableManager from '@/features/school-operations/TimetableManager';
 import EngagementHeatmap from '@/features/compliance/EngagementHeatmap';
 import HpcAnalytics from '@/features/compliance/HpcAnalytics';
-import { Shield, Settings, Users, BarChart } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { analyticsService } from '@/services/analytics.service';
 import { createClient } from '@/lib/supabase';
@@ -40,7 +40,7 @@ export default function HODDashboard() {
       }
     };
     fetchStats();
-  }, []);
+  }, [supabase]);
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a]">
       {/* Header */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, BadgeCheck, CalendarDays, FileCheck2, ShieldCheck, Loader2 } from 'lucide-react';
+import { Award, BadgeCheck, CalendarDays, FileCheck2, ShieldCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 
@@ -25,7 +25,7 @@ export default function CertificationsPage() {
           .order('created_at', { ascending: false });
           
         if (data && data.length > 0) {
-          setCertifications(data.map(cert => ({
+          setCertifications(data.map((cert: any) => ({
             name: cert.certification_name,
             status: new Date(cert.expiry_at) > new Date() ? 'active' : 'attention',
             expires: cert.expiry_at || 'Unknown',
@@ -39,7 +39,7 @@ export default function CertificationsPage() {
       }
     };
     fetchCerts();
-  }, []);
+  }, [supabase]);
 
   return (
     <section className="min-h-screen bg-[#070B19] text-white p-10">
@@ -60,6 +60,11 @@ export default function CertificationsPage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {loading && (
+            <div className="lg:col-span-2 glass-card rounded-[2rem] p-7 text-center text-xs font-black uppercase tracking-widest text-muted">
+              Loading certification records...
+            </div>
+          )}
           {certifications.map((cert) => (
             <article key={cert.name} className="glass-card rounded-[2rem] p-7">
               <div className="flex items-start justify-between gap-5">

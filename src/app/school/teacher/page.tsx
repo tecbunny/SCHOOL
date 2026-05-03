@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { signInWithCode } from '@/lib/auth.client';
 import { navigateByRole } from '@/lib/constants';
+import EduOsSetupGate from '@/components/school/EduOsSetupGate';
 
 export default function TeacherStationLogin() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function TeacherStationLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#05070d]">
+      <EduOsSetupGate role="class-station" next="/school/teacher" />
       <div className="auth-card w-full max-w-[430px] animate-in fade-in zoom-in duration-700">
         <div className="flex flex-col items-center gap-4 mb-10">
           <div className="bg-secondary/10 p-4 rounded-2xl border border-secondary/20 shadow-lg shadow-secondary/5">

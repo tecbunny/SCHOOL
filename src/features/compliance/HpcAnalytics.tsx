@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { 
-  Activity, 
+   
   RefreshCw, 
-  CheckCircle2, 
   BarChart3, 
   ShieldCheck,
   Zap,
