@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>EduPortal & EduOS Detailed Project Explainer</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 17mm 16mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: #172033;
+      background: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 10.4pt;
+      line-height: 1.42;
+    }
+
+    .page {
+      min-height: 263mm;
+      page-break-after: always;
+      position: relative;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #0f6b7a;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      color: #0f6b7a;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #101828;
+      font-size: 22pt;
+      line-height: 1.12;
+    }
+
+    .subtitle {
+      margin-top: 7px;
+      max-width: 600px;
+      color: #334155;
+      font-size: 11.4pt;
+    }
+
+    .meta {
+      min-width: 205px;
+      padding: 10px 12px;
+      border: 1px solid #d8e2ef;
+      border-radius: 8px;
+      background: #f8fbff;
+      color: #334155;
+      font-size: 9.2pt;
+    }
+
+    .meta div {
+      margin-bottom: 6px;
+    }
+
+    .meta div:last-child {
+      margin-bottom: 0;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      color: #0f3f4a;
+      font-size: 14pt;
+      line-height: 1.2;
+    }
+
+    h3 {
+      margin: 0 0 6px;
+      color: #123746;
+      font-size: 11.4pt;
+      line-height: 1.25;
+    }
+
+    p {
+      margin: 0 0 8px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    li {
+      margin: 0 0 5px;
+    }
+
+    strong {
+      color: #101828;
+      font-weight: 700;
+    }
+
+    .section {
+      margin-bottom: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      border: 1px solid #d8e2ef;
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: #ffffff;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .callout {
+      padding: 12px 13px;
+      border: 1px solid #c7e8ef;
+      border-left: 5px solid #0f6b7a;
+      border-radius: 8px;
+      background: #eef8fb;
+      margin-bottom: 12px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+
+    .metric {
+      padding: 9px 8px;
+      border-radius: 8px;
+      background: #f8fbff;
+      border: 1px solid #cfe0ef;
+      text-align: center;
+    }
+
+    .metric strong {
+      display: block;
+      color: #0f3f4a;
+      font-size: 14pt;
+      line-height: 1.1;
+      margin-bottom: 3px;
+    }
+
+    .metric span {
+      color: #44566c;
+      font-size: 8.6pt;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 9.5pt;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid #d8e2ef;
+      padding: 7px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .table th {
+      color: #0f3f4a;
+      background: #eef8fb;
+      font-weight: 700;
+    }
+
+    .split-title {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .footer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding-top: 8px;
+      border-top: 1px solid #d8e2ef;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: #64748b;
+      font-size: 8.7pt;
+    }
+
+    .compact p {
+      margin-bottom: 6px;
+    }
+
+    .funds {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .fund {
+      padding: 9px 10px;
+      border: 1px solid #d8e2ef;
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .fund strong {
+      display: block;
+      color: #0f3f4a;
+      margin-bottom: 3px;
+    }
+
+    .page-four .section {
+      margin-bottom: 10px;
+    }
+
+    .page-four .table th,
+    .page-four .table td {
+      padding: 6px 8px;
+    }
+
+    .next-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .step {
+      border: 1px solid #d8e2ef;
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #f8fbff;
+    }
+
+    .step strong {
+      display: block;
+      color: #0f3f4a;
+      margin-bottom: 4px;
+    }
+
+    .closing-panel {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .contact-box {
+      border: 1px solid #c7e8ef;
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: #eef8fb;
+    }
+
+    .contact-box div {
+      margin-bottom: 4px;
+    }
+
+    .contact-box div:last-child {
+      margin-bottom: 0;
+    }
+
+    .page-four .footer {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Detailed Project Explainer</div>
+        <h1>EduPortal & EduOS</h1>
+        <div class="subtitle">Offline-first school digitisation infrastructure for Indian education, combining cloud software, EduOS edge deployment, AI-assisted teacher workflows, and NEP 2020 compliance support.</div>
+      </div>
+      <aside class="meta">
+        <div><strong>Company</strong><br>Tecbunny Solutions Private Limited</div>
+        <div><strong>Founder</strong><br>Shubham Sakharam Bhisaji</div>
+        <div><strong>Stage</strong><br>Software MVP in internal trial and demo validation</div>
+        <div><strong>Funding Ask</strong><br>INR 1 Crore seed round</div>
+      </aside>
+    </header>
+
+    <div class="callout">
+      <strong>Project summary:</strong> EduPortal & EduOS is built to help Indian schools digitise daily operations without depending completely on always-on internet. The platform is designed for school administration, teachers, students, compliance teams, and future EduOS hardware-supported offline operation.
+    </div>
+
+    <div class="section">
+      <h2>1. The Problem In Indian Schools</h2>
+      <p>Many Indian schools want to digitise, but the reality on the ground is difficult. Teachers handle attendance, grading, lesson planning, reports, student records, communication, and compliance work alongside teaching. This reduces classroom focus and creates pressure on school staff.</p>
+      <p>At the same time, NEP 2020 has increased the need for structured academic records, Holistic Progress Card style reporting, institutional visibility, and audit-ready compliance. In many Tier 2, Tier 3, and rural schools, cloud-only SaaS platforms are hard to depend on because internet availability is inconsistent.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Teacher Workload</h3>
+        <ul>
+          <li>Manual attendance and classroom records.</li>
+          <li>Manual grading and assignment checking.</li>
+          <li>Time-consuming report preparation.</li>
+          <li>Limited time for mentoring and teaching quality.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>School Infrastructure Gap</h3>
+        <ul>
+          <li>Unreliable internet in many regions.</li>
+          <li>Paper-based workflows and fragmented records.</li>
+          <li>Low visibility for principals and administrators.</li>
+          <li>Difficulty adopting cloud-only education platforms.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>2. Mission</h2>
+      <p>Our mission is to help digitise the Indian education system by giving schools a modern platform where teachers can focus on teaching, administration becomes automated, and Indian students become comfortable learning, growing, and participating on digital platforms.</p>
+    </div>
+
+    <div class="footer">
+      <div>EduPortal & EduOS Detailed Project Explainer</div>
+      <div>Page 1</div>
+    </div>
+  </section>
+
+  <section class="page">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Solution Architecture</div>
+        <h1>Cloud Platform + Offline Edge Layer</h1>
+      </div>
+      <aside class="meta">
+        <div><strong>Primary Users</strong><br>Admins, auditors, principals, HODs, teachers, students, parents</div>
+        <div><strong>Target Segment</strong><br>Tier 2, Tier 3, and rural schools</div>
+      </aside>
+    </header>
+
+    <div class="section">
+      <h2>3. The Solution</h2>
+      <p>EduPortal & EduOS is designed as a hybrid cloud-edge education platform. EduPortal acts as the central school operating system in the cloud, while EduOS is the offline-first local infrastructure layer planned for school environments where connectivity is weak or unreliable.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>EduPortal: Cloud Command Center</h3>
+        <p>EduPortal gives each stakeholder a role-based workspace. Administrators can manage institutions and users, principals and HODs can monitor school performance, teachers can manage academic workflows, and students can access assignments, study hubs, assessments, and digital records.</p>
+        <ul>
+          <li>Admin and school dashboards.</li>
+          <li>Teacher workspace and student portal.</li>
+          <li>Auditor and compliance views.</li>
+          <li>Attendance, assignments, timetables, study materials, and records.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>EduOS: Offline-First Infrastructure</h3>
+        <p>EduOS is the planned local edge layer for schools. Its purpose is to allow key school operations to continue locally during internet outages and sync safely with the cloud when internet returns.</p>
+        <ul>
+          <li>Local school operation during connectivity gaps.</li>
+          <li>Offline-sync architecture prepared for field validation.</li>
+          <li>Student Hub and Class Station deployment concept.</li>
+          <li>Future hardware pilot units funded through this round.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>4. Core Capabilities</h2>
+      <div class="metrics">
+        <div class="metric"><strong>40%</strong><span>target reduction in teacher admin workload</span></div>
+        <div class="metric"><strong>90%</strong><span>paper reduction potential through digitisation</span></div>
+        <div class="metric"><strong>NEP</strong><span>compliance reporting and dashboards</span></div>
+        <div class="metric"><strong>Offline</strong><span>edge-sync architecture for low-connectivity schools</span></div>
+      </div>
+      <table class="table">
+        <tr>
+          <th>Area</th>
+          <th>What EduPortal & EduOS Enables</th>
+        </tr>
+        <tr>
+          <td><strong>School Operations</strong></td>
+          <td>Role-based dashboards, institution management, users, timetables, assignments, attendance workflows, academic records, announcements, and analytics.</td>
+        </tr>
+        <tr>
+          <td><strong>Teacher Productivity</strong></td>
+          <td>AI-assisted grading, OCR, content generation, lesson support, classroom tools, and reduced manual paperwork.</td>
+        </tr>
+        <tr>
+          <td><strong>Student Experience</strong></td>
+          <td>Student portal, digital records, assignments, live assessments, study hub access, progress tracking, and digital participation.</td>
+        </tr>
+        <tr>
+          <td><strong>Compliance</strong></td>
+          <td>NEP 2020 compliance modules, audit-ready reporting, institutional logs, and visibility for school leadership and auditors.</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="footer">
+      <div>EduPortal & EduOS Detailed Project Explainer</div>
+      <div>Page 2</div>
+    </div>
+  </section>
+
+  <section class="page">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Product Status And Market Logic</div>
+        <h1>Built Software, Hardware Field Trial Next</h1>
+      </div>
+      <aside class="meta">
+        <div><strong>Software</strong><br>MVP built, internal trial and demo validation</div>
+        <div><strong>Hardware</strong><br>EduOS field deployment pending funding</div>
+      </aside>
+    </header>
+
+    <div class="section">
+      <h2>5. Current Status</h2>
+      <p>The software MVP is built and currently undergoing internal trial and demo validation. It includes role-based school dashboards, teacher and student portals, academic operations, AI-assisted workflows, compliance modules, digital records, and offline-sync architecture prepared for EduOS integration.</p>
+      <p>The next milestone is limited EduOS hardware field deployment. This stage will validate the offline-first model in real school environments, test sync reliability, collect feedback from actual users, and prepare the platform for institutional sales.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>What Is Already Prepared</h3>
+        <ul>
+          <li>Working software MVP and investor pitch deck.</li>
+          <li>Role-based school operations workflows.</li>
+          <li>Teacher and student portal workflows.</li>
+          <li>NEP compliance and academic tracking modules.</li>
+          <li>Offline-sync architecture prepared for EduOS integration.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What Funding Unlocks</h3>
+        <ul>
+          <li>Limited EduOS hardware pilot units.</li>
+          <li>Selected school field trials.</li>
+          <li>Offline sync validation in real environments.</li>
+          <li>Security review and student data privacy readiness.</li>
+          <li>Institutional sales preparation.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>6. Market Opportunity</h2>
+      <p>India has a very large school ecosystem, with strong pressure to digitise education, improve student records, reduce teacher workload, and align with NEP 2020 expectations. The most practical first wedge is not every school immediately, but schools that urgently need digitisation and cannot depend on stable cloud access.</p>
+      <p>The initial target segment is Tier 2 and Tier 3 private schools, rural schools supported through CSR programs, school chains looking for operational standardisation, and institutions needing compliance automation.</p>
+    </div>
+
+    <div class="grid compact">
+      <div class="card">
+        <h3>Initial Target Customers</h3>
+        <ul>
+          <li>Tier 2 and Tier 3 private schools.</li>
+          <li>Rural schools needing digital access.</li>
+          <li>School chains and institutional groups.</li>
+          <li>CSR-supported education programs.</li>
+          <li>Government-aligned digital education pilots.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why Now</h3>
+        <ul>
+          <li>NEP 2020 is increasing compliance and reporting expectations.</li>
+          <li>Schools need digital records and better operational visibility.</li>
+          <li>Teachers need relief from repetitive administrative work.</li>
+          <li>Offline-first systems are essential for low-connectivity areas.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>EduPortal & EduOS Detailed Project Explainer</div>
+      <div>Page 3</div>
+    </div>
+  </section>
+
+  <section class="page page-four">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Business Model, Funding And Partnerships</div>
+        <h1>Seed Round To Reach Field Validation</h1>
+      </div>
+      <aside class="meta">
+        <div><strong>Ask</strong><br>INR 1 Crore seed investment</div>
+        <div><strong>Structures</strong><br>Convertible Note or suitable strategic structure</div>
+      </aside>
+    </header>
+
+    <div class="section">
+      <h2>7. Business Model</h2>
+      <p>EduPortal & EduOS is designed as a combined software, hardware, and services model. After validation, schools can move into annual subscriptions with optional EduOS hardware packages and premium AI/compliance modules.</p>
+      <table class="table">
+        <tr>
+          <th>Revenue Stream</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td><strong>Annual SaaS Subscription</strong></td>
+          <td>Recurring school platform subscription based on institution size, modules, and usage.</td>
+        </tr>
+        <tr>
+          <td><strong>EduOS Hardware Packages</strong></td>
+          <td>Optional local edge hardware for schools needing offline-first operation and local classroom access.</td>
+        </tr>
+        <tr>
+          <td><strong>Setup And Training</strong></td>
+          <td>Deployment, onboarding, school staff training, configuration, and support services.</td>
+        </tr>
+        <tr>
+          <td><strong>Premium Modules</strong></td>
+          <td>AI-assisted grading/content tools, analytics, compliance automation, and advanced institutional reporting.</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>8. Funding Requirement And Use Of Funds</h2>
+      <p>EduPortal & EduOS is seeking <strong>INR 1 Crore in seed investment</strong> and is open to structuring it as a Convertible Note or another suitable strategic investment structure. This round is intended to move the project from software validation to hardware-supported field validation.</p>
+      <div class="funds">
+        <div class="fund"><strong>Hardware Pilot Units</strong>Build limited EduOS units for school field testing and offline operation validation.</div>
+        <div class="fund"><strong>Field Trials</strong>Deploy selected pilots, collect user feedback, and prove measurable school impact.</div>
+        <div class="fund"><strong>AI And Backend Scaling</strong>Strengthen AI workflows, sync reliability, platform performance, and production readiness.</div>
+        <div class="fund"><strong>Security And Compliance</strong>Review student data privacy, consent-led deployment, security controls, and institutional readiness.</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Strategic And CSR Fit</h3>
+        <p>EduPortal & EduOS aligns with CSR-led education digitisation, rural learning access, NEP 2020 implementation, teacher workload reduction, and India’s broader digital education mission.</p>
+        <p>The project is open to investment, strategic partnership, CSR-supported pilots, and institutional deployment discussions.</p>
+      </div>
+      <div class="card">
+        <h3>Near-Term Roadmap</h3>
+        <ul>
+          <li>Complete limited EduOS hardware units.</li>
+          <li>Run selected school field trials.</li>
+          <li>Validate offline sync and operational workflows.</li>
+          <li>Complete security and privacy readiness review.</li>
+          <li>Prepare for institutional sales and partnership-led expansion.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>9. Pilot Success Metrics</h2>
+      <div class="next-steps">
+        <div class="step"><strong>Operational Proof</strong>Validate attendance, assignments, records, and school workflows in a real low-connectivity environment.</div>
+        <div class="step"><strong>Teacher Impact</strong>Measure reduction in repetitive administrative workload and time spent on manual reporting.</div>
+        <div class="step"><strong>Deployment Readiness</strong>Confirm hardware reliability, sync stability, data privacy controls, and school onboarding process.</div>
+      </div>
+    </div>
+
+    <div class="closing-panel">
+      <div class="callout" style="margin-bottom:0;">
+        <strong>Discussion ask:</strong> We welcome conversations around seed investment, sponsored field pilots, CSR-supported education deployments, strategic distribution partnerships, and institutional school digitisation programs.
+      </div>
+      <div class="contact-box">
+        <h3>Contact</h3>
+        <div><strong>Shubham Sakharam Bhisaji</strong></div>
+        <div>Director & Co-Founder, Tecbunny Solutions Private Limited</div>
+        <div>Founder, EduPortal & EduOS</div>
+        <div><strong>Email:</strong> shubham@tecbunny.com</div>
+        <div><strong>Phone:</strong> +91 9604136010 / +91 7387375651</div>
+        <div><strong>Website:</strong> https://tecbunny.com</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div><strong>Contact:</strong> shubham@tecbunny.com | +91 9604136010 / +91 7387375651 | https://tecbunny.com</div>
+      <div>Page 4</div>
+    </div>
+  </section>
+</body>
+</html>
