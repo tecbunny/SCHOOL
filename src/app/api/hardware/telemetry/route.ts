@@ -35,6 +35,9 @@ export async function POST(req: Request) {
       .from('hardware_nodes')
       .update({
         temp,
+        disk_usage,
+        memory_usage,
+        uptime,
         last_heartbeat: new Date().toISOString(),
         status: 'online'
       })

@@ -42,8 +42,25 @@ export default function FleetManagementPage() {
   };
 
   const handlePushGlobalUpdate = async () => {
-    alert("Broadcasting OTA Update v1.2.0 to all online nodes...");
-    // Logic to fetch latest release and trigger for all active nodes
+    try {
+      const response = await fetch("/api/admin/fleet/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ releaseType: "pwa" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "OTA deployment failed.");
+      alert(`Queued ${data.queued} node(s) for ${data.release.release_type} ${data.release.version_code}.`);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "OTA deployment failed.");
+    }
+  };
+
+  const activeNodes = nodes.filter((node) => node.status === "online").length;
+  const avg = (field: string) => {
+    const values = nodes.map((node) => Number(node[field])).filter((value) => Number.isFinite(value));
+    if (values.length === 0) return 0;
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
   };
 
   return (
@@ -80,10 +97,10 @@ export default function FleetManagementPage() {
       {/* Stats Grid */}
       <div className="p-8 grid grid-cols-4 gap-6">
          {[
-           { label: 'Active Nodes', val: '1,242', icon: Activity, color: 'text-primary' },
-           { label: 'Network Latency', val: '42ms', icon: Wifi, color: 'text-success' },
-           { label: 'Avg CPU Load', val: '24%', icon: Cpu, color: 'text-warning' },
-           { label: 'Storage Used', val: '1.2 TB', icon: HardDrive, color: 'text-secondary' },
+           { label: 'Active Nodes', val: `${activeNodes}/${nodes.length}`, icon: Activity, color: 'text-primary' },
+           { label: 'Memory Used', val: `${avg('memory_usage')}%`, icon: Wifi, color: 'text-success' },
+           { label: 'Avg CPU Temp', val: `${avg('temp')}°C`, icon: Cpu, color: 'text-warning' },
+           { label: 'Storage Used', val: `${avg('disk_usage')}%`, icon: HardDrive, color: 'text-secondary' },
          ].map((stat, i) => (
            <div key={i} className="bg-card border border-white/5 p-6 rounded-3xl shadow-xl">
               <stat.icon className={`w-5 h-5 ${stat.color} mb-4`} />
@@ -151,7 +168,7 @@ export default function FleetManagementPage() {
                            <td className="px-6 py-5 text-center">
                               <div className="flex items-center justify-center gap-1.5 text-sm text-white">
                                  <Thermometer className="w-3.5 h-3.5 text-muted" />
-                                 {node.temp}°C
+                                 {node.temp ?? 0}°C
                               </div>
                            </td>
                            <td className="px-6 py-5 text-center">

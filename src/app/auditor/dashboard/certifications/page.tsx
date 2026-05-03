@@ -4,15 +4,8 @@ import { Award, BadgeCheck, CalendarDays, FileCheck2, ShieldCheck } from 'lucide
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 
-const fallbackCertifications = [
-  { name: 'NEP 2020 Readiness', status: 'active', expires: '2027-03-31', coverage: 88 },
-  { name: 'Safety And Sanitation', status: 'review', expires: '2026-08-15', coverage: 72 },
-  { name: 'Digital Attendance Integrity', status: 'active', expires: '2027-01-10', coverage: 94 },
-  { name: 'Teacher CPD Compliance', status: 'attention', expires: '2026-06-30', coverage: 61 },
-];
-
 export default function CertificationsPage() {
-  const [certifications, setCertifications] = useState<any[]>(fallbackCertifications);
+  const [certifications, setCertifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -29,7 +22,7 @@ export default function CertificationsPage() {
             name: cert.certification_name,
             status: new Date(cert.expiry_at) > new Date() ? 'active' : 'attention',
             expires: cert.expiry_at || 'Unknown',
-            coverage: 100 // mock coverage since it's not in DB
+            coverage: cert.file_url ? 100 : 75
           })));
         }
       } catch (err) {
@@ -63,6 +56,12 @@ export default function CertificationsPage() {
           {loading && (
             <div className="lg:col-span-2 glass-card rounded-[2rem] p-7 text-center text-xs font-black uppercase tracking-widest text-muted">
               Loading certification records...
+            </div>
+          )}
+          {!loading && certifications.length === 0 && (
+            <div className="lg:col-span-2 glass-card rounded-[2rem] p-10 text-center">
+              <h2 className="text-xl font-black text-white">No certification records yet</h2>
+              <p className="text-sm text-muted mt-2">Issue or import school certification records to populate this tracker.</p>
             </div>
           )}
           {certifications.map((cert) => (
