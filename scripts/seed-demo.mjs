@@ -98,8 +98,8 @@ async function ensureUser({ email, userCode, fullName, role, schoolId, classId, 
 }
 
 const schoolId = await upsertSchool();
-const adminId = await ensureUser({ email: "admin.demo@eduportal.local", userCode: "ADMIN-DEMO", fullName: "Demo Admin", role: "admin", schoolId });
-const principalId = await ensureUser({ email: "principal.demo@eduportal.local", userCode: "PRINCIPAL-DEMO", fullName: "Dr. Anika Rao", role: "principal", schoolId });
+await ensureUser({ email: "admin.demo@eduportal.local", userCode: "ADMIN-DEMO", fullName: "Demo Admin", role: "admin", schoolId });
+await ensureUser({ email: "principal.demo@eduportal.local", userCode: "PRINCIPAL-DEMO", fullName: "Dr. Anika Rao", role: "principal", schoolId });
 const teacherId = await ensureUser({ email: "teacher.demo@eduportal.local", userCode: "TEACHER-DEMO", fullName: "Meera Sharma", role: "teacher", schoolId, teachingStaff: true });
 const studentId = await ensureUser({ email: "student.demo@eduportal.local", userCode: "STUDENT-DEMO", fullName: "Aarav Singh", role: "student", schoolId, classId: "10-A" });
 
