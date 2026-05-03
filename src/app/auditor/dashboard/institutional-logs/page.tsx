@@ -1,8 +1,10 @@
 "use client";
 
 import { Activity, CalendarClock, FileText, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
 
-const logs = [
+const fallbackLogs = [
   { id: 'AUD-2026-0412', date: '2026-04-12', type: 'Surprise Audit', school: 'Demo Public School', result: 'Pass', severity: 'low' },
   { id: 'AUD-2026-0302', date: '2026-03-02', type: 'Annual Review', school: 'Demo Public School', result: 'Pass', severity: 'low' },
   { id: 'AUD-2026-0215', date: '2026-02-15', type: 'Health & Safety', school: 'Demo Public School', result: 'Caution', severity: 'medium' },
@@ -10,6 +12,41 @@ const logs = [
 ];
 
 export default function InstitutionalLogsPage() {
+  const [logs, setLogs] = useState<any[]>(fallbackLogs);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const { data } = await supabase
+          .from('audit_logs')
+          .select(`
+            id, action, resource_type, created_at, metadata,
+            schools ( name )
+          `)
+          .order('created_at', { ascending: false })
+          .limit(50);
+          
+        if (data && data.length > 0) {
+          setLogs(data.map(log => ({
+            id: log.id,
+            date: new Date(log.created_at).toISOString().slice(0, 10),
+            type: log.action,
+            school: (log.schools as any)?.name || 'Unknown School',
+            result: log.metadata?.result || 'Pass',
+            severity: log.metadata?.severity || 'low'
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to fetch audit logs:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLogs();
+  }, []);
+
   return (
     <section className="min-h-screen bg-[#070B19] text-white p-10">
       <div className="max-w-[1400px] mx-auto flex flex-col gap-8">

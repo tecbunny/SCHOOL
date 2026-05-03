@@ -143,18 +143,33 @@ export const analyticsService = {
   },
 
   async getTeacherStats(teacherId: string, schoolId: string) {
-    const [cpd, students, grading] = await Promise.all([
+    const [cpd, students, assignments, grading] = await Promise.all([
       supabase.from('cpd_logs').select('hours_logged').eq('teacher_id', teacherId),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('role', 'student'),
-      supabase.from('hpc_grades').select('*', { count: 'exact', head: true }).eq('teacher_id', teacherId) // Mock for "pending grading"
+      supabase.from('assignments').select('id').eq('teacher_id', teacherId),
+      // we just get pending grading by joining submissions and assignments later, or doing it here
+      // But we can't easily join count in one go without a view, so let's do a subquery or fetch all pending
+      supabase.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'submitted')
     ]);
+
+    // To properly count pending grading for this teacher, we need to know the teacher's assignments
+    let pendingGradingCount = 0;
+    if (assignments.data && assignments.data.length > 0) {
+      const assignmentIds = assignments.data.map(a => a.id);
+      const { count } = await supabase
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .in('assignment_id', assignmentIds)
+        .eq('status', 'submitted');
+      pendingGradingCount = count || 0;
+    }
 
     const totalCpd = cpd.data?.reduce((acc, curr) => acc + Number(curr.hours_logged), 0) || 0;
 
     return {
       totalCpdHours: totalCpd,
       connectedStudents: students.count || 0,
-      pendingGrading: grading.count || 0
+      pendingGrading: pendingGradingCount
     };
   },
 

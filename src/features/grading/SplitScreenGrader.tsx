@@ -12,19 +12,73 @@ import {
   Download,
   Loader2
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
 
 import WorksheetScanner from './WorksheetScanner';
 
-export default function SplitScreenGrader() {
+export default function SplitScreenGrader({ assignmentId }: { assignmentId?: string }) {
   const [suggesting, setSuggesting] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [scannedImage, setScannedImage] = useState<string | null>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const supabase = createClient();
   const [scores, setScores] = useState<Record<string, number>>({
     conceptual: 0,
     grammar: 0,
     presentation: 0
   });
+
+  useEffect(() => {
+    const loadSubmissions = async () => {
+      // Fetch submissions for this assignment, or any pending submissions if no ID provided
+      let query = supabase.from('submissions').select('id, student_id, content, status').eq('status', 'submitted');
+      if (assignmentId) {
+        query = query.eq('assignment_id', assignmentId);
+      }
+      const { data } = await query.limit(10);
+      if (data) {
+        setSubmissions(data);
+      }
+    };
+    loadSubmissions();
+  }, [assignmentId]);
+
+  const currentSubmission = submissions[currentIndex];
+
+  const handleSaveGrade = async () => {
+    if (!currentSubmission) return;
+    setIsSaving(true);
+    try {
+      const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+      const { error } = await supabase
+        .from('submissions')
+        .update({
+          status: 'graded',
+          grade: totalScore,
+          feedback: feedback
+        })
+        .eq('id', currentSubmission.id);
+
+      if (error) throw error;
+      alert("Grade saved successfully!");
+      
+      // Move to next
+      if (currentIndex < submissions.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+        setScores({ conceptual: 0, grammar: 0, presentation: 0 });
+        setFeedback('');
+        setScannedImage(null);
+      }
+    } catch (err: any) {
+      console.error("Save grade error:", err);
+      alert("Failed to save grade: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleAiGrading = async (capturedImage: string) => {
     setScannedImage(capturedImage);
@@ -112,11 +166,21 @@ export default function SplitScreenGrader() {
         </div>
 
         <footer className="p-4 border-t border-white/5 bg-white/[0.02] flex items-center justify-center gap-8">
-           <button className="flex items-center gap-2 text-sm text-muted hover:text-white transition-colors">
+           <button 
+             className="flex items-center gap-2 text-sm text-muted hover:text-white transition-colors disabled:opacity-50"
+             onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+             disabled={currentIndex === 0}
+           >
               <ChevronLeft className="w-4 h-4" /> Previous Student
            </button>
-           <span className="text-xs font-mono bg-white/5 px-3 py-1 rounded-full text-muted">04 / 32</span>
-           <button className="flex items-center gap-2 text-sm text-muted hover:text-white transition-colors">
+           <span className="text-xs font-mono bg-white/5 px-3 py-1 rounded-full text-muted">
+             {submissions.length > 0 ? `${currentIndex + 1} / ${submissions.length}` : '0 / 0'}
+           </span>
+           <button 
+             className="flex items-center gap-2 text-sm text-muted hover:text-white transition-colors disabled:opacity-50"
+             onClick={() => setCurrentIndex(Math.min(submissions.length - 1, currentIndex + 1))}
+             disabled={currentIndex === submissions.length - 1}
+           >
               Next Student <ChevronRight className="w-4 h-4" />
            </button>
         </footer>
@@ -126,7 +190,9 @@ export default function SplitScreenGrader() {
       <div className="w-[40%] flex flex-col bg-card">
         <header className="p-6 border-b border-white/5">
           <h2 className="text-xl font-bold">Grading Panel</h2>
-          <p className="text-sm text-muted">Assessment ID: PHYS-UNIT1-2026</p>
+          <p className="text-sm text-muted">
+            Assessment ID: {assignmentId || currentSubmission?.assignment_id || 'PHYS-UNIT1-2026'}
+          </p>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar flex flex-col gap-8">
@@ -191,8 +257,13 @@ export default function SplitScreenGrader() {
         </div>
 
         <footer className="p-6 border-t border-white/5 bg-white/[0.02]">
-          <button className="btn btn-primary w-full gap-2">
-            <Save className="w-4 h-4" /> Submit & Finalize Grade
+          <button 
+            className="btn btn-primary w-full gap-2 disabled:opacity-50"
+            onClick={handleSaveGrade}
+            disabled={isSaving || submissions.length === 0}
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} 
+            Submit & Finalize Grade
           </button>
         </footer>
       </div>

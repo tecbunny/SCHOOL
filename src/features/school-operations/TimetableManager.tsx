@@ -21,9 +21,33 @@ export default function TimetableManager() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubstitutionMode, setIsSubstitutionMode] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPeriod, setNewPeriod] = useState({ subject: '', start_time: '', end_time: '', day_of_week: 'Monday', room: '', class_id: '10-A' });
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [availableSubstitutes, setAvailableSubstitutes] = useState<any[]>([]);
   const supabase = createClient();
+
+  const handleAddPeriod = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single();
+      if (!profile?.school_id) return;
+
+      const { error } = await supabase.from('timetable').insert({
+        ...newPeriod,
+        school_id: profile.school_id,
+        teacher_id: user.id
+      });
+      if (error) throw error;
+      
+      setShowAddModal(false);
+      setNewPeriod({ subject: '', start_time: '', end_time: '', day_of_week: 'Monday', room: '', class_id: '10-A' });
+      alert("Period added successfully!");
+    } catch (err: any) {
+      alert("Error adding period: " + err.message);
+    }
+  };
 
   const suggestSubstitutes = async (slotStartTime: string) => {
     setLoading(true);
@@ -99,11 +123,33 @@ export default function TimetableManager() {
               <Users className="w-4 h-4" />
               {isSubstitutionMode ? 'Exit Sub Mode' : 'Substitution Mode'}
            </button>
-           <button className="btn btn-primary btn-sm gap-2">
+           <button 
+             className="btn btn-primary btn-sm gap-2"
+             onClick={() => setShowAddModal(true)}
+           >
               <Plus className="w-4 h-4" /> Add Period
            </button>
         </div>
       </div>
+
+      {showAddModal && (
+        <div className="bg-card border border-primary/20 rounded-3xl p-6 relative z-20 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4">
+           <h4 className="font-bold text-lg">Create New Period</h4>
+           <div className="grid grid-cols-2 gap-4">
+              <input type="text" placeholder="Subject (e.g. Physics)" value={newPeriod.subject} onChange={e => setNewPeriod({...newPeriod, subject: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary" />
+              <input type="text" placeholder="Room (e.g. Lab 3)" value={newPeriod.room} onChange={e => setNewPeriod({...newPeriod, room: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary" />
+              <input type="time" value={newPeriod.start_time} onChange={e => setNewPeriod({...newPeriod, start_time: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary" />
+              <input type="time" value={newPeriod.end_time} onChange={e => setNewPeriod({...newPeriod, end_time: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary" />
+              <select value={newPeriod.day_of_week} onChange={e => setNewPeriod({...newPeriod, day_of_week: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary col-span-2">
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => <option key={d} value={d} className="bg-[#1a1a1a]">{d}</option>)}
+              </select>
+           </div>
+           <div className="flex justify-end gap-2 mt-2">
+              <button className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button className="btn btn-primary btn-sm" onClick={handleAddPeriod}>Save Period</button>
+           </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-7 gap-4">
          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (

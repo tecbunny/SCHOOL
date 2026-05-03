@@ -1,8 +1,10 @@
 "use client";
 
-import { Award, BadgeCheck, CalendarDays, FileCheck2, ShieldCheck } from 'lucide-react';
+import { Award, BadgeCheck, CalendarDays, FileCheck2, ShieldCheck, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
 
-const certifications = [
+const fallbackCertifications = [
   { name: 'NEP 2020 Readiness', status: 'active', expires: '2027-03-31', coverage: 88 },
   { name: 'Safety And Sanitation', status: 'review', expires: '2026-08-15', coverage: 72 },
   { name: 'Digital Attendance Integrity', status: 'active', expires: '2027-01-10', coverage: 94 },
@@ -10,6 +12,35 @@ const certifications = [
 ];
 
 export default function CertificationsPage() {
+  const [certifications, setCertifications] = useState<any[]>(fallbackCertifications);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchCerts = async () => {
+      try {
+        const { data } = await supabase
+          .from('certifications')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (data && data.length > 0) {
+          setCertifications(data.map(cert => ({
+            name: cert.certification_name,
+            status: new Date(cert.expiry_at) > new Date() ? 'active' : 'attention',
+            expires: cert.expiry_at || 'Unknown',
+            coverage: 100 // mock coverage since it's not in DB
+          })));
+        }
+      } catch (err) {
+        console.error('Fetch certs error', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCerts();
+  }, []);
+
   return (
     <section className="min-h-screen bg-[#070B19] text-white p-10">
       <div className="max-w-[1400px] mx-auto flex flex-col gap-8">

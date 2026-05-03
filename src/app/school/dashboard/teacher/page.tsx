@@ -22,6 +22,7 @@ export default function TeacherDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<GeneratedQuestion[] | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [isClassStation] = useState(() => isClassStationDevice());
   const supabase = createClient();
 
@@ -81,6 +82,75 @@ export default function TeacherDashboard() {
       setIsGenerating(false);
     }
   };
+
+  const handlePublishAssignment = async () => {
+    if (!stats.schoolId || !generatedResult) return;
+    setIsPublishing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const questionText = generatedResult[0]?.question || "Generated AI Assignment";
+      
+      const { error } = await supabase.from('assignments').insert({
+        school_id: stats.schoolId,
+        teacher_id: user.id,
+        class_id: "10-A",
+        subject: "Math",
+        title: "AI Generated Quadratic Equations Quiz",
+        description: questionText,
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      });
+
+      if (error) throw error;
+      
+      setGeneratedResult(null);
+      alert("Assignment published successfully!");
+    } catch (error: any) {
+      console.error('Failed to publish:', error);
+      alert("Failed to publish: " + error.message);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleDeployLiveTest = async () => {
+    if (!stats.schoolId || !generatedResult) return;
+    try {
+      const { data: students } = await supabase.from('profiles').select('id').eq('school_id', stats.schoolId).eq('class_id', '10-A').eq('role', 'student');
+      
+      if (!students || students.length === 0) {
+        alert("No students found in class 10-A");
+        return;
+      }
+
+      const liveTestPayload = {
+        title: "Live Quiz: Quadratic Equations",
+        subject: "Math",
+        durationMinutes: 15,
+        questions: generatedResult.map((q, idx) => ({
+          id: `q-${idx}`,
+          question: q.question || "Unknown question",
+          options: ["Option A", "Option B", "Option C", "Option D"]
+        }))
+      };
+
+      for (const student of students) {
+        const topic = `private:school:${stats.schoolId}:class:10-A:student:${student.id}`;
+        await supabase.channel(topic).send({
+          type: 'broadcast',
+          event: 'DEPLOY_TEST',
+          payload: liveTestPayload
+        });
+      }
+
+      alert("Live test deployed to class 10-A!");
+    } catch (error: any) {
+      console.error('Failed to deploy live test:', error);
+      alert("Failed to deploy: " + error.message);
+    }
+  };
+
   return (
     <>
       <header className="header-glass py-4 px-8 flex items-center justify-between">
@@ -305,9 +375,20 @@ export default function TeacherDashboard() {
                   <p className="font-semibold text-white mb-2">Example Question:</p>
                   <p className="italic">&quot;{generatedResult[0]?.question || 'Generating content...'}&quot;</p>
                 </div>
-                <div className="flex gap-2">
-                  <button className="btn btn-primary text-xs py-1 flex-1">Approve & Publish</button>
-                  <button className="btn btn-outline text-xs py-1 flex-1">Edit Draft</button>
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    className="btn btn-primary text-xs py-1 flex-1 disabled:opacity-50"
+                    onClick={handlePublishAssignment}
+                    disabled={isPublishing}
+                  >
+                    {isPublishing ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Approve & Publish As Assignment'}
+                  </button>
+                  <button 
+                    className="btn btn-secondary text-xs py-1 flex-1"
+                    onClick={handleDeployLiveTest}
+                  >
+                    Deploy Live Test Now
+                  </button>
                 </div>
               </div>
             )}

@@ -18,7 +18,8 @@ import {
   Monitor,
   Award,
   CreditCard,
-  FolderUp
+  FolderUp,
+  ScanFace
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -89,6 +90,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             {renderLink('/admin/nodes', 'Edge Nodes', Cpu)}
             {renderLink('/admin/fleet', 'MDM Fleet', Monitor)}
             {renderLink('/admin/snapshots', 'Snapshots', FolderUp)}
+            {renderLink('/admin/face-review', 'Face Review', ScanFace)}
             {renderLink('/admin/logs', 'Security Logs', ShieldCheck)}
           </>
         );

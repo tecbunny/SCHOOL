@@ -220,73 +220,31 @@ EduPortal is a Next.js and Supabase school operations platform for admins, audit
 - Pitch deck artifact for investor/demo presentation.
 - Production build verified successfully after the latest route and timetable updates.
 
+### 22. Assignment Workflow
+
+- Persistent assignment and submission tables implemented via `20260503_core_extensions.sql`.
+- Teacher assignment authoring via AI generator in the dashboard.
+- Student assignment board surfaces real assignment data and tracking.
+- Upload work flow allows students to create submissions.
+- Split-screen grading interface fetches real un-graded submissions and persists grades and feedback.
+
+### 23. Face Verification
+
+- Face template and verification attempt schema.
+- Face verification API and edge hardware endpoint.
+- Staff UI for manual enrollment and biometric capture.
+- Admin review dashboard for threshold tuning and active telemetry.
+
 ## Partially Implemented Features
 
 These features have visible routes, components, APIs, or database structures, but need more production wiring, data flows, or UX completion.
 
-### 1. AI Analytics
-
-- Current analytics services read live Supabase data for many metrics.
-- Some class mastery logic is still marked as mock-backed aggregation.
-- Next step: replace all mock calculations with validated rollups, scheduled aggregation, and clear empty-state behavior.
-
-### 2. Assignment Workflow
-
-- Student assignment board route exists and can surface recent teacher-generated exam papers as actionable assignment items.
-- Fallback assignment cards keep the screen usable when assignment tables are not seeded yet.
-- Next step: add first-class assignment and submission tables, teacher assignment authoring, file submission storage, grading states, and notifications.
-
-### 3. Timetable Workflow
-
-- Student class timetable route exists and reads from the current `public.timetable` table.
-- HOD timetable manager now uses the same table name and realtime channel.
-- Next step: add staff timetable route, period creation modal, room inventory, substitution notifications, and conflict tests.
-
-### 4. Peer Review Workflow
-
-- Student peer-review route exists with 360-degree feedback cards, recent peer notes, and recognition summary.
-- Next step: add peer review tables, review collection forms, moderation, and rollup into HPC competency scoring.
-
-### 5. Auditor Oversight Workflow
-
-- Auditor compliance check, institutional logs, and certifications routes exist.
-- Auditor navigation now links to real pages.
-- Next step: connect institutional logs and certifications to persistent audit/certification tables and signed evidence exports.
-
-### 6. AI Analytics
-
-- Current analytics services read live Supabase data for many metrics.
-- Some class mastery logic is still marked as mock-backed aggregation.
-- Next step: replace all mock calculations with validated rollups, scheduled aggregation, and clear empty-state behavior.
-
-### 7. Hardware Fleet Management
-
-- Hardware APIs, telemetry, update checks, signed requests, and fleet deployment hooks exist.
-- Admin fleet and node screens exist.
-- Next step: complete OTA release management, node health timelines, failure recovery, and device command audit trails.
-
-### 8. Face Verification
-
-- Face template and verification attempt schema exists.
-- Face verification API exists.
-- Next step: finalize enrollment UX, embedding model pipeline, threshold tuning, and admin review workflows.
-
-### 9. Live Tests
-
-- Live test engine component and private realtime policy foundations exist.
-- Next step: complete teacher test authoring, private broadcast flow, student response capture, scoring, and post-test reports.
-
-### 10. Hub Distribution
-
-- Hub checkout schema and UI component exist.
-- Next step: connect QR scan flow, session-level inventory screen, lost-device handling, and return verification.
-
-### 11. Credential Delivery
+### 1. Credential Delivery
 
 - Credential delivery jobs and admin authorization codes exist.
 - Next step: integrate actual delivery channels such as verified contact, email, or SMS provider.
 
-### 12. EduOS Packaging
+### 3. EduOS Packaging
 
 - Build scripts and generated role images exist.
 - Next step: automate release signing, version manifest publishing, OTA rollout channels, and rollback.
@@ -295,44 +253,31 @@ These features have visible routes, components, APIs, or database structures, bu
 
 ### Phase 1: Complete Core School Workflows
 
-- Assignment data model with teacher creation, student submission, grading, and status tracking.
-- Staff timetable route with creation, substitution, and notification flows.
 - Attendance marking UI for morning and subject-wise attendance.
 - Parent/guardian contact records and communication logs.
 - Class-wise dashboards for HOD and principal users.
 
 ### Phase 2: Strengthen Academic Intelligence
 
-- Production HPC aggregation jobs.
 - Competency rubric builder.
 - Student progress trend charts.
-- Persistent peer review collection, moderation, and HPC rollup.
 - AI-generated remediation plans.
 - Teacher workload and CPD progress dashboards.
 
 ### Phase 3: Finish Live Test System
 
-- Teacher live test authoring.
 - Question bank and paper templates.
-- Realtime student response tracking.
-- Auto-scoring and manual override.
-- Anti-cheat/session integrity checks.
 - Result export for teachers and principals.
 
 ### Phase 4: Complete Device Operations
 
 - Hardware enrollment wizard.
-- QR-based Student Hub assignment and return flow.
-- Device health timeline.
-- OTA release dashboard.
 - Signed firmware/update manifest.
 - Device command queue visibility.
 - Offline conflict resolution UI.
 
 ### Phase 5: Expand Compliance And Auditing
 
-- Persistent institutional logs backed by audit tables.
-- Persistent certification tracker backed by certification tables.
 - Evidence upload and review workflow.
 - NEP 2020 checklist mapping.
 - Scheduled compliance reports.
@@ -349,12 +294,9 @@ These features have visible routes, components, APIs, or database structures, bu
 
 ## Suggested Priority Order
 
-1. Add persistent assignment, submission, peer review, audit log, and certification tables.
-2. Replace mock analytics calculations with production aggregations.
-3. Complete teacher assignment authoring, attendance, and staff timetable workflows.
-4. Finish live test teacher-to-student flow.
-5. Complete EduOS device enrollment, hub checkout, and OTA management.
-6. Add tests and demo seed data for repeatable investor/customer demos.
+1. Add tests and demo seed data for repeatable investor/customer demos.
+2. Complete EduOS device enrollment and automated packaging.
+3. Finish face verification and credential delivery flows.
 
 ## Current Technical Stack
 

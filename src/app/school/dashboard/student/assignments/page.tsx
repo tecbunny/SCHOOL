@@ -23,6 +23,7 @@ export default function StudentAssignmentsPage() {
   const [items, setItems] = useState<AssignmentItem[]>(fallbackAssignments);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -40,21 +41,29 @@ export default function StudentAssignmentsPage() {
         if (!profile?.school_id) return;
 
         const { data } = await supabase
-          .from('exam_papers')
-          .select('id, title, subject, created_at')
+          .from('assignments')
+          .select(`
+            id, title, subject, due_date,
+            submissions ( status )
+          `)
           .eq('school_id', profile.school_id)
           .order('created_at', { ascending: false })
-          .limit(6);
+          .limit(10);
 
         if (data?.length) {
-          setItems(data.map((paper: any) => ({
-            id: paper.id,
-            title: paper.title,
-            subject: paper.subject,
-            dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-            status: 'pending',
-            source: 'Teacher Paper'
-          })));
+          setItems(data.map((assignment: any) => {
+            // Check if there is a submission for this student (we rely on RLS or filtering, but since RLS lets students see their own submissions, submissions array will only contain theirs or be empty)
+            const submission = assignment.submissions && assignment.submissions.length > 0 ? assignment.submissions[0] : null;
+            
+            return {
+              id: assignment.id,
+              title: assignment.title,
+              subject: assignment.subject,
+              dueDate: new Date(assignment.due_date).toISOString().slice(0, 10),
+              status: submission ? submission.status : 'pending',
+              source: 'Teacher Assignment'
+            };
+          }));
         }
       } finally {
         setLoading(false);
@@ -63,6 +72,31 @@ export default function StudentAssignmentsPage() {
 
     loadAssignments();
   }, []);
+
+  const handleUploadWork = async (assignmentId: string) => {
+    setUploadingFor(assignmentId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase.from('submissions').insert({
+        assignment_id: assignmentId,
+        student_id: user.id,
+        content: "Student submitted work document URL",
+        status: "submitted"
+      });
+
+      if (error) throw error;
+      
+      setItems(prev => prev.map(item => item.id === assignmentId ? { ...item, status: 'submitted' } : item));
+      alert("Work submitted successfully!");
+    } catch (error: any) {
+      console.error('Failed to submit:', error);
+      alert("Failed to submit: " + error.message);
+    } finally {
+      setUploadingFor(null);
+    }
+  };
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -134,13 +168,21 @@ export default function StudentAssignmentsPage() {
                   {item.subject} / Due {item.dueDate} / {item.source}
                 </p>
               </div>
-              <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${
-                item.status === 'graded' ? 'bg-success/10 text-success' :
-                item.status === 'submitted' ? 'bg-secondary/10 text-secondary' :
-                'bg-warning/10 text-warning'
-              }`}>
-                {item.status}
-              </span>
+              {item.status === 'pending' ? (
+                <button 
+                  onClick={() => handleUploadWork(item.id)}
+                  disabled={uploadingFor === item.id}
+                  className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  {uploadingFor === item.id ? 'Uploading...' : 'Upload Work'}
+                </button>
+              ) : (
+                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                  item.status === 'graded' ? 'bg-success/10 text-success' : 'bg-secondary/10 text-secondary'
+                }`}>
+                  {item.status}
+                </span>
+              )}
             </article>
           ))}
         </div>
