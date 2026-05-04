@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
 import { 
   FileText, 
   Headphones, 
@@ -11,7 +12,8 @@ import {
   Loader2,
   CheckCircle,
   Play,
-  Wand2
+  Wand2,
+  XCircle
 } from 'lucide-react';
 
 export default function Studio() {
@@ -19,6 +21,64 @@ export default function Studio() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedAssets, setGeneratedAssets] = useState<any[]>([]);
   const [activeAssetType, setActiveAssetType] = useState<string | null>(null);
+  const supabase = createClient();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let channel: any;
+
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+
+      // Fetch initial history
+      const { data: history } = await supabase
+        .from('generations')
+        .select('*, generation_assets(id, content)')
+        .eq('requester_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (history) {
+        setGeneratedAssets(history);
+      }
+
+      // Subscribe to real-time changes
+      channel = supabase.channel('studio_generations')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'generations', filter: `requester_id=eq.${user.id}` },
+          async (payload: any) => {
+             // Refresh history on any change to keep assets joined
+             const { data: newHistory } = await supabase
+              .from('generations')
+              .select('*, generation_assets(id, content)')
+              .eq('requester_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
+              
+             if (newHistory) {
+                setGeneratedAssets(newHistory);
+                
+                // If an item we were actively generating completes, stop the local loader
+                const completedItem = newHistory.find((h: any) => h.id === payload.new.id && payload.new.status === 'completed');
+                if (completedItem && isProcessing) {
+                   setIsProcessing(false);
+                   setActiveAssetType(null);
+                }
+             }
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtime();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -33,30 +93,30 @@ export default function Studio() {
     setActiveAssetType(type);
 
     try {
-      // Simulate API call to process media
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('type', type);
+
+      const res = await fetch('/api/ai/studio', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) throw new Error("Failed to queue generation");
       
-      const newAsset = {
-        id: Date.now(),
-        type,
-        name: `${selectedFile.name.split('.')[0]} - ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-        createdAt: new Date().toISOString()
-      };
-      
-      setGeneratedAssets(prev => [newAsset, ...prev]);
+      // Real-time listener will handle state updates and disable the loader when completed
     } catch (error) {
       console.error("Generation failed:", error);
-    } finally {
       setIsProcessing(false);
       setActiveAssetType(null);
     }
   };
 
   const assetTypes = [
-    { id: 'audio', label: 'Audio Overview', icon: Headphones, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { id: 'flashcards', label: 'Flashcards', icon: Layers, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { id: 'quiz', label: 'Interactive Quiz', icon: HelpCircle, color: 'text-green-500', bg: 'bg-green-500/10' },
-    { id: 'slides', label: 'Slide Deck', icon: Presentation, color: 'text-orange-500', bg: 'bg-orange-500/10' }
+    { id: 'audio', dbType: 'audio_overview', label: 'Audio Overview', icon: Headphones, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { id: 'flashcards', dbType: 'flashcards', label: 'Flashcards', icon: Layers, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { id: 'quiz', dbType: 'interactive_quiz', label: 'Interactive Quiz', icon: HelpCircle, color: 'text-green-500', bg: 'bg-green-500/10' },
+    { id: 'slides', dbType: 'slide_deck', label: 'Slide Deck', icon: Presentation, color: 'text-orange-500', bg: 'bg-orange-500/10' }
   ];
 
   return (
@@ -133,13 +193,15 @@ export default function Studio() {
       <div className="col-span-12 lg:col-span-4 bg-card border border-white/10 rounded-[2rem] p-6 flex flex-col h-[600px]">
         <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
           <Layers className="w-5 h-5 text-secondary" />
-          Your Assets
+          Queue & Assets
         </h3>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-2">
           {generatedAssets.length > 0 ? generatedAssets.map((asset) => {
-            const typeInfo = assetTypes.find(t => t.id === asset.type);
+            const typeInfo = assetTypes.find(t => t.dbType === asset.generation_type);
             const Icon = typeInfo?.icon || FileText;
+            const isCompleted = asset.status === 'completed';
+            const isFailed = asset.status === 'failed';
             
             return (
               <div key={asset.id} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-secondary/30 transition-all cursor-pointer group">
@@ -148,14 +210,27 @@ export default function Studio() {
                     <Icon className={`w-5 h-5 ${typeInfo?.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-sm text-white truncate">{asset.name}</h4>
-                    <p className="text-[10px] text-muted">Just now</p>
+                    <h4 className="font-bold text-sm text-white truncate">
+                      {typeInfo?.label || 'Asset Generation'}
+                    </h4>
+                    <p className="text-[10px] text-muted">
+                      {new Date(asset.created_at).toLocaleTimeString()}
+                    </p>
                   </div>
-                  <CheckCircle className="w-4 h-4 text-success" />
+                  {isCompleted && <CheckCircle className="w-4 h-4 text-success" />}
+                  {isFailed && <XCircle className="w-4 h-4 text-danger" />}
+                  {!isCompleted && !isFailed && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
                 </div>
-                <button className="w-full py-2 bg-white/5 hover:bg-primary hover:text-white rounded-xl text-xs font-bold transition-colors">
-                  Open Asset
-                </button>
+                {isCompleted && (
+                  <button className="w-full py-2 bg-white/5 hover:bg-primary hover:text-white rounded-xl text-xs font-bold transition-colors">
+                    Open Asset
+                  </button>
+                )}
+                {!isCompleted && !isFailed && (
+                   <div className="text-[10px] text-center text-muted font-bold uppercase tracking-widest">
+                     Processing at Edge...
+                   </div>
+                )}
               </div>
             );
           }) : (
