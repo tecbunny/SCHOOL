@@ -72,6 +72,7 @@ export default function SchoolSidebar({ role }: SchoolSidebarProps) {
             {renderLink('/school/dashboard/student/assignments', 'Assignments', FileText, notifications.assignments)}
             {renderLink('/school/dashboard/student/timetable', 'Class Timetable', Calendar)}
             {renderLink('/school/dashboard/student/study-hub', 'Study Hub', Book)}
+            {renderLink('/school/dashboard/student/studio', 'AI Studio', Cpu)}
             {renderSection('NEP 2020 ACADEMICS')}
             {renderLink('/school/dashboard/student/holistic-card', 'Holistic Card', BarChart)}
             {renderLink('/school/dashboard/student/peer-reviews', 'Peer Reviews', Users)}
