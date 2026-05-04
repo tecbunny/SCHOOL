@@ -2,10 +2,13 @@
 
 EduPortal is a Next.js school operations web app with admin, auditor, school, teacher, and student workflows. It includes Supabase-backed API routes, EduOS edge deployment helpers, and a pitch deck for presentation.
 
+For the offline-first edge design, see [`docs/HYBRID_EDGE_ARCHITECTURE.md`](docs/HYBRID_EDGE_ARCHITECTURE.md).
+
 ## Kept Deliverables
 
 - Working web model source: `src/`, `public/`, `supabase/`, and project config files.
 - EduOS edge model scripts and deployment helpers: `eduos/`.
+- Hybrid edge architecture spec and generation queue contract: `docs/HYBRID_EDGE_ARCHITECTURE.md`.
 - Pitch deck: `PITCHDECK_ASK_1CR_CONVERTIBLE_NOTE.pptx`.
 
 ## Run The Web App
