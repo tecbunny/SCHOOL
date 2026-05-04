@@ -42,12 +42,13 @@ export default function AttendanceConfig() {
           <Clock className="w-5 h-5 text-primary" />
           <h3 className="font-bold text-lg">Attendance Mode</h3>
         </div>
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+        {(loading || saving) && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <button 
           onClick={() => handleToggle('morning')}
+          disabled={loading || saving}
           className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all text-left ${mode === 'morning' ? 'border-primary bg-primary/10' : 'border-white/5 bg-white/5 hover:border-white/20'}`}
         >
           <div className="flex justify-between items-center">
@@ -62,6 +63,7 @@ export default function AttendanceConfig() {
 
         <button 
           onClick={() => handleToggle('subject')}
+          disabled={loading || saving}
           className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all text-left ${mode === 'subject' ? 'border-primary bg-primary/10' : 'border-white/5 bg-white/5 hover:border-white/20'}`}
         >
           <div className="flex justify-between items-center">

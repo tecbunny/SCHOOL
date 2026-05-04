@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { 
   BookOpen, 
-  Upload, 
   Search, 
   Globe, 
   FileText, 
@@ -31,7 +30,7 @@ export default function GlobalMaterialsPage() {
       setLoading(false);
     };
     fetchMaterials();
-  }, []);
+  }, [supabase]);
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a]">

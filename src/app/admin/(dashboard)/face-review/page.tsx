@@ -8,8 +8,7 @@ import {
   CheckCircle2,
   XCircle,
   Activity,
-  History,
-  AlertCircle
+  History
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import FaceEnrollment from '@/features/hardware/FaceEnrollment';
@@ -44,7 +43,7 @@ export default function FaceReviewPage() {
     };
 
     fetchData();
-  }, []);
+  }, [supabase]);
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a]">

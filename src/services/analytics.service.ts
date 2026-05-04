@@ -127,11 +127,11 @@ export const analyticsService = {
       .select('hours_logged, profiles!inner(school_id)')
       .eq('profiles.school_id', schoolId);
 
-    const totalCpdHours = schoolCpd?.reduce((acc, curr) => acc + Number(curr.hours_logged), 0) || 0;
+    const totalCpdHours = schoolCpd?.reduce((acc: number, curr: any) => acc + Number(curr.hours_logged), 0) || 0;
     const staffCount = staff.count || 1;
 
     // Calculate attendance %
-    const presentCount = attendance.data?.filter(a => a.status === 'present').length || 0;
+    const presentCount = attendance.data?.filter((a: any) => a.status === 'present').length || 0;
     const totalAttendance = attendance.data?.length || 1;
 
     return {
@@ -143,19 +143,16 @@ export const analyticsService = {
   },
 
   async getTeacherStats(teacherId: string, schoolId: string) {
-    const [cpd, students, assignments, grading] = await Promise.all([
+    const [cpd, students, assignments] = await Promise.all([
       supabase.from('cpd_logs').select('hours_logged').eq('teacher_id', teacherId),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('role', 'student'),
-      supabase.from('assignments').select('id').eq('teacher_id', teacherId),
-      // we just get pending grading by joining submissions and assignments later, or doing it here
-      // But we can't easily join count in one go without a view, so let's do a subquery or fetch all pending
-      supabase.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'submitted')
+      supabase.from('assignments').select('id').eq('teacher_id', teacherId)
     ]);
 
     // To properly count pending grading for this teacher, we need to know the teacher's assignments
     let pendingGradingCount = 0;
     if (assignments.data && assignments.data.length > 0) {
-      const assignmentIds = assignments.data.map(a => a.id);
+      const assignmentIds = assignments.data.map((a: any) => a.id);
       const { count } = await supabase
         .from('submissions')
         .select('*', { count: 'exact', head: true })
@@ -164,7 +161,7 @@ export const analyticsService = {
       pendingGradingCount = count || 0;
     }
 
-    const totalCpd = cpd.data?.reduce((acc, curr) => acc + Number(curr.hours_logged), 0) || 0;
+    const totalCpd = cpd.data?.reduce((acc: number, curr: any) => acc + Number(curr.hours_logged), 0) || 0;
 
     return {
       totalCpdHours: totalCpd,
@@ -223,12 +220,12 @@ export const analyticsService = {
       supabase.from('hpc_competencies').select('*').eq('student_id', studentId)
     ]);
 
-    const presentCount = attendance.data?.filter(a => a.status === 'present').length || 0;
+    const presentCount = attendance.data?.filter((a: any) => a.status === 'present').length || 0;
     const totalDays = attendance.data?.length || 1;
 
     // Aggregate competencies by category
     const categories = { academic: 0, socio_emotional: 0, physical: 0 };
-    competencies.data?.forEach(c => {
+    competencies.data?.forEach((c: any) => {
       if (c.category in categories) {
         categories[c.category as keyof typeof categories] += Number(c.score);
       }
@@ -238,7 +235,7 @@ export const analyticsService = {
 
     return {
       attendanceRate: ((presentCount / totalDays) * 100).toFixed(1),
-      averageGrade: grades.data?.length ? (grades.data.reduce((acc, curr) => acc + Number(curr.marks_obtained), 0) / grades.data.length).toFixed(1) : '0',
+      averageGrade: grades.data?.length ? (grades.data.reduce((acc: number, curr: any) => acc + Number(curr.marks_obtained), 0) / grades.data.length).toFixed(1) : '0',
       mastery: {
         academic: Math.round(categories.academic / compCount),
         socio_emotional: Math.round(categories.socio_emotional / compCount),

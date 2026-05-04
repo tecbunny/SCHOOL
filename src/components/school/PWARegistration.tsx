@@ -10,8 +10,8 @@ export default function PWARegistration() {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
-        .then((registration) => {
-
+        .catch((error) => {
+          console.error("Service worker registration failed:", error);
         });
     }
 

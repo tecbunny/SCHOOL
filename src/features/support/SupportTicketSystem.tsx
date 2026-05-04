@@ -3,10 +3,7 @@
 import { 
   LifeBuoy, 
   MessageSquare, 
-  Send, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle,
+  Clock,
   Plus,
   Loader2
 } from 'lucide-react';
@@ -29,7 +26,7 @@ export default function SupportTicketSystem() {
       setLoading(false);
     };
     fetchTickets();
-  }, []);
+  }, [supabase]);
 
   return (
     <div className="bg-card border border-white/5 rounded-[2.5rem] p-8 flex flex-col gap-6 shadow-2xl">
@@ -42,7 +39,7 @@ export default function SupportTicketSystem() {
             <h3 className="font-bold text-lg text-white">Platform Support</h3>
          </div>
          <button 
-            onClick={() => setIsCreating(true)}
+            onClick={() => setIsCreating((value) => !value)}
             className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all"
          >
             <Plus className="w-5 h-5 text-muted" />
@@ -50,6 +47,11 @@ export default function SupportTicketSystem() {
       </div>
 
       <div className="flex flex-col gap-3">
+         {isCreating && (
+           <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-xs text-primary font-bold">
+             Ticket intake is ready. Connect this action to the support form when live concierge workflows are enabled.
+           </div>
+         )}
          {loading ? (
            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
          ) : tickets.length === 0 ? (

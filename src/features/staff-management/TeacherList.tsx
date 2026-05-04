@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, GraduationCap, Search, MoreVertical, Loader2, UserPlus } from 'lucide-react';
+import { Users, Search, MoreVertical, Loader2, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { staffService } from '@/services/staff.service';
 import AddStaffModal from './AddStaffModal';

@@ -29,7 +29,7 @@ export default function InstitutionalLogsPage() {
           .limit(50);
           
         if (data && data.length > 0) {
-          setLogs(data.map(log => ({
+          setLogs(data.map((log: any) => ({
             id: log.id,
             date: new Date(log.created_at).toISOString().slice(0, 10),
             type: log.action,
@@ -45,7 +45,7 @@ export default function InstitutionalLogsPage() {
       }
     };
     fetchLogs();
-  }, []);
+  }, [supabase]);
 
   return (
     <section className="min-h-screen bg-[#070B19] text-white p-10">
@@ -75,6 +75,11 @@ export default function InstitutionalLogsPage() {
 
         <div className="glass-card rounded-[3rem] p-6">
           <div className="flex flex-col gap-4">
+            {loading && (
+              <div className="p-6 text-center text-xs font-black uppercase tracking-widest text-muted">
+                Loading institutional logs...
+              </div>
+            )}
             {logs.map((log) => (
               <article key={log.id} className="bg-white/5 border border-white/10 rounded-3xl p-5 flex items-center gap-5">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${

@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { getConfiguredStationId, getConfiguredStationSigningSecret } from "@/lib/eduos-station-config";
 
 export type LocalQrSession = {
   sessionId: string;
@@ -20,7 +21,8 @@ const SESSION_FILE = path.join(LOCAL_STATE_DIR, "qr-sessions.json");
 const DEFAULT_TTL_MS = 30_000;
 
 function signingSecret() {
-  if (process.env.EDUOS_STATION_SIGNING_SECRET) return process.env.EDUOS_STATION_SIGNING_SECRET;
+  const configuredSecret = getConfiguredStationSigningSecret();
+  if (configuredSecret) return configuredSecret;
   if (process.env.NODE_ENV === "production") {
     throw new Error("EDUOS_STATION_SIGNING_SECRET is required for local QR authority.");
   }
@@ -28,7 +30,7 @@ function signingSecret() {
 }
 
 export function stationId() {
-  return process.env.EDUOS_STATION_ID ?? "class-station-local";
+  return getConfiguredStationId() ?? "class-station-local";
 }
 
 function sign(value: unknown) {

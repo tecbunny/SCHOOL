@@ -4,6 +4,8 @@ Last reviewed: 2026-05-03
 
 Latest implementation pass: 2026-05-03
 
+Hybrid edge architecture spec added: 2026-05-04
+
 EduPortal is a Next.js and Supabase school operations platform for admins, auditors, schools, teachers, students, alumni, and connected EduOS edge devices. This document separates features that are implemented in the current codebase from features that are partially implemented or planned next.
 
 ## Implemented Features
@@ -171,6 +173,10 @@ EduPortal is a Next.js and Supabase school operations platform for admins, audit
 - Sync events API.
 - Grade edge versioning with monotonically increasing version counts.
 - Grade merge function for teacher-edge edits.
+- Hybrid edge architecture specification in `docs/HYBRID_EDGE_ARCHITECTURE.md`.
+- Studio generation queue and edge cache schema migration for pending/completed AI assets.
+- Student Studio panel for queueing flashcards, quizzes, audio overviews, and slide decks.
+- Studio generation APIs for student job creation and Class Station claim/process/complete/fail lifecycle.
 
 ### 16. QR And Local Station Access
 
@@ -263,6 +269,7 @@ These features have visible routes, components, APIs, or database structures, bu
 - Student progress trend charts.
 - AI-generated remediation plans.
 - Teacher workload and CPD progress dashboards.
+- Class Station worker for queued Studio generations and edge-cached AI assets.
 
 ### Phase 3: Finish Live Test System
 

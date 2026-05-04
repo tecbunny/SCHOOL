@@ -7,8 +7,7 @@ import {
   FileText, 
   Video, 
   Search,
-  CloudOff,
-  ExternalLink
+  CloudOff
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { analyticsService } from '@/services/analytics.service';
@@ -46,7 +45,7 @@ export default function StudyHub() {
       }
     };
     fetchMaterials();
-  }, [selectedSubject]);
+  }, [selectedSubject, supabase]);
 
   const filteredMaterials = materials.filter(m => 
     m.file_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -99,7 +98,12 @@ export default function StudyHub() {
 
       {/* Materials Grid */}
       <div className="grid grid-cols-2 gap-6 overflow-y-auto custom-scrollbar p-2">
-         {filteredMaterials.length > 0 ? filteredMaterials.map((m) => (
+         {loading ? (
+            <div className="col-span-2 flex flex-col items-center justify-center text-muted py-20 gap-4">
+               <BookOpen className="w-16 h-16 opacity-10" />
+               <p className="font-bold uppercase tracking-[0.2em]">Loading Materials</p>
+            </div>
+         ) : filteredMaterials.length > 0 ? filteredMaterials.map((m) => (
             <div key={m.id} className="bg-card border border-white/10 rounded-[2.5rem] p-6 flex items-center gap-6 group hover:border-primary/30 transition-all cursor-pointer shadow-xl relative overflow-hidden">
                
                {/* Decorative Background */}

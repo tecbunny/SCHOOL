@@ -7,7 +7,6 @@ import {
   Filter, 
   Terminal, 
   AlertCircle, 
-  CheckCircle2, 
   Info,
   Clock,
   Cpu,
@@ -45,7 +44,7 @@ export default function AdminLogsPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [supabase]);
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {

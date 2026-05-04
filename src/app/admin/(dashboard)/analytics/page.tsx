@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart2, TrendingUp, Users, BookOpen, Clock, MapPin, Search, Filter, Loader2, Building } from 'lucide-react';
+import { BarChart2, TrendingUp, Users, BookOpen, MapPin, Building } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 
@@ -74,7 +74,7 @@ export default function AnalyticsPage() {
       lineChart.destroy();
       barChart.destroy();
     };
-  }, []);
+  }, [loading]);
 
   return (
     <>

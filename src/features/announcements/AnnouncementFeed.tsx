@@ -1,6 +1,6 @@
 "use client";
 
-import { Megaphone, Clock, AlertTriangle, Info, Loader2 } from 'lucide-react';
+import {  Clock, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { staffService } from '@/services/staff.service';
 

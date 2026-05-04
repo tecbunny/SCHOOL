@@ -1,6 +1,6 @@
 "use client";
 
-import { Building, Search, Filter, Plus, MoreVertical, ExternalLink, Loader2, Eye } from 'lucide-react';
+import { Building, Search, Filter, Plus, Loader2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 

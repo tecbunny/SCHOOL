@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 type HardwareNode = {
   id: string;
   school_id: string | null;
+  node_type?: string | null;
   node_secret_hash: string | null;
   public_key_pem: string | null;
   key_algorithm: string | null;
@@ -64,7 +65,7 @@ export function canonicalHardwarePayload(params: {
 async function getHardwareNode(supabase: HardwareSupabaseClient, nodeId: string) {
   const query = supabase.from("hardware_nodes") as HardwareNodeQuery;
   return query
-    .select("id, school_id, node_secret_hash, public_key_pem, key_algorithm")
+    .select("id, school_id, node_type, node_secret_hash, public_key_pem, key_algorithm")
     .eq("id", nodeId)
     .single();
 }

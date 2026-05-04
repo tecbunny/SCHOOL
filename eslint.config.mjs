@@ -23,6 +23,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "scratch/**",
     "eduos/image_payload/**",
+    "outputs/**",
     "supabase/functions/**",
   ]),
 ]);

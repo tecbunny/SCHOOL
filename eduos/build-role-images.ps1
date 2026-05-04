@@ -5,6 +5,28 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = $PSScriptRoot
 $WebAppDir = Resolve-Path (Join-Path $ScriptDir "..")
 $OutDir = Join-Path $ScriptDir "images"
+$SigningSecret = $env:EDUOS_RELEASE_SIGNING_SECRET
+
+function Get-FileSha256 {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+}
+
+function Get-HmacSha256 {
+    param(
+        [Parameter(Mandatory = $true)][string]$Secret,
+        [Parameter(Mandatory = $true)][string]$Payload
+    )
+
+    $key = [System.Text.Encoding]::UTF8.GetBytes($Secret)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Payload)
+    $hmac = [System.Security.Cryptography.HMACSHA256]::new($key)
+    try {
+        return [Convert]::ToHexString($hmac.ComputeHash($bytes)).ToLowerInvariant()
+    } finally {
+        $hmac.Dispose()
+    }
+}
 
 $roles = @(
     @{
@@ -55,6 +77,8 @@ foreach ($role in $roles) {
     $AppDir = Join-Path $PayloadDir "app"
     $ImagePath = Join-Path $OutDir $role.File
     $ZipPath = "$ImagePath.zip"
+    $SignaturePath = "$ImagePath.sig"
+    $ReleaseManifestPath = "$ImagePath.release.json"
 
     if (Test-Path -LiteralPath $PayloadDir) {
         Remove-Item -LiteralPath $PayloadDir -Recurse -Force
@@ -64,6 +88,12 @@ foreach ($role in $roles) {
     }
     if (Test-Path -LiteralPath $ZipPath) {
         Remove-Item -LiteralPath $ZipPath -Force
+    }
+    if (Test-Path -LiteralPath $SignaturePath) {
+        Remove-Item -LiteralPath $SignaturePath -Force
+    }
+    if (Test-Path -LiteralPath $ReleaseManifestPath) {
+        Remove-Item -LiteralPath $ReleaseManifestPath -Force
     }
 
     New-Item -ItemType Directory -Path $PayloadDir -Force | Out-Null
@@ -107,6 +137,27 @@ foreach ($role in $roles) {
     }
     Pop-Location
     Rename-Item -LiteralPath $ZipPath -NewName (Split-Path $ImagePath -Leaf) -Force
+
+    $sha256 = Get-FileSha256 -Path $ImagePath
+    $signedPayload = "$($role.Slug)|$($manifest.version)|$sha256"
+    $signature = if ($SigningSecret) { Get-HmacSha256 -Secret $SigningSecret -Payload $signedPayload } else { $null }
+    $releaseManifest = @{
+        name = $role.Name
+        role = $role.Slug
+        version = $manifest.version
+        file = $role.File
+        sha256 = $sha256
+        signatureAlgorithm = if ($signature) { "hmac-sha256" } else { "unsigned" }
+        signature = $signature
+        signedPayload = $signedPayload
+        createdAt = Get-Date -Format "o"
+    }
+    $releaseManifest | ConvertTo-Json -Depth 6 | Out-File $ReleaseManifestPath -Encoding utf8
+    if ($signature) {
+        $signature | Out-File $SignaturePath -Encoding ascii
+    } else {
+        Write-Host "EDUOS_RELEASE_SIGNING_SECRET is not set; release manifest is unsigned." -ForegroundColor Yellow
+    }
 
     Write-Host ("Created {0} ({1:N2} MB)" -f $ImagePath, ((Get-Item $ImagePath).Length / 1MB)) -ForegroundColor Green
 }

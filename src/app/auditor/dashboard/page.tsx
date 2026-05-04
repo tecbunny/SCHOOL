@@ -3,7 +3,6 @@
 import ComplianceHealthMap from '@/features/auditor/ComplianceHealthMap';
 import ReportGenerator from '@/features/auditor/ReportGenerator';
 import { ShieldCheck, Search, Filter, Calendar, Activity, FileText, Award, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
 
 export default function AuditorDashboard() {
   return (

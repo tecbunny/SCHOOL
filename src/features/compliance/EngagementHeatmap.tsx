@@ -1,17 +1,51 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Activity, Info, Calendar } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
+
+const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const hours = ['8am', '10am', '12pm', '2pm', '4pm', '6pm'];
 
 export default function EngagementHeatmap() {
-  // Mock data for a 7-day view (Staff activity)
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const hours = ['8am', '10am', '12pm', '2pm', '4pm', '6pm'];
-  
-  // Generating mock heatmap data (0 to 1 intensity)
-  const data = Array.from({ length: 6 }, () => 
-    Array.from({ length: 7 }, () => Math.random())
-  );
+  const [data, setData] = useState<number[][]>(() => Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0)));
+  const [peak, setPeak] = useState("No activity yet");
+  const supabase = createClient();
+
+  useEffect(() => {
+    const loadActivity = async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 7);
+
+      const [cpd, materials] = await Promise.all([
+        supabase.from('cpd_logs').select('created_at').gte('created_at', since.toISOString()),
+        supabase.from('materials').select('created_at').gte('created_at', since.toISOString()),
+      ]);
+
+      const counts = Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => 0));
+      const rows = [...(cpd.data || []), ...(materials.data || [])];
+      rows.forEach((row: any) => {
+        const date = new Date(row.created_at);
+        const dayIndex = (date.getDay() + 6) % 7;
+        const hourIndex = Math.min(Math.max(Math.floor((date.getHours() - 8) / 2), 0), 5);
+        counts[hourIndex][dayIndex] += 1;
+      });
+
+      const max = Math.max(1, ...counts.flat());
+      const normalized = counts.map((row) => row.map((value) => value / max));
+      setData(normalized);
+
+      let peakLabel = "No activity yet";
+      counts.forEach((row, hourIndex) => {
+        row.forEach((value, dayIndex) => {
+          if (value === max && value > 0) peakLabel = `${days[dayIndex]}, ${hours[hourIndex]}`;
+        });
+      });
+      setPeak(peakLabel);
+    };
+
+    void loadActivity();
+  }, [supabase]);
 
   const getIntensityColor = (value: number) => {
     if (value > 0.8) return 'bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.4)]';
@@ -86,7 +120,7 @@ export default function EngagementHeatmap() {
          <div className="flex justify-between items-center">
              <div className="flex flex-col">
                 <span className="text-[10px] text-muted font-bold uppercase tracking-widest">Peak Usage</span>
-                <span className="text-sm font-black text-white">{days[new Date().getDay() - 1]}, {new Date().getHours()}:00 {new Date().getHours() >= 12 ? 'PM' : 'AM'}</span>
+                <span className="text-sm font-black text-white">{peak}</span>
              </div>
              <div className="flex flex-col items-end">
                 <span className="text-[10px] text-muted font-bold uppercase tracking-widest">Engagement Index</span>

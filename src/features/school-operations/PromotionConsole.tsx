@@ -6,10 +6,8 @@ import {
   Lock, 
   Unlock, 
   Users, 
-  CheckCircle2, 
   AlertTriangle,
-  Loader2,
-  ChevronRight
+  Loader2
 } from 'lucide-react';
 import { promotionService } from '@/services/promotion.service';
 

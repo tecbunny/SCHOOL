@@ -71,7 +71,7 @@ export default function StudentAssignmentsPage() {
     };
 
     loadAssignments();
-  }, []);
+  }, [supabase]);
 
   const handleUploadWork = async (assignmentId: string) => {
     setUploadingFor(assignmentId);

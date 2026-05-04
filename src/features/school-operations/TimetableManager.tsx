@@ -3,17 +3,12 @@
 import { useState, useEffect } from 'react';
 import { 
   Calendar, 
-  Clock, 
   User, 
   MapPin, 
-  RefreshCw, 
   Plus, 
-  AlertCircle, 
   CheckCircle2, 
   Users, 
-  Search, 
-  Loader2,
-  ArrowRightLeft
+  Loader2
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
@@ -87,7 +82,7 @@ export default function TimetableManager() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [supabase]);
 
   const handleSubstitution = async (scheduleId: string, newTeacherId: string) => {
     if (!newTeacherId) return;

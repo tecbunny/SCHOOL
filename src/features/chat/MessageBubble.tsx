@@ -1,6 +1,7 @@
 "use client";
 
 import { User } from 'lucide-react';
+import Image from 'next/image';
 
 export default function MessageBubble({ message, isOwn, showAvatar = true }: { message: any; isOwn: boolean; showAvatar?: boolean }) {
   const profile = message.profiles;
@@ -22,7 +23,7 @@ export default function MessageBubble({ message, isOwn, showAvatar = true }: { m
         <div className="flex items-center gap-3 px-2 mb-1">
           <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner">
              {profile?.avatar_url ? (
-               <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+               <Image src={profile.avatar_url} alt="" width={32} height={32} unoptimized className="w-full h-full object-cover" />
              ) : (
                <User className="w-4 h-4 text-muted/50" />
              )}
