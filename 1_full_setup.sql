@@ -1,3 +1,508 @@
+-- ADMIN-GENERATED TEMPORARY AUTHORIZATION CODES (2026-05-02)
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS public.admin_authorization_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    code_hash TEXT NOT NULL,
+    purpose TEXT NOT NULL CHECK (purpose IN ('principal_password_reset', 'staff_password_reset')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    consumed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS admin_authorization_codes_lookup_idx
+    ON public.admin_authorization_codes (admin_id, purpose, code_hash, expires_at)
+    WHERE consumed_at IS NULL;
+
+ALTER TABLE public.admin_authorization_codes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins view own authorization codes" ON public.admin_authorization_codes;
+CREATE POLICY "Admins view own authorization codes" ON public.admin_authorization_codes
+    FOR SELECT USING (
+        admin_id = (select auth.uid())
+        AND auth_helpers.get_my_role() = 'admin'
+    );
+-- EDUPORTAL CORE EXTENSIONS (2026-05-03)
+-- Adds persistent tables for assignments, submissions, peer reviews, audit logs, and certifications.
+
+-- 1. ASSIGNMENTS TABLE
+CREATE TABLE IF NOT EXISTS public.assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    teacher_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    class_id TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    due_date TIMESTAMPTZ,
+    exam_paper_id UUID REFERENCES public.exam_papers(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 2. SUBMISSIONS TABLE
+CREATE TABLE IF NOT EXISTS public.submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assignment_id UUID REFERENCES public.assignments(id) ON DELETE CASCADE NOT NULL,
+    student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    content TEXT, -- Content or URL to storage
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('draft', 'submitted', 'graded')),
+    grade NUMERIC,
+    feedback TEXT,
+    UNIQUE(assignment_id, student_id)
+);
+
+-- 3. PEER REVIEWS TABLE
+CREATE TABLE IF NOT EXISTS public.peer_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID REFERENCES public.submissions(id) ON DELETE CASCADE NOT NULL,
+    reviewer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    score NUMERIC NOT NULL CHECK (score >= 0 AND score <= 10),
+    comment TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(submission_id, reviewer_id)
+);
+
+-- 4. INSTITUTIONAL AUDIT LOGS
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    actor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id UUID,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 5. CERTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS public.certifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE, -- Optional: school-wide certs
+    certification_name TEXT NOT NULL,
+    issued_by TEXT NOT NULL,
+    issued_at DATE NOT NULL DEFAULT CURRENT_DATE,
+    expiry_at DATE,
+    file_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 6. ENABLE RLS
+ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.peer_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certifications ENABLE ROW LEVEL SECURITY;
+
+-- 7. RLS POLICIES
+
+-- Assignments: Viewable by school members, manageable by teachers/principals
+DROP POLICY IF EXISTS "Viewable by school" ON public.assignments;
+CREATE POLICY "Viewable by school" ON public.assignments
+    FOR SELECT USING (school_id = auth_helpers.get_my_school_id() OR auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Manageable by staff" ON public.assignments;
+CREATE POLICY "Manageable by staff" ON public.assignments
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('teacher', 'principal') AND 
+        school_id = auth_helpers.get_my_school_id()
+    );
+
+-- Submissions: Students view/manage own, teachers view school
+DROP POLICY IF EXISTS "Students manage own submissions" ON public.submissions;
+CREATE POLICY "Students manage own submissions" ON public.submissions
+    FOR ALL USING (student_id = (select auth.uid()));
+
+DROP POLICY IF EXISTS "Staff view school submissions" ON public.submissions;
+CREATE POLICY "Staff view school submissions" ON public.submissions
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.assignments a
+            WHERE a.id = public.submissions.assignment_id
+              AND a.school_id = auth_helpers.get_my_school_id()
+              AND auth_helpers.get_my_role() IN ('teacher', 'principal')
+        )
+    );
+
+-- Peer Reviews: Reviewers manage own, students view own submission's reviews
+DROP POLICY IF EXISTS "Reviewers manage own" ON public.peer_reviews;
+CREATE POLICY "Reviewers manage own" ON public.peer_reviews
+    FOR ALL USING (reviewer_id = (select auth.uid()));
+
+DROP POLICY IF EXISTS "Students view reviews of own submissions" ON public.peer_reviews;
+CREATE POLICY "Students view reviews of own submissions" ON public.peer_reviews
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.submissions s
+            WHERE s.id = public.peer_reviews.submission_id
+              AND s.student_id = (select auth.uid())
+        )
+    );
+
+-- Audit Logs: Viewable by admins/auditors and school principals
+DROP POLICY IF EXISTS "Oversight view audit logs" ON public.audit_logs;
+CREATE POLICY "Oversight view audit logs" ON public.audit_logs
+    FOR SELECT USING (
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        (auth_helpers.get_my_role() = 'principal' AND school_id = auth_helpers.get_my_school_id())
+    );
+
+-- Certifications: Viewable by student/school staff
+DROP POLICY IF EXISTS "View certifications" ON public.certifications;
+CREATE POLICY "View certifications" ON public.certifications
+    FOR SELECT USING (
+        student_id = (select auth.uid()) OR
+        (auth_helpers.get_my_role() IN ('teacher', 'principal') AND school_id = auth_helpers.get_my_school_id()) OR
+        auth_helpers.get_my_role() IN ('admin', 'auditor')
+    );
+
+DROP POLICY IF EXISTS "Staff manage certifications" ON public.certifications;
+CREATE POLICY "Staff manage certifications" ON public.certifications
+    FOR ALL USING (
+        auth_helpers.get_my_role() IN ('teacher', 'principal') AND 
+        school_id = auth_helpers.get_my_school_id()
+    );
+-- Hardware fleet readiness: enrollable nodes, release manifests, and OTA deployments.
+
+CREATE TABLE IF NOT EXISTS public.hardware_nodes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE,
+    node_name TEXT NOT NULL,
+    node_type TEXT NOT NULL DEFAULT 'student-hub' CHECK (node_type IN ('student-hub', 'class-station', 'admin-kiosk')),
+    mac_address TEXT UNIQUE,
+    station_code TEXT UNIQUE,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'online', 'warning', 'offline')),
+    temp NUMERIC,
+    disk_usage NUMERIC,
+    memory_usage NUMERIC,
+    uptime NUMERIC,
+    version TEXT NOT NULL DEFAULT '1.0.0',
+    last_heartbeat TIMESTAMPTZ,
+    public_key_pem TEXT,
+    key_algorithm TEXT NOT NULL DEFAULT 'ed25519',
+    key_registered_at TIMESTAMPTZ,
+    node_secret_hash TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE IF EXISTS public.hardware_nodes
+    ADD COLUMN IF NOT EXISTS school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE,
+    ADD COLUMN IF NOT EXISTS node_name TEXT,
+    ADD COLUMN IF NOT EXISTS node_type TEXT NOT NULL DEFAULT 'student-hub',
+    ADD COLUMN IF NOT EXISTS mac_address TEXT,
+    ADD COLUMN IF NOT EXISTS station_code TEXT,
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending',
+    ADD COLUMN IF NOT EXISTS temp NUMERIC,
+    ADD COLUMN IF NOT EXISTS disk_usage NUMERIC,
+    ADD COLUMN IF NOT EXISTS memory_usage NUMERIC,
+    ADD COLUMN IF NOT EXISTS uptime NUMERIC,
+    ADD COLUMN IF NOT EXISTS version TEXT NOT NULL DEFAULT '1.0.0',
+    ADD COLUMN IF NOT EXISTS last_heartbeat TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS public_key_pem TEXT,
+    ADD COLUMN IF NOT EXISTS key_algorithm TEXT NOT NULL DEFAULT 'ed25519',
+    ADD COLUMN IF NOT EXISTS key_registered_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS node_secret_hash TEXT,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+CREATE UNIQUE INDEX IF NOT EXISTS hardware_nodes_mac_unique_idx
+    ON public.hardware_nodes (mac_address)
+    WHERE mac_address IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS hardware_nodes_station_unique_idx
+    ON public.hardware_nodes (station_code)
+    WHERE station_code IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS public.fleet_releases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    release_type TEXT NOT NULL CHECK (release_type IN ('os', 'pwa')),
+    version_code TEXT NOT NULL,
+    download_url TEXT NOT NULL,
+    checksum TEXT NOT NULL,
+    signature TEXT,
+    changelog TEXT,
+    is_mandatory BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(release_type, version_code)
+);
+
+CREATE TABLE IF NOT EXISTS public.fleet_deployments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    node_id UUID REFERENCES public.hardware_nodes(id) ON DELETE CASCADE NOT NULL,
+    release_id UUID REFERENCES public.fleet_releases(id) ON DELETE CASCADE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'installed', 'failed', 'deferred')),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(node_id, release_id)
+);
+
+ALTER TABLE public.hardware_nodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fleet_releases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fleet_deployments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins and auditors view hardware nodes" ON public.hardware_nodes;
+CREATE POLICY "Admins and auditors view hardware nodes" ON public.hardware_nodes
+    FOR SELECT USING (
+        auth_helpers.get_my_role() IN ('admin', 'auditor') OR
+        school_id = auth_helpers.get_my_school_id()
+    );
+
+DROP POLICY IF EXISTS "Admins manage hardware nodes" ON public.hardware_nodes;
+CREATE POLICY "Admins manage hardware nodes" ON public.hardware_nodes
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin')
+    WITH CHECK (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "Admins view fleet releases" ON public.fleet_releases;
+CREATE POLICY "Admins view fleet releases" ON public.fleet_releases
+    FOR SELECT USING (auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Admins manage fleet releases" ON public.fleet_releases;
+CREATE POLICY "Admins manage fleet releases" ON public.fleet_releases
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin')
+    WITH CHECK (auth_helpers.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "Admins view fleet deployments" ON public.fleet_deployments;
+CREATE POLICY "Admins view fleet deployments" ON public.fleet_deployments
+    FOR SELECT USING (auth_helpers.get_my_role() IN ('admin', 'auditor'));
+
+DROP POLICY IF EXISTS "Admins manage fleet deployments" ON public.fleet_deployments;
+CREATE POLICY "Admins manage fleet deployments" ON public.fleet_deployments
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin')
+    WITH CHECK (auth_helpers.get_my_role() = 'admin');
+-- Studio generation queue and edge cache manifest for EduPortal/EduOS.
+-- The Student Hub can request learning assets while offline; the Class Station
+-- claims pending jobs, calls configured AI providers, caches outputs, and marks
+-- rows completed for realtime delivery back to the student.
+
+CREATE TABLE IF NOT EXISTS public.generations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    requester_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    class_station_id UUID REFERENCES public.hardware_nodes(id) ON DELETE SET NULL,
+    source_material_id UUID,
+    generation_type TEXT NOT NULL CHECK (generation_type IN (
+        'audio_overview',
+        'flashcards',
+        'quiz',
+        'slide_deck',
+        'worksheet',
+        'exam_paper',
+        'grading_report'
+    )),
+    prompt TEXT NOT NULL,
+    input_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    output_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
+        'pending',
+        'claimed',
+        'processing',
+        'completed',
+        'failed',
+        'cancelled'
+    )),
+    provider TEXT NOT NULL DEFAULT 'gemini',
+    provider_model TEXT,
+    idempotency_key TEXT,
+    priority SMALLINT NOT NULL DEFAULT 5 CHECK (priority BETWEEN 0 AND 10),
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    max_attempts INTEGER NOT NULL DEFAULT 3 CHECK (max_attempts > 0),
+    error_code TEXT,
+    error_message TEXT,
+    claimed_at TIMESTAMPTZ,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT generations_idempotency_per_school UNIQUE (school_id, idempotency_key),
+    CONSTRAINT generations_attempt_limit CHECK (attempt_count <= max_attempts)
+);
+
+CREATE TABLE IF NOT EXISTS public.generation_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    generation_id UUID REFERENCES public.generations(id) ON DELETE CASCADE NOT NULL,
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    class_station_id UUID REFERENCES public.hardware_nodes(id) ON DELETE SET NULL,
+    asset_kind TEXT NOT NULL CHECK (asset_kind IN (
+        'json',
+        'audio',
+        'image',
+        'pdf',
+        'slides',
+        'worksheet',
+        'answer_key',
+        'report'
+    )),
+    storage_scope TEXT NOT NULL DEFAULT 'edge-cache' CHECK (storage_scope IN ('edge-cache', 'supabase-storage', 'external')),
+    local_path TEXT,
+    storage_bucket TEXT,
+    storage_object_path TEXT,
+    content_type TEXT,
+    byte_size BIGINT CHECK (byte_size IS NULL OR byte_size >= 0),
+    checksum_sha256 TEXT,
+    manifest JSONB NOT NULL DEFAULT '{}'::jsonb,
+    cached_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.edge_storage_snapshots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    node_id UUID REFERENCES public.hardware_nodes(id) ON DELETE CASCADE NOT NULL,
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    total_bytes BIGINT NOT NULL CHECK (total_bytes >= 0),
+    used_bytes BIGINT NOT NULL CHECK (used_bytes >= 0),
+    free_bytes BIGINT NOT NULL CHECK (free_bytes >= 0),
+    oldest_cached_day DATE,
+    newest_cached_day DATE,
+    fifo_cleanup_required BOOLEAN NOT NULL DEFAULT FALSE,
+    cleanup_started_at TIMESTAMPTZ,
+    cleanup_completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS generations_pending_queue_idx
+    ON public.generations (school_id, status, priority, created_at)
+    WHERE status IN ('pending', 'failed');
+
+CREATE INDEX IF NOT EXISTS generations_requester_status_idx
+    ON public.generations (requester_id, status, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS generations_station_status_idx
+    ON public.generations (class_station_id, status, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS generation_assets_generation_idx
+    ON public.generation_assets (generation_id, created_at);
+
+CREATE INDEX IF NOT EXISTS edge_storage_snapshots_node_created_idx
+    ON public.edge_storage_snapshots (node_id, created_at DESC);
+
+ALTER TABLE public.generations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.generation_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.edge_storage_snapshots ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS set_generations_updated_at ON public.generations;
+CREATE TRIGGER set_generations_updated_at
+    BEFORE UPDATE ON public.generations
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP POLICY IF EXISTS "Students create own generation requests" ON public.generations;
+CREATE POLICY "Students create own generation requests" ON public.generations
+    FOR INSERT WITH CHECK (
+        requester_id = (select auth.uid())
+        AND school_id = auth_helpers.get_my_school_id()
+        AND auth_helpers.get_my_role() IN ('student', 'teacher', 'principal')
+    );
+
+DROP POLICY IF EXISTS "School members view generation requests" ON public.generations;
+CREATE POLICY "School members view generation requests" ON public.generations
+    FOR SELECT USING (
+        auth_helpers.get_my_role() = 'admin'
+        OR requester_id = (select auth.uid())
+        OR (
+            auth_helpers.get_my_role() IN ('teacher', 'principal', 'moderator', 'auditor')
+            AND school_id = auth_helpers.get_my_school_id()
+        )
+    );
+
+DROP POLICY IF EXISTS "Students cancel own pending generations" ON public.generations;
+CREATE POLICY "Students cancel own pending generations" ON public.generations
+    FOR UPDATE USING (
+        requester_id = (select auth.uid())
+        AND status = 'pending'
+    )
+    WITH CHECK (
+        requester_id = (select auth.uid())
+        AND status = 'cancelled'
+    );
+
+DROP POLICY IF EXISTS "Staff manage school generations" ON public.generations;
+CREATE POLICY "Staff manage school generations" ON public.generations
+    FOR ALL USING (
+        auth_helpers.get_my_role() = 'admin'
+        OR (
+            auth_helpers.get_my_role() IN ('teacher', 'principal')
+            AND school_id = auth_helpers.get_my_school_id()
+        )
+    )
+    WITH CHECK (
+        auth_helpers.get_my_role() = 'admin'
+        OR (
+            auth_helpers.get_my_role() IN ('teacher', 'principal')
+            AND school_id = auth_helpers.get_my_school_id()
+        )
+    );
+
+DROP POLICY IF EXISTS "School members view generation assets" ON public.generation_assets;
+CREATE POLICY "School members view generation assets" ON public.generation_assets
+    FOR SELECT USING (
+        auth_helpers.get_my_role() = 'admin'
+        OR school_id = auth_helpers.get_my_school_id()
+        OR EXISTS (
+            SELECT 1
+            FROM public.generations g
+            WHERE g.id = public.generation_assets.generation_id
+              AND g.requester_id = (select auth.uid())
+        )
+    );
+
+DROP POLICY IF EXISTS "Staff manage generation assets" ON public.generation_assets;
+CREATE POLICY "Staff manage generation assets" ON public.generation_assets
+    FOR ALL USING (
+        auth_helpers.get_my_role() = 'admin'
+        OR (
+            auth_helpers.get_my_role() IN ('teacher', 'principal')
+            AND school_id = auth_helpers.get_my_school_id()
+        )
+    )
+    WITH CHECK (
+        auth_helpers.get_my_role() = 'admin'
+        OR (
+            auth_helpers.get_my_role() IN ('teacher', 'principal')
+            AND school_id = auth_helpers.get_my_school_id()
+        )
+    );
+
+DROP POLICY IF EXISTS "Admins and school leaders view edge storage snapshots" ON public.edge_storage_snapshots;
+CREATE POLICY "Admins and school leaders view edge storage snapshots" ON public.edge_storage_snapshots
+    FOR SELECT USING (
+        auth_helpers.get_my_role() = 'admin'
+        OR (
+            auth_helpers.get_my_role() IN ('principal', 'auditor')
+            AND school_id = auth_helpers.get_my_school_id()
+        )
+    );
+
+DROP POLICY IF EXISTS "Admins manage edge storage snapshots" ON public.edge_storage_snapshots;
+CREATE POLICY "Admins manage edge storage snapshots" ON public.edge_storage_snapshots
+    FOR ALL USING (auth_helpers.get_my_role() = 'admin')
+    WITH CHECK (auth_helpers.get_my_role() = 'admin');
+
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.generations;
+EXCEPTION
+    WHEN others THEN null;
+END $$;
+
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.generation_assets;
+EXCEPTION
+    WHEN others THEN null;
+END $$;
 -- EDUPORTAL CONSOLIDATED SUPABASE SETUP
 -- Run this from the Supabase SQL editor or psql for a fresh or already-partially-applied database.
 -- This file intentionally uses CREATE IF NOT EXISTS, ALTER ... ADD COLUMN IF NOT EXISTS,
@@ -1725,3 +2230,44 @@ CREATE POLICY "Teachers manage hub checkouts" ON public.student_hub_checkouts
             AND teacher_id = (select auth.uid())
         )
     );
+-- Supabase Storage bucket setup
+-- Bucket name: school-files
+-- Set public to false if you want a private bucket.
+insert into storage.buckets (id, name, public)
+values ('school-files', 'school-files', true)
+on conflict (id) do update
+  set public = excluded.public;
+
+drop policy if exists "Authenticated users can read school files" on storage.objects;
+drop policy if exists "Authenticated users can upload school files" on storage.objects;
+drop policy if exists "Authenticated users can update school files" on storage.objects;
+drop policy if exists "Authenticated users can delete school files" on storage.objects;
+
+-- Allow authenticated users to read files from this bucket.
+create policy "Authenticated users can read school files"
+on storage.objects
+for select
+to authenticated
+using (bucket_id = 'school-files');
+
+-- Allow authenticated users to upload files to this bucket.
+create policy "Authenticated users can upload school files"
+on storage.objects
+for insert
+to authenticated
+with check (bucket_id = 'school-files');
+
+-- Allow authenticated users to update files in this bucket.
+create policy "Authenticated users can update school files"
+on storage.objects
+for update
+to authenticated
+using (bucket_id = 'school-files')
+with check (bucket_id = 'school-files');
+
+-- Allow authenticated users to delete files from this bucket.
+create policy "Authenticated users can delete school files"
+on storage.objects
+for delete
+to authenticated
+using (bucket_id = 'school-files');
