@@ -63,9 +63,36 @@ export async function POST(req: Request) {
       Only return the JSON. No markdown formatting.
     `;
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    let text = "";
+
+    try {
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      text = response.text();
+    } catch (error: any) {
+      console.warn("Cloud AI OCR failed, attempting local fallback:", error.message);
+      try {
+        const localRes = await fetch("http://localhost:11434/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "llava", // using llava for vision tasks locally
+            prompt: prompt,
+            images: [base64Data],
+            stream: false,
+            format: "json"
+          }),
+          signal: AbortSignal.timeout(120000)
+        });
+        
+        if (!localRes.ok) throw new Error("Local model returned error");
+        const localData = await localRes.json();
+        text = localData.response;
+      } catch (localError: any) {
+        console.error("Local AI OCR Fallback Error:", localError);
+        return NextResponse.json({ error: "AI OCR Service unavailable (both cloud and local failed)" }, { status: 503 });
+      }
+    }
     
     // Clean JSON response (handle potential markdown blocks)
     const jsonStr = text.replace(/```json|```/g, "").trim();

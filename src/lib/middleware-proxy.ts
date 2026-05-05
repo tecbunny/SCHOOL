@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { navigateByRole, type UserRole } from './constants';
 import { DEVICE_COOKIE } from './device-context';
 import { getSupabasePublishableKey, getSupabaseUrl } from './supabase-env';
+import { validateOfflineToken } from './offline-auth';
 
 type ProfileGate = {
   role: UserRole;
@@ -90,20 +91,43 @@ export async function proxy(request: NextRequest) {
     );
 
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-    const userId = claimsData?.claims?.sub;
+    let userId = claimsData?.claims?.sub;
+    let userRole: UserRole | undefined;
+    let isOfflineFallback = false;
+
+    // Offline Token Fallback
+    if (claimsError || !userId) {
+      const offlineToken = request.cookies.get('offline_token')?.value || request.headers.get('Authorization')?.replace('Bearer ', '');
+      if (offlineToken) {
+        const decoded = validateOfflineToken(offlineToken);
+        if (decoded) {
+          userId = decoded.sub;
+          userRole = decoded.role as UserRole;
+          isOfflineFallback = true;
+          // Inject user ID header for downstream local APIs
+          request.headers.set('x-offline-user-id', userId);
+          request.headers.set('x-offline-user-role', userRole);
+        }
+      }
+    }
     
-    if ((claimsError || !userId) && protectedPath) {
+    if (!userId && protectedPath) {
       return NextResponse.redirect(new URL(getLoginPath(pathname), request.url));
     }
 
     if (userId && (protectedPath || isAuthEntryPath(pathname))) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, is_teaching_staff')
-        .eq('id', userId)
-        .single();
-
-      const role = profile?.role as UserRole | undefined;
+      let role = userRole;
+      let profile: Partial<ProfileGate> = { role: userRole, is_teaching_staff: false };
+      
+      if (!isOfflineFallback) {
+        const { data: dbProfile } = await supabase
+          .from('profiles')
+          .select('role, is_teaching_staff')
+          .eq('id', userId)
+          .single();
+        role = dbProfile?.role as UserRole | undefined;
+        profile = dbProfile || {};
+      }
 
       if (role && isAuthEntryPath(pathname)) {
         return NextResponse.redirect(new URL(navigateByRole(role), request.url));

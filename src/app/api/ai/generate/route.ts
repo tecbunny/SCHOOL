@@ -82,9 +82,37 @@ export async function POST(req: Request) {
       Return ONLY the raw JSON. Do not include markdown formatting or extra text.`;
     }
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    let text = "";
+
+    try {
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      });
+      const response = await result.response;
+      text = response.text();
+    } catch (error: any) {
+      console.warn("Cloud AI failed, attempting local fallback:", error.message);
+      try {
+        const localRes = await fetch("http://localhost:11434/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "llama3",
+            prompt: `System: You are an expert academic assessment engine for the EduPortal platform. LIMITATION: You only generate pedagogical content for school students. You must NEVER generate harmful, political, or non-educational content. Format: strictly valid JSON. Do not include markdown code blocks or any conversational text.\nUser: ${prompt}`,
+            stream: false,
+            format: "json"
+          }),
+          signal: AbortSignal.timeout(60000)
+        });
+        
+        if (!localRes.ok) throw new Error("Local model returned error");
+        const localData = await localRes.json();
+        text = localData.response;
+      } catch (localError: any) {
+        console.error("Local AI Fallback Error:", localError);
+        return NextResponse.json({ error: "AI Service unavailable (both cloud and local failed)" }, { status: 503 });
+      }
+    }
 
     // Improved JSON extraction
     try {
