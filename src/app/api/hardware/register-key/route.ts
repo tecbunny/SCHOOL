@@ -3,6 +3,7 @@ import { createPublicKey } from "crypto";
 import { NextResponse } from "next/server";
 
 import { errorMessage, getServiceClient } from "@/lib/api-auth";
+import { AppError } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -39,7 +40,14 @@ export async function POST(req: Request) {
 
     if (error) throw error;
     return NextResponse.json({ node: data });
-  } catch (error) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+  } catch (error: unknown) {
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.statusCode }
+    );
   }
+  console.error("[POST] Unhandled Error:", error);
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

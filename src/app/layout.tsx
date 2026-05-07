@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PWARegistration from "@/components/school/PWARegistration";
 import GlobalChatDrawer from "@/features/chat/GlobalChatDrawer";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://eduportal.ssph01.internal"),
@@ -49,9 +50,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-[var(--bg-dark)]">
-        <PWARegistration />
-        {children}
-        <GlobalChatDrawer />
+        <ErrorBoundary>
+          <PWARegistration />
+          {children}
+          <GlobalChatDrawer />
+        </ErrorBoundary>
       </body>
     </html>
   );

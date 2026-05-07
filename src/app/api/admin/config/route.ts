@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { errorMessage, requireUser } from "@/lib/api-auth";
+import { AppError } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -23,7 +24,17 @@ export async function GET() {
 
     return NextResponse.json(config);
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+    console.error("Error in admin config GET route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }
 
@@ -49,6 +60,16 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+    console.error("Error in admin config PATCH route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }

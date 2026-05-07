@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getServiceClient } from "@/lib/api-auth";
 import { verifySignedHardwareRequest } from "@/lib/hardware-auth";
+import { AppError } from "@/lib/errors";
 
 function isValidEmbedding(value: unknown): value is number[] {
   return Array.isArray(value)
@@ -77,8 +78,14 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, templateId: newTemplate.id });
-  } catch (error) {
-    console.error("Face enrollment failed:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: unknown) {
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.statusCode }
+    );
   }
+  console.error("[POST] Unhandled Error:", error);
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

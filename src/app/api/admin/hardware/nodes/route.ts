@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createHash, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
+import { AppError } from "@/lib/errors";
 
 import { errorMessage, getServiceClient, requireUser } from "@/lib/api-auth";
 
@@ -66,7 +67,17 @@ export async function POST(req: Request) {
         nodeSecret: rawSecret,
       },
     });
-  } catch (error) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("Error in admin hardware nodes route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }

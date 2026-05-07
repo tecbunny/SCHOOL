@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getServiceClient } from "@/lib/api-auth";
 import { verifySignedHardwareRequest } from "@/lib/hardware-auth";
+import { AppError } from "@/lib/errors";
 
 type FaceTemplate = {
   student_id: string;
@@ -90,8 +91,14 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ verified, similarity, threshold });
-  } catch (error) {
-    console.error("Face verification failed:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: unknown) {
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.statusCode }
+    );
   }
+  console.error("[POST] Unhandled Error:", error);
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

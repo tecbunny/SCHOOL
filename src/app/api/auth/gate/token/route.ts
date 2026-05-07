@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { errorMessage } from "@/lib/api-auth";
+import { AppError } from "@/lib/errors";
 
 const GATE_SECRET = process.env.GATE_AUTH_SECRET;
 
@@ -62,6 +63,13 @@ export async function POST(req: Request) {
     });
 
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.statusCode }
+    );
   }
+  console.error("[POST] Unhandled Error:", error);
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

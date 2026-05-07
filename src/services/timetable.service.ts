@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase";
+import { TimetableRepository } from "@/repositories/timetable.repository";
+import { ValidationError } from "@/lib/errors";
+import { TimetableSlot } from "@/types";
 
 const supabase = createClient();
+const repository = new TimetableRepository(supabase);
 
 export const timetableService = {
   async checkConflicts(params: {
@@ -12,34 +16,28 @@ export const timetableService = {
     schoolId?: string;
     classId?: string;
   }) {
-    let teacherQuery = supabase
-      .from('timetable')
-      .select('*')
-      .eq('teacher_id', params.teacherId)
-      .eq('day_of_week', params.dayOfWeek)
-      .or(`start_time.lte.${params.endTime},end_time.gte.${params.startTime}`);
+    const teacherConflicts = await repository.findTeacherConflicts(
+      params.teacherId,
+      params.dayOfWeek,
+      params.startTime,
+      params.endTime,
+      params.schoolId
+    );
 
-    if (params.schoolId) teacherQuery = teacherQuery.eq('school_id', params.schoolId);
-
-    const { data: teacherConflicts } = await teacherQuery;
-
-    if (teacherConflicts && teacherConflicts.length > 0) {
+    if (teacherConflicts.length > 0) {
       return { conflict: true, type: 'teacher', message: 'Teacher is already assigned during this slot.' };
     }
 
     if (params.room) {
-      let roomQuery = supabase
-        .from('timetable')
-        .select('*')
-        .eq('room', params.room)
-        .eq('day_of_week', params.dayOfWeek)
-        .or(`start_time.lte.${params.endTime},end_time.gte.${params.startTime}`);
+      const roomConflicts = await repository.findRoomConflicts(
+        params.room,
+        params.dayOfWeek,
+        params.startTime,
+        params.endTime,
+        params.schoolId
+      );
 
-      if (params.schoolId) roomQuery = roomQuery.eq('school_id', params.schoolId);
-
-      const { data: roomConflicts } = await roomQuery;
-
-      if (roomConflicts && roomConflicts.length > 0) {
+      if (roomConflicts.length > 0) {
         return { conflict: true, type: 'room', message: 'Room is already occupied during this slot.' };
       }
     }
@@ -47,7 +45,7 @@ export const timetableService = {
     return { conflict: false };
   },
 
-  async addSchedule(schedule: any) {
+  async addSchedule(schedule: TimetableSlot) {
     const conflictCheck = await this.checkConflicts({
       teacherId: schedule.teacher_id,
       dayOfWeek: schedule.day_of_week,
@@ -59,16 +57,9 @@ export const timetableService = {
     });
 
     if (conflictCheck.conflict) {
-      throw new Error(conflictCheck.message);
+      throw new ValidationError(conflictCheck.message);
     }
 
-    const { data, error } = await supabase
-      .from('timetable')
-      .insert(schedule)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    return repository.createSchedule(schedule);
   }
 };

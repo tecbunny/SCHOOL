@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { errorMessage, getServiceClient, requireUser } from "@/lib/api-auth";
+import { AppError } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -104,7 +105,13 @@ export async function POST(req: Request) {
     });
 
   } catch (error: unknown) {
-    console.error("Provisioning Error:", error);
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.statusCode }
+    );
   }
+  console.error("[POST] Unhandled Error:", error);
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

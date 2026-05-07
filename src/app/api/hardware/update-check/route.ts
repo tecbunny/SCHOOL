@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/api-auth";
 import { verifySignedHardwareRequest } from "@/lib/hardware-auth";
+import { AppError } from "@/lib/errors";
 
 function compareVersion(left: string, right: string) {
   const leftParts = left.split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -103,8 +104,14 @@ export async function POST(req: Request) {
       changelog: updateAllowed ? latestRelease.changelog : "Update deferred until the maintenance window."
     });
 
-  } catch (err) {
-    console.error("Update check failed:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: unknown) {
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.statusCode }
+    );
   }
+  console.error("[POST] Unhandled Error:", error);
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

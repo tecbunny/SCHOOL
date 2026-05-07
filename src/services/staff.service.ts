@@ -1,9 +1,18 @@
-import { createClient } from "@/lib/supabase";
+import { staffRepository } from "@/repositories/staff.repository";
+import { 
+  UploadMaterialMetadata, 
+  PostAnnouncementDto, 
+  BiometricLogDto, 
+  RubricDto,
+  Material,
+  Syllabus,
+  TeacherProfile,
+  Announcement,
+  Attendance
+} from "@/types";
+import { DatabaseError, UnauthorizedError, NotFoundError } from "@/lib/errors";
 
-const supabase = createClient();
-const MATERIALS_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || 'school-files';
-
-function getMaterialType(file: File, selectedType: string) {
+function getMaterialType(file: File, selectedType: string): string {
   if (file.type.startsWith('video/')) return 'video';
   if (file.type === 'application/pdf') return 'pdf';
   return selectedType.toLowerCase();
@@ -11,164 +20,138 @@ function getMaterialType(file: File, selectedType: string) {
 
 export const staffService = {
   // Content Management
-  async uploadMaterial(file: File, metadata: { title: string; subject: string; class: string; type: string }) {
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const fileName = `materials/${Date.now()}_${safeName}`;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('You must be signed in to upload materials.');
+  async uploadMaterial(file: File, metadata: UploadMaterialMetadata): Promise<any> {
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const fileName = `materials/${Date.now()}_${safeName}`;
+      
+      const { profile } = await staffRepository.getUserProfile();
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('school_id')
-      .eq('id', user.id)
-      .single();
+      const uploadData = await staffRepository.uploadMaterialFile(fileName, file, file.type || undefined);
 
-    if (!profile?.school_id) throw new Error('School context not found.');
+      const publicUrl = staffRepository.getMaterialPublicUrl(uploadData.path);
 
-    const { data, error } = await supabase.storage
-      .from(MATERIALS_BUCKET)
-      .upload(fileName, file, {
-        contentType: file.type || undefined,
-        upsert: false
-      });
-
-    if (error) throw error;
-
-    const { data: publicUrlData } = supabase.storage
-      .from(MATERIALS_BUCKET)
-      .getPublicUrl(data.path);
-
-    const { error: dbError } = await supabase
-      .from('materials')
-      .insert({
-        file_url: publicUrlData.publicUrl || data.path,
+      await staffRepository.insertMaterial({
+        file_url: publicUrl || uploadData.path,
         file_name: metadata.title,
         subject: metadata.subject,
         material_type: getMaterialType(file, metadata.type),
         school_id: profile.school_id
       });
 
-    if (dbError) throw dbError;
-    return data;
+      return uploadData;
+    } catch (error: any) {
+      if (error instanceof UnauthorizedError || error instanceof NotFoundError || error instanceof DatabaseError) {
+        throw error;
+      }
+      throw new DatabaseError(`Unexpected error uploading material: ${error.message || 'Unknown'}`);
+    }
   },
 
-  async getSyllabus() {
-    const { data, error } = await supabase
-      .from('syllabus')
-      .select('*')
-      .order('class_name', { ascending: true });
-    
-    if (error) throw error;
-    return data;
+  async getSyllabus(): Promise<Syllabus[]> {
+    try {
+      return await staffRepository.fetchSyllabus();
+    } catch (error: any) {
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError(`Unexpected error fetching syllabus: ${error.message || 'Unknown'}`);
+    }
   },
 
   // School Settings (HOD)
-  async getAttendanceMode() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('school_id')
-      .eq('id', user?.id)
-      .single();
+  async getAttendanceMode(): Promise<string> {
+    try {
+      const authData = await staffRepository.getOptionalUserProfile();
+      if (!authData?.profile?.school_id) return 'morning';
 
-    if (!profile?.school_id) return 'morning';
-
-    const { data, error } = await supabase
-      .from('schools')
-      .select('attendance_mode')
-      .eq('id', profile.school_id)
-      .single();
-    
-    if (error) throw error;
-    return data?.attendance_mode || 'morning';
+      const mode = await staffRepository.getSchoolAttendanceMode(authData.profile.school_id);
+      return mode || 'morning';
+    } catch (error: any) {
+      console.error('Error fetching attendance mode:', error);
+      return 'morning'; // Fallback
+    }
   },
 
-  async updateAttendanceMode(mode: 'morning' | 'subject') {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('school_id')
-      .eq('id', user?.id)
-      .single();
-
-    if (!profile?.school_id) throw new Error('School context not found.');
-
-    const { error } = await supabase
-      .from('schools')
-      .update({ attendance_mode: mode })
-      .eq('id', profile.school_id);
-    
-    if (error) throw error;
+  async updateAttendanceMode(mode: 'morning' | 'subject'): Promise<void> {
+    try {
+      const { profile } = await staffRepository.getUserProfile();
+      await staffRepository.updateSchoolAttendanceMode(profile.school_id, mode);
+    } catch (error: any) {
+      if (error instanceof UnauthorizedError || error instanceof NotFoundError || error instanceof DatabaseError) {
+        throw error;
+      }
+      throw new DatabaseError(`Unexpected error updating attendance mode: ${error.message || 'Unknown'}`);
+    }
   },
 
   // Staff Management
-  async getTeachers() {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*, teacher_details(*)')
-      .eq('role', 'teacher');
-    
-    if (error) throw error;
-    return data;
+  async getTeachers(): Promise<TeacherProfile[]> {
+    try {
+      return await staffRepository.fetchTeachers();
+    } catch (error: any) {
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError(`Unexpected error fetching teachers: ${error.message || 'Unknown'}`);
+    }
   },
 
   // Announcements
-  async getAnnouncements() {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data;
+  async getAnnouncements(): Promise<Announcement[]> {
+    try {
+      return await staffRepository.fetchAnnouncements();
+    } catch (error: any) {
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError(`Unexpected error fetching announcements: ${error.message || 'Unknown'}`);
+    }
   },
 
-  async postAnnouncement(announcement: { title: string; content: string; priority: string; audience: string }) {
-    const { data: profile } = await supabase.from('profiles').select('school_id').single();
-    const { data, error } = await supabase
-      .from('announcements')
-      .insert({ ...announcement, school_id: profile?.school_id })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+  async postAnnouncement(announcement: PostAnnouncementDto): Promise<Announcement> {
+    try {
+      const profile = await staffRepository.getFirstProfile();
+      return await staffRepository.insertAnnouncement({ ...announcement, school_id: profile?.school_id });
+    } catch (error: any) {
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError(`Unexpected error posting announcement: ${error.message || 'Unknown'}`);
+    }
   },
 
   // Phase 7: Biometric Hardware Sync
-  async syncBiometricAttendance(logs: { student_id: string; timestamp: string; device_id: string }[]) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('school_id')
-      .eq('id', user?.id)
-      .single();
+  async syncBiometricAttendance(logs: BiometricLogDto[]): Promise<any> {
+    try {
+      const { profile } = await staffRepository.getUserProfile();
 
-    if (!profile?.school_id) throw new Error('School context not found.');
-
-    const { data, error } = await supabase
-      .from('attendance')
-      .upsert(logs.map(log => ({
+      const attendanceData = logs.map(log => ({
         student_id: log.student_id,
         date: log.timestamp.split('T')[0],
         status: 'present',
         school_id: profile.school_id
-      })));
-    
-    if (error) throw error;
-    return data;
+      }));
+
+      return await staffRepository.upsertAttendance(attendanceData);
+    } catch (error: any) {
+      if (error instanceof UnauthorizedError || error instanceof NotFoundError || error instanceof DatabaseError) {
+        throw error;
+      }
+      throw new DatabaseError(`Unexpected error syncing biometric attendance: ${error.message || 'Unknown'}`);
+    }
   },
 
   // Phase 8: AI Grading Bridge
-  async getAiGradingSuggestion(worksheetImage: string, rubric: any) {
-    const res = await fetch('/api/ai/vision-grade', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-class-station': 'true'
-      },
-      body: JSON.stringify({ image: worksheetImage, rubric })
-    });
-    return res.json();
+  async getAiGradingSuggestion(worksheetImage: string, rubric: RubricDto): Promise<any> {
+    try {
+      const res = await fetch('/api/ai/vision-grade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-class-station': 'true'
+        },
+        body: JSON.stringify({ image: worksheetImage, rubric })
+      });
+      if (!res.ok) {
+        throw new DatabaseError(`AI grading suggestion failed with status: ${res.status}`);
+      }
+      return res.json();
+    } catch (error: any) {
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError(`Unexpected error getting AI grading suggestion: ${error.message || 'Unknown'}`);
+    }
   }
 };

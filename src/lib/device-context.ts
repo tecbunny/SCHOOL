@@ -21,6 +21,10 @@ export function isClassStationRequest(req: Request) {
   return req.headers.get("x-class-station") === "true" || hasCookie(req.headers.get("cookie"), DEVICE_COOKIE.classStation);
 }
 
+export function isOnlineWebPortal() {
+  return process.env.NEXT_PUBLIC_ONLINE_PORTAL === "true";
+}
+
 export function requireStudentHub(req: Request) {
   if (isStudentHubRequest(req)) return null;
   return NextResponse.json(

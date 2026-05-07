@@ -1,77 +1,59 @@
-import { createClient } from "@/lib/supabase";
-
-const supabase = createClient();
+import { promotionRepository, ClassSummary } from "@/repositories/promotion.repository";
+import { UnauthorizedError } from "@/lib/errors";
 
 export const promotionService = {
-  async getPromotionStatus() {
-    const { data, error } = await supabase
-      .from('platform_config')
-      .select('global_features')
-      .single();
-    
-    if (error) return false;
-    return data.global_features?.is_promotion_open || false;
+  async getPromotionStatus(): Promise<boolean> {
+    return promotionRepository.getPromotionStatus();
   },
 
-  async getClasses() {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('class_id, current_grade')
-      .eq('role', 'student')
-      .not('class_id', 'is', null);
-
-    if (error) return [];
+  async getClasses(): Promise<ClassSummary[]> {
+    const data = await promotionRepository.getClassesData();
 
     // Group by class_id and count students
-    const classMap: Record<string, any> = {};
-    data.forEach((p: { class_id: string; current_grade: string }) => {
+    const classMap: Record<string, ClassSummary> = {};
+    for (const p of data) {
+      if (!p.class_id) continue;
+      
       if (!classMap[p.class_id]) {
         classMap[p.class_id] = { 
           id: p.class_id, 
           name: `Class ${p.class_id}`, 
-          grade: p.current_grade, 
+          grade: p.current_grade || '', 
           students: 0 
         };
       }
       classMap[p.class_id].students++;
-    });
+    }
 
     return Object.values(classMap);
   },
 
-  async promoteClass(currentClassId: string, nextGradeLevel: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
+  async promoteClass(currentClassId: string, nextGradeLevel: string): Promise<{ success: boolean; count: number }> {
+    const user = await promotionRepository.getCurrentUser();
+    if (!user) {
+        throw new UnauthorizedError("Unauthorized");
+    }
 
     // 1. Fetch class students
-    const { data: students, error: studentError } = await supabase
-      .from('profiles')
-      .select('id, full_name, current_grade')
-      .eq('class_id', currentClassId)
-      .eq('role', 'student');
-
-    if (studentError) throw studentError;
+    const students = await promotionRepository.getStudentsByClass(currentClassId);
+    if (students.length === 0) {
+        return { success: true, count: 0 };
+    }
 
     // 2. Execute Batch Promotion
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ 
-        current_grade: nextGradeLevel,
-        academic_year: new Date().getFullYear().toString() + "-" + (new Date().getFullYear() + 1).toString().slice(-2)
-      })
-      .eq('class_id', currentClassId)
-      .eq('role', 'student');
-
-    if (updateError) throw updateError;
+    const currentYear = new Date().getFullYear();
+    const academicYear = `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+    
+    await promotionRepository.executeBatchPromotion(currentClassId, nextGradeLevel, academicYear);
 
     // 3. Log to History
-    await supabase.from('promotion_history').insert({
-      class_id: currentClassId,
-      principal_id: user.id,
-      student_count: students.length,
-      from_grade: students[0]?.current_grade || 'unknown',
-      to_grade: nextGradeLevel
-    });
+    await promotionRepository.logPromotionHistory(
+      currentClassId,
+      user.id,
+      students.length,
+      students[0]?.current_grade || 'unknown',
+      nextGradeLevel
+    );
 
     return { success: true, count: students.length };
   }

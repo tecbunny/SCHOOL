@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { errorMessage, pickAllowed, requireUser } from "@/lib/api-auth";
+import { AppError } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -40,8 +41,17 @@ export async function GET() {
 
     return NextResponse.json(transformedSchools);
   } catch (error: unknown) {
-    console.error("Admin Schools API Error:", error);
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+    console.error("Error in admin schools GET route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }
 
@@ -68,6 +78,16 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+    console.error("Error in admin schools PATCH route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }

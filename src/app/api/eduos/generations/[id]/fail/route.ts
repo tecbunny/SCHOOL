@@ -5,6 +5,7 @@ import { errorMessage, getServiceClient, requireUser } from "@/lib/api-auth";
 import { requireClassStation } from "@/lib/device-context";
 import { failGeneration } from "@/lib/generation-queue";
 import { verifySignedHardwareRequest } from "@/lib/hardware-auth";
+import { AppError } from "@/lib/errors";
 
 async function getStationContext(req: Request, bodyText: string) {
   if (req.headers.has("x-node-signature")) {
@@ -63,6 +64,13 @@ export async function POST(
 
     return NextResponse.json({ generation });
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.statusCode }
+    );
   }
+  console.error("[POST] Unhandled Error:", error);
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

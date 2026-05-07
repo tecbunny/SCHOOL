@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import { errorMessage, requireUser } from "@/lib/api-auth";
 import { isRateLimited } from "@/lib/rate-limit";
+import { AppError } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -22,7 +23,17 @@ export async function GET() {
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+    console.error("Error in admin requests GET route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }
 
@@ -65,7 +76,17 @@ export async function POST(req: Request) {
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+    console.error("Error in admin requests POST route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }
 
@@ -92,6 +113,16 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+    console.error("Error in admin requests PATCH route:", error);
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: errorMessage(error), code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    );
   }
 }
