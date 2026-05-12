@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { errorMessage, requireUser } from "@/lib/api-auth";
 import { requireClassStation } from "@/lib/device-context";
 import { isRateLimited } from "@/lib/rate-limit";
+import { parseDataImage } from "@/lib/data-image";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const MAX_IMAGE_CHARS = 5_000_000;
 
 export async function POST(req: Request) {
@@ -19,24 +19,27 @@ export async function POST(req: Request) {
     if (stationError) return stationError;
 
     const { image } = await req.json();
+    const parsedImage = parseDataImage(image, MAX_IMAGE_CHARS);
 
-    if (typeof image !== "string" || !image.startsWith("data:image/") || image.length > MAX_IMAGE_CHARS) {
+    if (!parsedImage) {
       return NextResponse.json({ error: "A valid worksheet image under 5MB is required." }, { status: 400 });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
       return NextResponse.json({ error: "AI Service configuration missing" }, { status: 500 });
     }
 
     // Convert base64 to parts for Gemini
-    const base64Data = image.split(",")[1];
+    const base64Data = parsedImage.data;
     const imagePart = {
       inlineData: {
         data: base64Data,
-        mimeType: "image/jpeg",
+        mimeType: parsedImage.mimeType,
       },
     };
 
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
       systemInstruction: "You are a specialized Handwriting OCR and Academic Assessor. LIMITATION: Focus exclusively on text extraction from school worksheets. If the content is non-academic or inappropriate, do not process. Output format: strictly valid JSON without markdown wrapping."
@@ -78,7 +81,7 @@ export async function POST(req: Request) {
           body: JSON.stringify({
             model: "llava", // using llava for vision tasks locally
             prompt: prompt,
-            images: [base64Data],
+            images: [parsedImage.data],
             stream: false,
             format: "json"
           }),

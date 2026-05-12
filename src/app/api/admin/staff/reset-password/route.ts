@@ -64,8 +64,8 @@ export async function POST(req: Request) {
       staffCode: profile.user_code,
       staffName: profile.full_name,
       role: profile.role,
-      temporaryPassword,
-      message: "Temporary password generated. Ask the staff member to change it after login.",
+      credentialDelivery: "secure_delivery_pending",
+      message: "Temporary password generated and queued for secure delivery.",
     });
   } catch (error: unknown) {
     console.error("Staff Password Reset Error:", error);

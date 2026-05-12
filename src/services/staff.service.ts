@@ -6,7 +6,7 @@ import {
   RubricDto,
   Syllabus,
   TeacherProfile,
-  Announcement
+  Announcement,
 } from "@/types";
 import { DatabaseError, UnauthorizedError, NotFoundError } from "@/lib/errors";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { 
   FileText, 
@@ -60,8 +60,8 @@ export default function Studio() {
                 setGeneratedAssets(newHistory);
                 
                 // If an item we were actively generating completes, stop the local loader
-                const completedItem = newHistory.find((h: any) => h.id === payload.new.id && payload.new.status === 'completed');
-                if (completedItem && isProcessing) {
+                const completedItem = newHistory.find((h: any) => h.id === payload.new?.id && payload.new?.status === 'completed');
+                if (completedItem) {
                    setIsProcessing(false);
                    setActiveAssetType(null);
                 }
@@ -76,7 +76,7 @@ export default function Studio() {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [isProcessing, supabase]);
+  }, [supabase]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

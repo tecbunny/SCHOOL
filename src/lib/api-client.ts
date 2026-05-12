@@ -12,7 +12,7 @@ export class ApiError extends Error {
 
 type FetchOptions = RequestInit;
 
-export async function apiClient<T = any>(url: string, options: FetchOptions = {}): Promise<T> {
+export async function apiClient<T = unknown>(url: string, options: FetchOptions = {}): Promise<T> {
   // Enforce Client-Server architecture for Student Hub
   // If NEXT_PUBLIC_CLASS_STATION_IP is defined, route requests there.
   let targetUrl = url;

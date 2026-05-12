@@ -11,14 +11,14 @@ describe('AnalyticsService', () => {
     jest.spyOn(analyticsRepository, 'getStudentsByClass').mockResolvedValue([
       { id: 's1', full_name: 'Student 1' },
       { id: 's2', full_name: 'Student 2' }
-    ]);
+    ] as any);
 
     jest.spyOn(analyticsRepository, 'getMasteryByStudents').mockResolvedValue([
       { category: 'academic', score: 80 },
       { category: 'academic', score: 90 },
       { category: 'socio_emotional', score: 75 },
       { category: 'physical', score: 85 }
-    ]);
+    ] as any);
 
     const snapshot = await analyticsService.getClassHealthSnapshot('class-1');
 
@@ -41,7 +41,7 @@ describe('AnalyticsService', () => {
       studentCount: 150,
       paperCount: 20,
       requestCount: 5
-    });
+    } as any);
 
     const stats = await analyticsService.getGlobalStats();
 
@@ -62,7 +62,7 @@ describe('AnalyticsService', () => {
       schoolCpd: [
         { hours_logged: 2 }, { hours_logged: 3 }
       ]
-    });
+    } as any);
 
     const stats = await analyticsService.getSchoolStats('school-1');
 

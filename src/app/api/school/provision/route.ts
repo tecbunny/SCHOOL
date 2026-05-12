@@ -99,9 +99,8 @@ export async function POST(req: Request) {
       success: true, 
       schoolName, 
       principalCode,
-      temporaryPassword: generatedPassword,
       credentialDelivery: "pending",
-      message: "School provisioned successfully. Copy the temporary password now and ask the principal to change it after first login."
+      message: "School provisioned successfully. Principal credentials are queued for secure delivery."
     });
 
   } catch (error: unknown) {

@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run lint && npm run typecheck && npm run build",
+    "test": "jest --runInBand",
+    "check:rls": "node scripts/check-rls-coverage.mjs",
+    "check:security-migrations": "node scripts/check-security-migrations.mjs",
+    "check:prod-env": "node scripts/check-production-env.mjs",
+    "verify": "npm run lint && npm run typecheck && npm run check:rls && npm run check:security-migrations && npm test && npm run build",
     "test:e2e": "node scripts/smoke.mjs",
     "seed:demo": "node scripts/seed-demo.mjs"
   },
@@ -20,7 +24,7 @@
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.11.0",
-    "next": "16.2.4",
+    "next": "16.2.6",
     "pdfkit": "^0.18.0",
     "pptxgenjs": "^4.0.1",
     "qrcode.react": "^4.2.0",
@@ -28,7 +32,7 @@
     "react-dom": "19.2.5",
     "recharts": "^3.8.1",
     "uuid": "^14.0.0",
-    "vercel": "^52.0.0"
+    "vercel": "^53.4.0"
   },
   "devDependencies": {
     "@jest/globals": "^30.4.1",
@@ -45,7 +49,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/ui": "^4.1.5",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.2.6",
     "jest": "^30.3.0",
     "jsdom": "^29.1.1",
     "ts-jest": "^29.4.9",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Building2, Loader2, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Copy } from 'lucide-react';
+import { Building2, Loader2, ArrowRight, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProvisionPage() {
@@ -83,10 +83,6 @@ export default function ProvisionPage() {
     }
   };
 
-  const copyLoginDetails = (code: string, password: string) => {
-    navigator.clipboard.writeText(`Principal Login\nPR Code: ${code}\nTemporary Password: ${password}`);
-  };
-
   return (
     <div className="min-h-screen bg-[var(--bg-dark)] flex items-center justify-center p-6">
       <div className="glass-panel w-full max-w-md p-8">
@@ -109,16 +105,9 @@ export default function ProvisionPage() {
             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-left mb-8">
               <p className="text-[10px] text-muted uppercase tracking-widest mb-1">Principal Login Code</p>
               <p className="text-xl font-mono text-primary font-bold">{result.principalCode}</p>
-              <p className="text-[10px] text-muted uppercase tracking-widest mt-5 mb-1">Temporary Password</p>
-              <p className="text-lg font-mono text-secondary font-bold break-all">{result.temporaryPassword}</p>
-              <button
-                type="button"
-                onClick={() => copyLoginDetails(result.principalCode, result.temporaryPassword)}
-                className="btn btn-outline w-full mt-5 justify-center"
-              >
-                <Copy className="w-4 h-4" /> Copy Login Details
-              </button>
-              <p className="text-[10px] text-muted mt-4">Show this once to the principal and ask them to change it after first login.</p>
+              <p className="text-[10px] text-muted uppercase tracking-widest mt-5 mb-1">Credential Delivery</p>
+              <p className="text-sm text-secondary font-bold">{result.credentialDelivery || 'pending'}</p>
+              <p className="text-[10px] text-muted mt-4">Principal credentials are queued for the configured secure delivery channel.</p>
             </div>
 
             <Link href="/admin/dashboard" className="btn btn-primary w-full py-4 justify-center">
@@ -211,15 +200,9 @@ export default function ProvisionPage() {
               )}
               {resetResult && (
                 <div className="bg-secondary/10 border border-secondary/20 p-4 rounded-xl">
-                  <p className="text-[10px] text-muted uppercase tracking-widest">Temporary Password</p>
-                  <p className="text-secondary font-mono font-bold break-all mt-1">{resetResult.temporaryPassword}</p>
-                  <button
-                    type="button"
-                    onClick={() => copyLoginDetails(resetResult.principalCode, resetResult.temporaryPassword)}
-                    className="btn btn-outline w-full mt-4 justify-center"
-                  >
-                    <Copy className="w-4 h-4" /> Copy Login Details
-                  </button>
+                  <p className="text-[10px] text-muted uppercase tracking-widest">Reset Queued</p>
+                  <p className="text-secondary font-bold mt-1">{resetResult.credentialDelivery || 'secure_delivery_pending'}</p>
+                  <p className="text-[10px] text-muted mt-2">Temporary credentials are not shown in the browser. Use the configured secure delivery channel.</p>
                 </div>
               )}
               <button type="submit" className="btn btn-outline w-full justify-center" disabled={resetLoading}>

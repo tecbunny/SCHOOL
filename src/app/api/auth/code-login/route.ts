@@ -3,7 +3,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { getSupabasePublishableKey, getSupabaseUrl } from '@/lib/supabase-env';
-import { type UserRole } from '@/lib/constants';
+import { isUserRole, type UserRole } from '@/lib/constants';
 import { isRateLimited } from '@/lib/rate-limit';
 import { AppError } from "@/lib/errors";
 
@@ -15,6 +15,13 @@ type LoginBody = {
 };
 
 const normalizeCode = (code: string) => code.trim().toUpperCase();
+const SCHOOL_CODE_PATTERN = /^SCH[A-Z0-9]{3,12}$/;
+
+function normalizeAllowedRoles(value: unknown): UserRole[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 4 || !value.every(isUserRole)) return null;
+  return [...new Set(value)];
+}
 
 export async function POST(req: Request) {
     try {
@@ -28,10 +35,21 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Supabase authentication is not configured.' }, { status: 500 });
       }
     const body = (await req.json()) as LoginBody;
-    const code = body.code ? normalizeCode(body.code) : '';
-    const password = body.password ?? '';
+    const code = typeof body.code === 'string' ? normalizeCode(body.code) : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const allowedRoles = normalizeAllowedRoles(body.allowedRoles);
     if (!code || !password) {
         return NextResponse.json({ error: 'System Identifier and Security Key are required.' }, { status: 400 });
+      }
+    if (code.length > 64 || password.length > 256) {
+        return NextResponse.json({ error: 'Invalid User Code or Password.' }, { status: 401 });
+      }
+    if (allowedRoles === null) {
+        return NextResponse.json({ error: 'Invalid login portal role request.' }, { status: 400 });
+      }
+    const schoolCode = body.schoolCode?.trim().toUpperCase();
+    if (schoolCode && !SCHOOL_CODE_PATTERN.test(schoolCode)) {
+        return NextResponse.json({ error: 'Invalid school code.' }, { status: 400 });
       }
     const serviceClient = createServiceClient(supabaseUrl, serviceRoleKey, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -44,11 +62,13 @@ export async function POST(req: Request) {
     if (profileError || !profile) {
         return NextResponse.json({ error: 'Invalid User Code or Password.' }, { status: 401 });
       }
-    const role = profile.role as UserRole;
-    if (body.allowedRoles?.length && !body.allowedRoles.includes(role)) {
+    if (!isUserRole(profile.role)) {
+        return NextResponse.json({ error: 'Account role is not supported.' }, { status: 403 });
+      }
+    const role = profile.role;
+    if (allowedRoles.length && !allowedRoles.includes(role)) {
         return NextResponse.json({ error: 'Access denied for this login portal.' }, { status: 403 });
       }
-    const schoolCode = body.schoolCode?.trim().toUpperCase();
     const profileSchool = Array.isArray(profile.schools) ? profile.schools[0] : profile.schools;
     if (schoolCode && role !== 'admin' && profileSchool?.school_code !== schoolCode) {
         return NextResponse.json({ error: 'This account does not belong to the selected school.' }, { status: 403 });

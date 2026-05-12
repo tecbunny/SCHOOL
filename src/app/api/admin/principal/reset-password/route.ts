@@ -69,8 +69,8 @@ export async function POST(req: Request) {
       success: true,
       principalCode: profile.user_code,
       principalName: profile.full_name,
-      temporaryPassword,
-      message: "Temporary password generated. Ask the principal to change it after login.",
+      credentialDelivery: "secure_delivery_pending",
+      message: "Temporary password generated and queued for secure delivery.",
     });
   } catch (error: unknown) {
     console.error("Principal Password Reset Error:", error);

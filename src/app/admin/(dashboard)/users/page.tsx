@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Search, Filter, UserPlus, Mail, ShieldCheck, MoreVertical, Loader2, X, KeyRound, Copy, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Users, Search, Filter, UserPlus, Mail, ShieldCheck, MoreVertical, Loader2, X, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
@@ -31,7 +31,7 @@ export default function UsersPage() {
   const [authorizationLoading, setAuthorizationLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [authorizationCode, setAuthorizationCode] = useState('');
-  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [resetDeliveryStatus, setResetDeliveryStatus] = useState('');
   const [resetError, setResetError] = useState('');
 
   useEffect(() => {
@@ -70,14 +70,14 @@ export default function UsersPage() {
   const openStaffReset = (user: AdminUser) => {
     setSelectedStaff(user);
     setAuthorizationCode('');
-    setTemporaryPassword('');
+    setResetDeliveryStatus('');
     setResetError('');
   };
 
   const generateAuthorizationCode = async () => {
     setAuthorizationLoading(true);
     setResetError('');
-    setTemporaryPassword('');
+    setResetDeliveryStatus('');
 
     try {
       const response = await fetch('/api/admin/authorization-code', { method: 'POST' });
@@ -95,7 +95,7 @@ export default function UsersPage() {
     if (!selectedStaff || !authorizationCode) return;
     setResetLoading(true);
     setResetError('');
-    setTemporaryPassword('');
+    setResetDeliveryStatus('');
 
     try {
       const response = await fetch('/api/admin/staff/reset-password', {
@@ -108,17 +108,12 @@ export default function UsersPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Password reset failed');
-      setTemporaryPassword(data.temporaryPassword);
+      setResetDeliveryStatus(data.credentialDelivery || 'secure_delivery_pending');
     } catch (err: unknown) {
       setResetError(err instanceof Error ? err.message : 'Password reset failed');
     } finally {
       setResetLoading(false);
     }
-  };
-
-  const copyLoginDetails = () => {
-    if (!selectedStaff || !temporaryPassword) return;
-    navigator.clipboard.writeText(`Staff Login\nStaff Code: ${selectedStaff.user_code}\nTemporary Password: ${temporaryPassword}`);
   };
 
   return (
@@ -268,15 +263,13 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {temporaryPassword && (
+              {resetDeliveryStatus && (
                 <div className="bg-success/10 border border-success/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 text-success text-xs font-bold uppercase tracking-widest mb-2">
-                    <CheckCircle2 className="w-4 h-4" /> Temporary Password
+                    <CheckCircle2 className="w-4 h-4" /> Reset Queued
                   </div>
-                  <p className="text-secondary font-mono font-bold break-all">{temporaryPassword}</p>
-                  <button type="button" onClick={copyLoginDetails} className="btn btn-outline w-full justify-center mt-4">
-                    <Copy className="w-4 h-4" /> Copy Login Details
-                  </button>
+                  <p className="text-secondary font-bold">{resetDeliveryStatus}</p>
+                  <p className="text-[10px] text-muted mt-2">Temporary credentials are not shown in the browser. Use the configured secure delivery channel.</p>
                 </div>
               )}
             </div>

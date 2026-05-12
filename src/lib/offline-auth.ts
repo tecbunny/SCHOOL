@@ -1,6 +1,11 @@
 import jwt from "jsonwebtoken";
+import { getRequiredSecret } from "./secrets";
 
-const OFFLINE_AUTH_SECRET = process.env.OFFLINE_AUTH_SECRET || "default-offline-secret-key-for-local-dev";
+function getOfflineAuthSecret() {
+  if (process.env.OFFLINE_AUTH_SECRET) return process.env.OFFLINE_AUTH_SECRET;
+  if (process.env.NODE_ENV !== "production") return "default-offline-secret-key-for-local-dev";
+  return getRequiredSecret("OFFLINE_AUTH_SECRET");
+}
 
 export type OfflineTokenPayload = {
   sub: string;
@@ -23,7 +28,7 @@ export function generateOfflineToken(user: { id: string; role: string; school_id
     exp: Math.floor(Date.now() / 1000) + (expiresInDays * 24 * 60 * 60)
   };
 
-  return jwt.sign(payload, OFFLINE_AUTH_SECRET);
+  return jwt.sign(payload, getOfflineAuthSecret());
 }
 
 /**
@@ -31,7 +36,7 @@ export function generateOfflineToken(user: { id: string; role: string; school_id
  */
 export function validateOfflineToken(token: string): OfflineTokenPayload | null {
   try {
-    const decoded = jwt.verify(token, OFFLINE_AUTH_SECRET) as OfflineTokenPayload;
+    const decoded = jwt.verify(token, getOfflineAuthSecret()) as OfflineTokenPayload;
     return decoded;
   } catch {
     return null;
