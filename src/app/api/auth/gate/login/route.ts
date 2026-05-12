@@ -2,17 +2,12 @@ import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { GateJwtPayload } from "@/lib/constants";
-import { errorMessage } from "@/lib/api-auth";
 import { AppError } from "@/lib/errors";
-
-const GATE_SECRET = process.env.GATE_AUTH_SECRET;
+import { getRequiredSecret } from "@/lib/secrets";
 
 export async function POST(req: Request) {
   try {
-    if (!GATE_SECRET) {
-      console.error("GATE_AUTH_SECRET is not configured in environment variables.");
-      return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
-    }
+    const gateSecret = getRequiredSecret("GATE_AUTH_SECRET");
     const body = await req.json();
     const { token, deviceId } = body;
 
@@ -23,7 +18,7 @@ export async function POST(req: Request) {
     // 1. Verify the JWT
     let decoded: GateJwtPayload;
     try {
-      decoded = jwt.verify(token, GATE_SECRET) as GateJwtPayload;
+      decoded = jwt.verify(token, gateSecret) as GateJwtPayload;
     } catch {
       return NextResponse.json({ error: "Token expired or tampered with." }, { status: 401 });
     }

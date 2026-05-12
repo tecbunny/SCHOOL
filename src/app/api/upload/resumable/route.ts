@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { requireUser } from '@/lib/api-auth';
 
 const UPLOAD_DIR = path.join(os.tmpdir(), 'eduportal_uploads');
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -18,21 +21,35 @@ function getUploadMetadataPath(uploadId: string) {
   return path.join(UPLOAD_DIR, `${uploadId}.meta`);
 }
 
+function isValidUploadId(uploadId: string | null): uploadId is string {
+  return Boolean(uploadId && UUID_PATTERN.test(uploadId));
+}
+
+function parseUploadSize(value: string | null) {
+  if (!value) return null;
+  const size = Number(value);
+  if (!Number.isSafeInteger(size) || size <= 0 || size > MAX_UPLOAD_BYTES) return null;
+  return size;
+}
+
 // POST: Initialize upload session
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireUser(["admin", "principal", "teacher", "moderator", "student"]);
+    if (!auth.ok) return auth.response;
+
     const uploadId = crypto.randomUUID();
     const filePath = getUploadFilePath(uploadId);
     const metaPath = getUploadMetadataPath(uploadId);
 
-    const expectedSize = req.headers.get('Upload-Length');
+    const expectedSize = parseUploadSize(req.headers.get('Upload-Length'));
     if (!expectedSize) {
-      return NextResponse.json({ error: 'Upload-Length header is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Upload-Length must be a positive integer up to 10MB' }, { status: 400 });
     }
 
     // Initialize empty file and metadata
     fs.writeFileSync(filePath, '');
-    fs.writeFileSync(metaPath, JSON.stringify({ expectedSize: parseInt(expectedSize, 10), currentOffset: 0 }));
+    fs.writeFileSync(metaPath, JSON.stringify({ expectedSize, currentOffset: 0 }));
 
     return NextResponse.json({ uploadId }, { 
       status: 201,
@@ -40,17 +57,20 @@ export async function POST(req: NextRequest) {
         'Location': `/api/upload/resumable?uploadId=${uploadId}`
       }
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 // HEAD: Get current upload offset
 export async function HEAD(req: NextRequest) {
+  const auth = await requireUser(["admin", "principal", "teacher", "moderator", "student"]);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const uploadId = searchParams.get('uploadId');
 
-  if (!uploadId) {
+  if (!isValidUploadId(uploadId)) {
     return new NextResponse(null, { status: 400 });
   }
 
@@ -73,15 +93,21 @@ export async function HEAD(req: NextRequest) {
 
 // PATCH: Upload chunk
 export async function PATCH(req: NextRequest) {
+  const auth = await requireUser(["admin", "principal", "teacher", "moderator", "student"]);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const uploadId = searchParams.get('uploadId');
   const uploadOffsetStr = req.headers.get('Upload-Offset');
 
-  if (!uploadId || !uploadOffsetStr) {
+  if (!isValidUploadId(uploadId) || !uploadOffsetStr) {
     return NextResponse.json({ error: 'Missing uploadId or Upload-Offset' }, { status: 400 });
   }
 
-  const uploadOffset = parseInt(uploadOffsetStr, 10);
+  const uploadOffset = Number(uploadOffsetStr);
+  if (!Number.isSafeInteger(uploadOffset) || uploadOffset < 0) {
+    return NextResponse.json({ error: 'Upload-Offset must be a non-negative integer' }, { status: 400 });
+  }
   const filePath = getUploadFilePath(uploadId);
   const metaPath = getUploadMetadataPath(uploadId);
 
@@ -99,6 +125,10 @@ export async function PATCH(req: NextRequest) {
     const arrayBuffer = await req.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    if (meta.currentOffset + buffer.length > meta.expectedSize) {
+      return NextResponse.json({ error: 'Chunk exceeds declared upload size' }, { status: 413 });
+    }
+
     fs.appendFileSync(filePath, buffer);
 
     meta.currentOffset += buffer.length;
@@ -112,13 +142,13 @@ export async function PATCH(req: NextRequest) {
        // fs.unlinkSync(metaPath);
     }
 
-    return NextResponse.json({ success: true, offset: meta.currentOffset }, {
+    return new NextResponse(null, {
       status: 204,
       headers: {
         'Upload-Offset': meta.currentOffset.toString()
       }
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

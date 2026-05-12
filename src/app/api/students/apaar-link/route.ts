@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-import { errorMessage, requireUser } from "@/lib/api-auth";
+import { errorMessage, getServiceClient, requireUser } from "@/lib/api-auth";
 
 type ApaarLinkRequest = {
   profileId?: string;
@@ -26,7 +27,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data, error } = await auth.context.supabase.rpc("link_student_profile_to_apaar", {
+    const { data: targetProfile, error: targetProfileError } = await auth.context.supabase
+      .from("profiles")
+      .select("id, role, school_id")
+      .eq("id", body.profileId)
+      .single();
+
+    if (targetProfileError || !targetProfile || targetProfile.role !== "student") {
+      return NextResponse.json({ error: "Student profile not found." }, { status: 404 });
+    }
+
+    if (
+      auth.context.profile.role === "principal" &&
+      targetProfile.school_id !== auth.context.profile.school_id
+    ) {
+      return NextResponse.json({ error: "Cannot link a student outside your school." }, { status: 403 });
+    }
+
+    const service = getServiceClient();
+    const serviceSupabase = createClient(service.url, service.key, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data, error } = await serviceSupabase.rpc("link_student_profile_to_apaar", {
       p_profile_id: body.profileId,
       p_abc_apaar_id: body.abcApaarId,
       p_first_name: body.firstName,

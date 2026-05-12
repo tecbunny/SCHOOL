@@ -7,6 +7,7 @@ import {
   type EduOsDeviceRole,
 } from "@/lib/eduos-station-config";
 import { AppError } from "@/lib/errors";
+import { safeSecretEquals } from "@/lib/secrets";
 
 export const runtime = "nodejs";
 
@@ -42,11 +43,7 @@ export async function POST(req: Request) {
         deviceRole?: unknown;
         provisioningSecret?: unknown;
       };
-    if (
-        typeof body.provisioningSecret !== "string" ||
-        !process.env.HARDWARE_PROVISIONING_SECRET ||
-        body.provisioningSecret !== process.env.HARDWARE_PROVISIONING_SECRET
-      ) {
+    if (!safeSecretEquals(body.provisioningSecret, process.env.HARDWARE_PROVISIONING_SECRET)) {
         return NextResponse.json({ error: "Invalid provisioning secret." }, { status: 401 });
       }
     if (typeof body.schoolCode !== "string" || !/^SCH[A-Z0-9]{3,12}$/i.test(body.schoolCode.trim())) {

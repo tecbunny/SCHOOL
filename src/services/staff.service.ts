@@ -4,11 +4,9 @@ import {
   PostAnnouncementDto, 
   BiometricLogDto, 
   RubricDto,
-  Material,
   Syllabus,
   TeacherProfile,
   Announcement,
-  Attendance
 } from "@/types";
 import { DatabaseError, UnauthorizedError, NotFoundError } from "@/lib/errors";
 

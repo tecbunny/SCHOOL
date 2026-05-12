@@ -10,11 +10,9 @@ export class ApiError extends Error {
   }
 }
 
-interface FetchOptions extends RequestInit {
-  // Add any custom options here
-}
+type FetchOptions = RequestInit;
 
-export async function apiClient<T = any>(url: string, options: FetchOptions = {}): Promise<T> {
+export async function apiClient<T = unknown>(url: string, options: FetchOptions = {}): Promise<T> {
   // Enforce Client-Server architecture for Student Hub
   // If NEXT_PUBLIC_CLASS_STATION_IP is defined, route requests there.
   let targetUrl = url;
@@ -34,7 +32,7 @@ export async function apiClient<T = any>(url: string, options: FetchOptions = {}
     let errorData;
     try {
       errorData = await response.json();
-    } catch (e) {
+    } catch {
       // Not JSON
       throw new ApiError('An unexpected error occurred', 'UNKNOWN_ERROR', response.status);
     }

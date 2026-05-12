@@ -2,14 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 import { createPublicKey } from "crypto";
 import { NextResponse } from "next/server";
 
-import { errorMessage, getServiceClient } from "@/lib/api-auth";
+import { getServiceClient } from "@/lib/api-auth";
 import { AppError } from "@/lib/errors";
+import { safeSecretEquals } from "@/lib/secrets";
 
 export async function POST(req: Request) {
   try {
     const { nodeId, publicKeyPem, secretKey } = await req.json();
 
-    if (!process.env.HARDWARE_PROVISIONING_SECRET || secretKey !== process.env.HARDWARE_PROVISIONING_SECRET) {
+    if (!safeSecretEquals(secretKey, process.env.HARDWARE_PROVISIONING_SECRET)) {
       return NextResponse.json({ error: "Invalid provisioning secret." }, { status: 401 });
     }
 

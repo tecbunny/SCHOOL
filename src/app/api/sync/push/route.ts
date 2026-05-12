@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const auth = await requireUser(["admin", "principal", "teacher", "moderator", "student"]);
     if (!auth.ok) return auth.response;
 
-    let rawBody = await req.arrayBuffer();
+    const rawBody = await req.arrayBuffer();
     const encoding = req.headers.get("content-encoding");
 
     let payloadString = "";
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     const payload = JSON.parse(payloadString);
-    const { table, id, changes, _version_vector: edgeVector, updated_at: edgeUpdatedAt, role: edgeRole } = payload;
+    const { table, id, changes, _version_vector: edgeVector, updated_at: edgeUpdatedAt } = payload;
 
     if (!table || !id || !changes || !edgeVector || !edgeUpdatedAt) {
       return NextResponse.json({ error: "Missing required sync fields" }, { status: 400 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-import { errorMessage, requireUser } from "@/lib/api-auth";
+import { errorMessage, getServiceClient, requireUser } from "@/lib/api-auth";
 import { appendOfflineEvent, type OfflineEventInput } from "@/lib/offline-events";
 
 const MAX_BATCH_SIZE = 250;
@@ -44,6 +45,11 @@ export async function POST(req: Request) {
     const auth = await requireUser(["principal", "teacher", "moderator", "student"]);
     if (!auth.ok) return auth.response;
 
+    const service = getServiceClient();
+    const serviceSupabase = createClient(service.url, service.key, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
     const body = (await req.json()) as SyncRequest;
     const events = body.events ?? [];
 
@@ -70,7 +76,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Events can only be synced for the actor's school." }, { status: 403 });
       }
 
-      accepted.push(await appendOfflineEvent(auth.context.supabase, normalizeExamSubmission(event)));
+      accepted.push(await appendOfflineEvent(serviceSupabase, normalizeExamSubmission(event)));
     }
 
     return NextResponse.json({ accepted });

@@ -1,18 +1,15 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { errorMessage } from "@/lib/api-auth";
 import { AppError } from "@/lib/errors";
-
-const GATE_SECRET = process.env.GATE_AUTH_SECRET;
+import { getRequiredSecret, safeSecretEquals } from "@/lib/secrets";
 
 export async function POST(req: Request) {
   try {
-    if (!GATE_SECRET) {
-      return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
-    }
+    const gateSecret = getRequiredSecret("GATE_AUTH_SECRET");
+    const stationGateSecret = getRequiredSecret("GATE_STATION_SECRET");
     const stationSecret = req.headers.get("x-station-secret");
-    if (!process.env.GATE_STATION_SECRET || stationSecret !== process.env.GATE_STATION_SECRET) {
+    if (!safeSecretEquals(stationSecret, stationGateSecret)) {
       return NextResponse.json({ error: "Unauthorized station." }, { status: 401 });
     }
 
@@ -45,7 +42,7 @@ export async function POST(req: Request) {
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 60 // 60s expiry
       }, 
-      GATE_SECRET
+      gateSecret
     );
 
     // 3. Log the "Morning Handshake" for attendance automation

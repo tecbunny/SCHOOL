@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { loggerService, logger } from '../logger.service';
+import { logger } from '../logger.service';
 import { loggerRepository } from '../../repositories/logger.repository';
 
 describe('LoggerService', () => {

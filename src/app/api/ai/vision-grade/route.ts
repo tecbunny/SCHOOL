@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { requireClassStation } from "@/lib/device-context";
 import { isRateLimited } from "@/lib/rate-limit";
+import { parseDataImage } from "@/lib/data-image";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MAX_IMAGE_CHARS = 5_000_000;
 
 type GradeEvaluation = {
@@ -50,8 +50,9 @@ export async function POST(req: Request) {
     if (stationError) return stationError;
 
     const { image, rubric, context } = await req.json();
+    const parsedImage = parseDataImage(image, MAX_IMAGE_CHARS);
 
-    if (typeof image !== "string" || !image.startsWith("data:image/") || image.length > MAX_IMAGE_CHARS) {
+    if (!parsedImage) {
       return NextResponse.json({ error: "A valid worksheet image under 5MB is required." }, { status: 400 });
     }
 
@@ -59,10 +60,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Rubric is required." }, { status: 400 });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
       return NextResponse.json({ error: "AI Service configuration missing" }, { status: 500 });
     }
 
+    const genAI = new GoogleGenerativeAI(apiKey);
     // 1. Initialize Gemini 1.5 Flash for vision tasks with limitations
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
@@ -97,8 +100,8 @@ export async function POST(req: Request) {
     // 3. Process the Base64 Image
     const imageData = {
       inlineData: {
-        data: image.split(",")[1], // Strip the data:image/jpeg;base64 prefix
-        mimeType: "image/jpeg",
+        data: parsedImage.data,
+        mimeType: parsedImage.mimeType,
       },
     };
 

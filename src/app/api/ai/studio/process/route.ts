@@ -1,17 +1,24 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/api-auth';
+import { safeSecretEquals } from '@/lib/secrets';
 
 // Simulated Edge Processor
 export async function POST(req: Request) {
   try {
+    const processSecret = process.env.STUDIO_PROCESS_SECRET;
+    const requestSecret = req.headers.get('x-studio-process-secret');
+
+    if (!safeSecretEquals(requestSecret, processSecret)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { generation_id } = await req.json();
     if (!generation_id) return NextResponse.json({ error: 'Missing generation_id' }, { status: 400 });
 
     // Use service role for backend processing to bypass RLS during processing
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const service = getServiceClient();
+    const supabase = createClient(service.url, service.key);
 
     // Update status to processing
     await supabase

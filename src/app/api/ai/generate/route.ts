@@ -123,8 +123,7 @@ export async function POST(req: Request) {
     } catch {
       console.error("AI JSON Parse Error:", text);
       return NextResponse.json({
-        error: "Failed to parse AI response. The model may have returned malformed data.",
-        raw: text
+        error: "Failed to parse AI response. The model may have returned malformed data."
       }, { status: 502 });
     }
 
