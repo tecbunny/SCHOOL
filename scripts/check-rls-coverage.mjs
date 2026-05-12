@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const sources = [
-  path.join(root, 'combined_setup.sql'),
+  path.join(root, 'supabase/maintenance/combined_setup.sql'),
   ...readdirSync(path.join(root, 'supabase/migrations'))
     .filter((file) => file.endsWith('.sql'))
     .map((file) => path.join(root, 'supabase/migrations', file)),
