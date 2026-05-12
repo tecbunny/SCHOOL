@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    let type = formData.get('type') as string;
+    const type = formData.get('type') as string;
 
     if (!file || !type) {
       return NextResponse.json({ error: 'Missing file or asset type' }, { status: 400 });

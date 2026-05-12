@@ -33,7 +33,7 @@ export function validateOfflineToken(token: string): OfflineTokenPayload | null 
   try {
     const decoded = jwt.verify(token, OFFLINE_AUTH_SECRET) as OfflineTokenPayload;
     return decoded;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

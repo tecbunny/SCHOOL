@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-import { errorMessage, getServiceClient, requireUser } from "@/lib/api-auth";
+import { getServiceClient, requireUser } from "@/lib/api-auth";
 import { requireClassStation } from "@/lib/device-context";
 import { markGenerationProcessing } from "@/lib/generation-queue";
 import { verifySignedHardwareRequest } from "@/lib/hardware-auth";

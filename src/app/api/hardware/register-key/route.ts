@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createPublicKey } from "crypto";
 import { NextResponse } from "next/server";
 
-import { errorMessage, getServiceClient } from "@/lib/api-auth";
+import { getServiceClient } from "@/lib/api-auth";
 import { AppError } from "@/lib/errors";
 
 export async function POST(req: Request) {

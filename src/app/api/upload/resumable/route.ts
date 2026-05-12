@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         'Location': `/api/upload/resumable?uploadId=${uploadId}`
       }
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -118,7 +118,7 @@ export async function PATCH(req: NextRequest) {
         'Upload-Offset': meta.currentOffset.toString()
       }
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

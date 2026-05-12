@@ -20,7 +20,7 @@ export function SharedDeviceLogin() {
       
       alert(`Student ${studentId} logged in successfully on this shared hub.`);
       // Redirect or load student profile context
-    } catch (error) {
+    } catch {
       alert('Login failed. Please verify your Student ID and PIN.');
     } finally {
       setLoading(false);

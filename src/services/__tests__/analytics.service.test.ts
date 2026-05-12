@@ -2,34 +2,18 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { analyticsService } from '../analytics.service';
 import { analyticsRepository } from '../../repositories/analytics.repository';
 
-jest.mock('../../repositories/analytics.repository', () => ({
-  analyticsRepository: {
-    getStudentsByClass: jest.fn(),
-    getMasteryByStudents: jest.fn(),
-    getHardwareFleetStatus: jest.fn(),
-    triggerOtaUpdate: jest.fn(),
-    getGlobalStatsData: jest.fn(),
-    getSchoolStatsData: jest.fn(),
-    getTeacherStatsData: jest.fn(),
-    getAnnouncements: jest.fn(),
-    getTimetable: jest.fn(),
-    getMaterials: jest.fn(),
-    getStudentStatsData: jest.fn()
-  }
-}));
-
 describe('AnalyticsService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('getClassHealthSnapshot calculates correct averages', async () => {
-    (analyticsRepository.getStudentsByClass as jest.Mock<any>).mockResolvedValue([
+    jest.spyOn(analyticsRepository, 'getStudentsByClass').mockResolvedValue([
       { id: 's1', full_name: 'Student 1' },
       { id: 's2', full_name: 'Student 2' }
     ]);
 
-    (analyticsRepository.getMasteryByStudents as jest.Mock<any>).mockResolvedValue([
+    jest.spyOn(analyticsRepository, 'getMasteryByStudents').mockResolvedValue([
       { category: 'academic', score: 80 },
       { category: 'academic', score: 90 },
       { category: 'socio_emotional', score: 75 },
@@ -48,7 +32,7 @@ describe('AnalyticsService', () => {
   });
 
   it('getGlobalStats returns expected aggregations', async () => {
-    (analyticsRepository.getGlobalStatsData as jest.Mock<any>).mockResolvedValue({
+    jest.spyOn(analyticsRepository, 'getGlobalStatsData').mockResolvedValue({
       schools: [
         { id: '1', plan_type: 'premium', status: 'active' },
         { id: '2', plan_type: 'basic', status: 'active' },
@@ -69,7 +53,7 @@ describe('AnalyticsService', () => {
   });
 
   it('getSchoolStats processes attendance and cpd correctly', async () => {
-    (analyticsRepository.getSchoolStatsData as jest.Mock<any>).mockResolvedValue({
+    jest.spyOn(analyticsRepository, 'getSchoolStatsData').mockResolvedValue({
       studentCount: 100,
       staffCount: 10,
       attendance: [

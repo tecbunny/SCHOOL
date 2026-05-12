@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { errorMessage } from "@/lib/api-auth";
 import { AppError } from "@/lib/errors";
 
 const GATE_SECRET = process.env.GATE_AUTH_SECRET;

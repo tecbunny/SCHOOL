@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 import { 
   FileText, 
@@ -21,8 +21,7 @@ export default function Studio() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedAssets, setGeneratedAssets] = useState<any[]>([]);
   const [activeAssetType, setActiveAssetType] = useState<string | null>(null);
-  const supabase = createClient();
-  const [userId, setUserId] = useState<string | null>(null);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     let channel: any;
@@ -30,7 +29,6 @@ export default function Studio() {
     const setupRealtime = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      setUserId(user.id);
 
       // Fetch initial history
       const { data: history } = await supabase
@@ -78,7 +76,7 @@ export default function Studio() {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isProcessing, supabase]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
